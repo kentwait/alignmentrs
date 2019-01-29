@@ -3,7 +3,7 @@ from libalignmentrs import marker as libmarker
 from libalignmentrs.sequence import Sequence
 from libalignmentrs.marker import Marker
 from alignmentrs.alignment import AlignmentMatrix, Alignment
-from alignmentrs.fasta import fasta_file_to_list, fasta_file_to_alignment
+from alignmentrs.alignment import fasta_file_to_list, fasta_file_to_alignment
 
 __author__ = 'Kent Kawashima'
 __version__ = '0.2.0'
