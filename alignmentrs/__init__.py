@@ -6,7 +6,7 @@ from alignmentrs.alignment import AlignmentMatrix, Alignment
 from alignmentrs.alignment import fasta_file_to_list, fasta_file_to_alignment
 
 __author__ = 'Kent Kawashima'
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __all__ = ['libalignment', 'libsequence', 'Sequence', 'Marker',
            'AlignmentMatrix', 'Alignment',
            'fasta_file_to_list', 'fasta_file_to_alignment']
