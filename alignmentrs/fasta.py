@@ -54,6 +54,17 @@ def fasta_file_to_list(path, marker_kw=None):
 def fasta_file_to_alignment(path, marker_kw=None,
                             sample_to_uint_fn=None, uint_to_sample_fn=None,
                             marker_to_uint_fn=None, uint_to_marker_fn=None):
+    """Reads a FASTA formatted text file into an Alignment object.
+
+    Parameters
+    ----------
+    path : str
+
+    Returns
+    -------
+    list of tuple
+
+    """
     return Alignment.from_fasta(path, marker_kw,
                                 sample_to_uint_fn, uint_to_sample_fn,
                                 marker_to_uint_fn, uint_to_marker_fn)
