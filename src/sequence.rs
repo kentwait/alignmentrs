@@ -6,7 +6,7 @@ use std::io::Write;
 
 #[pyclass]
 // #[derive(Copy, Clone)]
-/// Sequence(sequence_id, sequence_description, sequence_str)
+/// Sequence(id, description, sequence_str)
 /// 
 /// Sequence represents a single biological sequence.
 pub struct Sequence {
@@ -18,7 +18,7 @@ pub struct Sequence {
     pub description: String,
     
     #[prop(get)]
-    pub sequence_str: String,
+    pub sequence: String,
 
 }
 
@@ -33,9 +33,13 @@ impl Sequence {
             Sequence {
                 id: id.to_string(),
                 description: description.to_string(),
-                sequence_str: sequence_str.to_string(),
+                sequence: sequence_str.to_string(),
             }
         })
+    }
+    fn sequence_to_uint32(&self) -> Vec<i32> {
+        let uints: Vec<i32> = self.sequence.chars().map(|x| {x as usize} as i32 ).collect();
+        uints
     }
 }
 
@@ -43,7 +47,7 @@ impl Sequence {
 #[pyproto]
 impl PyObjectProtocol for Sequence {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("Sequence(id={id}, description={desc}, len={seq_len})", id=self.id, desc=self.description, seq_len=self.sequence_str.len()))
+        Ok(format!("Sequence(id={id}, description={desc}, len={seq_len})", id=self.id, desc=self.description, seq_len=self.sequence.len()))
     }
 
     fn __str__(&self) -> PyResult<String> {
@@ -51,11 +55,11 @@ impl PyObjectProtocol for Sequence {
             return Ok(format!(">{id} {desc}\n{seq_len}",
                 id=self.id,
                 desc=self.description,
-                seq_len=self.sequence_str.len()))
+                seq_len=self.sequence.len()))
         }
         return Ok(format!(">{id}\n{seq_len}",
                 id=self.id,
-                seq_len=self.sequence_str.len()))        
+                seq_len=self.sequence.len()))        
     }
 }
 
