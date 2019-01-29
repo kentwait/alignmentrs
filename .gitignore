@@ -173,3 +173,6 @@ Cargo.lock
 .history
 
 # End of https://www.gitignore.io/api/rust,macos,python,visualstudiocode
+
+# Ignores .cargo/config which is specific to MacOS
+/.cargo/config
