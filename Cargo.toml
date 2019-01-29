@@ -1,7 +1,13 @@
 [package]
 name = "alignmentrs"
 version = "0.1.0"
-authors = ["kent <kentkawashima@gmail.com>"]
-edition = "2018"
+authors = ["Kent Kawashima <kentkawashima@gmail.com>"]
+edition = "2019"
 
-[dependencies]
+[lib]
+name = "libalignmentrs"
+crate-type = ["cdylib"]
+
+[dependencies.pyo3]
+version = "0.5"
+features = ["extension-module"]
