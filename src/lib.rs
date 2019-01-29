@@ -2,6 +2,7 @@
 
 #[macro_use]
 extern crate pyo3;
+// extern crate numpy;
 
 pub mod alignment;
 pub mod sequence;
