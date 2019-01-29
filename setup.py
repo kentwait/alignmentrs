@@ -20,9 +20,9 @@ setuptools.setup(
     ],
     keywords=['block', 'alignment', 'bioinformatics'],
     rust_extensions=[
-        RustExtension('libalignmentrs.alignment',
-                      'Cargo.toml', binding=Binding.PyO3),
         RustExtension('libalignmentrs.sequence',
+                      'Cargo.toml', binding=Binding.PyO3),
+        RustExtension('libalignmentrs.marker',
                       'Cargo.toml', binding=Binding.PyO3),
     ],
     packages=['alignmentrs'],
