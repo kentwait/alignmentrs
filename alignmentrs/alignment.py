@@ -87,7 +87,7 @@ class AlignmentMatrix(object):
 
         """
         if rows is None:
-            rows = range(0, aln_matrix.nsites, row_step)
+            rows = range(0, aln_matrix.nsamples, row_step)
         else:
             if isinstance(rows, int):
                 rows = [rows]
@@ -95,7 +95,7 @@ class AlignmentMatrix(object):
                 raise ValueError('row_step value is considered only if rows ' \
                                  'is None')
         if cols is None:
-            cols = range(0, aln_matrix.nsamples, col_step)
+            cols = range(0, aln_matrix.nsites, col_step)
         else:
             if isinstance(cols, int):
                 cols = [cols]
@@ -252,7 +252,7 @@ class AlignmentMatrix(object):
         """
         if isinstance(i, int):
             i = [i]
-        translated_g = (self.from_uint_fn(row) for row in self.matrix[i, :])
+        translated_g = (self.from_uint_fn(row) for row in self.matrix[:, i])
         return [''.join(trans) for trans in translated_g]
 
     def replace_site(self, i, sequence_str):
@@ -361,7 +361,7 @@ class BaseAlignment(AlignmentMatrix):
 
         """
         if rows is None:
-            rows = range(0, aln.nsites, row_step)
+            rows = range(0, aln.nsamples, row_step)
         else:
             if isinstance(rows, int):
                 rows = [rows]
@@ -369,7 +369,7 @@ class BaseAlignment(AlignmentMatrix):
                 raise ValueError('row_step value is considered only if rows' \
                                  'is None')
         if cols is None:
-            cols = range(0, aln.nsamples, col_step)
+            cols = range(0, aln.nsites, col_step)
         else:
             if isinstance(cols, int):
                 cols = [cols]
@@ -412,7 +412,7 @@ class BaseAlignment(AlignmentMatrix):
         return self.__class__.subset(self, rows=i)
 
     def get_samples_as_str(self, i):
-        """Returns a list of sequence strings containing only the
+        """Returns a list of sequences as strings containing only the
         specified samples.
 
         Parameters
@@ -478,8 +478,8 @@ class BaseAlignment(AlignmentMatrix):
         return self.__class__.subset(self, cols=i)
 
     def get_sites_as_str(self, i):
-        """Returns a list of sequence strings containing only the
-        specified samples.
+        """Returns a list of sequences as strings containing only the
+        specified sites.
 
         Parameters
         ----------
@@ -546,6 +546,21 @@ class MarkerAlignment(BaseAlignment):
         """
         return self.get_samples(i)
 
+    def get_markers_as_str(self, i):
+        """Returns a list of sequences as strings containing only the
+        specified markers.
+
+        Parameters
+        ----------
+        i : int or list of int
+
+        Returns
+        -------
+        list of str
+
+        """
+        return self.get_samples_as_str(i)
+
     def remove_markers(self, i):
         """Removes sites based on the given index.
         If index is a number, only one site is removed.
@@ -560,18 +575,17 @@ class MarkerAlignment(BaseAlignment):
         return self.remove_samples(i)
 
 class BinaryMarkerAlignment(MarkerAlignment):
-    def __init__(self, sequence_list):
-        """Creates a BinaryMarkerAlignment from a list of of Marker o
+    def __init__(self, marker_list):
+        """Creates a BinaryMarkerAlignment from a list of of Marker
+
         Parameters
         ----------
-        sequence_list : list of Sequence
-        to_uint_fn : function
-        from_uint_fn : function
+        marker_list : list of Marker
 
         """
         to_uint_fn = int  # assumes x is '0' or '1'
         from_uint_fn = str   # assumes x is int 0 or 1
-        super().__init__(sequence_list, to_uint_fn=to_uint_fn, from_uint_fn=from_uint_fn)
+        super().__init__(marker_list, to_uint_fn=to_uint_fn, from_uint_fn=from_uint_fn)
 
 class Alignment(object):
     """Alignment is a complete representation of a multiple sequence alignment
@@ -796,7 +810,7 @@ class Alignment(object):
         list of str
 
         """
-        return self._sample_aln.get_samples_as_str(i)
+        return self._sample_aln.get_samples(i)
 
     def get_markers(self, i):
         """Returns a list of sequence strings containing only the markers
@@ -811,7 +825,7 @@ class Alignment(object):
         list of str
 
         """
-        return self._marker_aln.get_samples_as_str(i)
+        return self._marker_aln.get_samples(i)
 
     def get_sites(self, i):
         """Returns a new alignment containing only the sites specified
@@ -829,7 +843,7 @@ class Alignment(object):
         return self.__class__.subset(self, sites=i)
 
     @classmethod
-    def from_fasta(cls, path, marker_kw='marker',
+    def from_fasta(cls, path, marker_kw='',
                    sample_from_uint_fn=None, sample_from_list_fn=None,
                    marker_from_uint_fn=None, marker_from_list_fn=None):
         sequences = [s for s in fasta_file_to_list(path)]
