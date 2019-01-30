@@ -335,7 +335,9 @@ class BaseAlignment(AlignmentMatrix):
         from_uint_fn : function
 
         """
-        super().__init__(len(sequence_list), len(sequence_list[0].sequence),
+        nsamples = len(sequence_list)
+        nsites = len(sequence_list[0].sequence) if nsamples > 0 else 0
+        super().__init__(nsamples, nsites,
                          to_uint_fn=to_uint_fn, from_uint_fn=from_uint_fn)
         self.ids = [s.id for s in sequence_list]
         self.descriptions = [s.description for s in sequence_list]
@@ -594,7 +596,7 @@ class Alignment(object):
     alignment block data.
     """
     def __init__(self, sequence_list, marker_list,
-                 sequence_to_uint_fn=None, uint_to_sequence_fn=None,
+                 sample_to_uint_fn=None, uint_to_sample_fn=None,
                  marker_to_uint_fn=None, uint_to_marker_fn=None):
         """Creates a new Alignment object from a list of Sequence and Marker objects.
 
@@ -605,12 +607,12 @@ class Alignment(object):
 
         """
         self._sample_aln = SampleAlignment(sequence_list,
-                                           sequence_to_uint_fn,
-                                           uint_to_sequence_fn)
+                                           to_uint_fn=sample_to_uint_fn,
+                                           from_uint_fn=uint_to_sample_fn)
         self._marker_aln = MarkerAlignment(marker_list,
-                                           marker_to_uint_fn,
-                                           uint_to_marker_fn)
-        assert self._sample_aln.nsites == self._marker_aln.nsites
+                                           to_uint_fn=marker_to_uint_fn,
+                                           from_uint_fn=uint_to_marker_fn)
+        # assert self._sample_aln.nsites == self._marker_aln.nsites
 
     @property
     def nsites(self):
@@ -850,7 +852,7 @@ class Alignment(object):
         return self.__class__.subset(self, sites=i)
 
     @classmethod
-    def from_fasta(cls, path, marker_kw='',
+    def from_fasta(cls, path, marker_kw=None,
                    sample_to_uint_fn=None, uint_to_sample_fn=None,
                    marker_to_uint_fn=None, uint_to_marker_fn=None):
         """Create an Alignment from a FASTA-formatted file.
@@ -876,12 +878,9 @@ class Alignment(object):
         Alignment
 
         """
-
-        sequences = [s for s in fasta_file_to_list(path)]
-        item_list = fasta_file_to_list(path, marker_kw=marker_kw)
         sequence_list = []
         marker_list = []
-        for item in item_list:
+        for item in fasta_file_to_list(path, marker_kw=marker_kw):
             if isinstance(item, Sequence):
                 sequence_list.append(item)
             elif isinstance(item, Marker):
@@ -889,8 +888,10 @@ class Alignment(object):
             else:
                 raise TypeError('expected Sequence or Marker object')
         return cls(sequence_list, marker_list,
-                   sample_to_uint_fn, uint_to_sample_fn,
-                   marker_to_uint_fn, uint_to_marker_fn)
+                   sample_to_uint_fn=sample_to_uint_fn,
+                   uint_to_sample_fn=uint_to_sample_fn,
+                   marker_to_uint_fn=marker_to_uint_fn,
+                   uint_to_marker_fn=uint_to_marker_fn)
 
     def __repr__(self):
         return '{}(nsamples={}, nsites={}, nmarkers={})'.format(
@@ -963,7 +964,7 @@ def fasta_file_to_list(path, marker_kw=None):
             else:
                 _seq += line
         if _seq:
-            if marker_kw is not None:
+            if marker_kw:
                 if marker_kw in name:
                     seq = Marker(name, description, _seq)
                 else:
