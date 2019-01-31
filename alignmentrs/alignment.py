@@ -1120,12 +1120,14 @@ class CatAlignment(Alignment):
             return CatBlock(sid, start-val, start)
         # Create a new concat alignment
         new_aln = cls.__new__(cls)
+        new_aln.name = 'concat_' + '_'.join([str(aln.name) for aln in aln_list])
         # Create new sample alignment from matrix
         empty_block_lists = [[] for i in range(aln_list[0].nsamples)]
         new_aln._sample_aln = SampleAlignment.from_uint_matrix(
             np.concatenate([aln.sample_matrix for aln in aln_list], axis=1),
             aln_list[0].samples.ids,
-            ['' for blist in empty_block_lists],  # Empties comments
+            [','.join([str(aln.name) for aln in aln_list])] * \
+                len(aln_list[0].samples.descriptions),  # replaces desc
             empty_block_lists,  # empties block list
             to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
@@ -1135,8 +1137,8 @@ class CatAlignment(Alignment):
         # Create new marker alignment from matrix
         new_aln._marker_aln = MarkerAlignment.from_uint_matrix(
             np.concatenate([aln.marker_matrix for aln in aln_list], axis=1),
-            aln_list[0].samples.ids,
-            aln_list[1].samples.descriptions,
+            aln_list[0].markers.ids,
+            aln_list[1].markers.descriptions,
             to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
         )
