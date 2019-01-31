@@ -410,8 +410,7 @@ class BaseAlignment(AlignmentMatrix):
         nsamples = len(sequence_list)
         nsites = len(sequence_list[0].sequence) if nsamples > 0 else 0
         # Call parent constructor
-        super().__init__(nsamples, nsites,
-                         to_uint_fn=to_uint_fn,
+        super().__init__(nsamples, nsites, to_uint_fn=to_uint_fn,
                          from_uint_fn=from_uint_fn)
         # Add new attributes
         self.ids = [s.id for s in sequence_list]
@@ -662,23 +661,28 @@ class SampleAlignment(BaseAlignment):
             if col_step != 1:
                 raise ValueError('col_step value is considered only if cols ' \
                                  'is None')
+        def f(seq, blist, drop_pos_lst):
+            _, new_blist = remove_sites(seq, blist, drop_pos_lst)
+            return new_blist
+
         # Creates a new SampleAlignment
         new_aln = cls.__new__(cls)
         # Copies custom functions
+        new_aln.custom_from_uint_fn = deepcopy(aln.custom_from_uint_fn)
+        new_aln.custom_to_uint_fn = deepcopy(aln.custom_to_uint_fn)
         new_aln.custom_to_block_fn = deepcopy(aln.custom_to_block_fn)
         new_aln.custom_from_block_fn = deepcopy(aln.custom_from_block_fn)
         # Copy the subset of the matrix
         new_aln.matrix = np.copy(aln.matrix[rows][:, cols])
         # Copies metadata
-        new_aln.ids = [v for i, v in aln.ids if i in rows]
+        new_aln.ids = [v for i, v in enumerate(aln.ids) if i in rows]
         new_aln._metadata = aln._metadata  # copy tuple
         # Update block_lists
-        drop_pos_lst = [i for i in range(0, aln.nsites)
-                        if i not in cols]
+        drop_pos_lst = [i for i in range(aln.nsites) if i not in cols]
         seq_list = (row for row in new_aln.to_string_list())
         new_aln.block_lists = [
-            remove_sites(seq, blk_lst, drop_pos_lst)
-            for seq, blk_lst in zip(aln.block_lists, seq_list)
+            f(seq, blist, drop_pos_lst)
+            for seq, blist in zip(seq_list, aln.block_lists)
         ]
         # Update descriptions
         new_aln.descriptions = [new_aln.from_block(blist)
