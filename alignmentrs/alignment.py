@@ -25,8 +25,10 @@ class AlignmentMatrix(object):
             Number of sites (columns)
 
         """
-        self.custom_to_uint_fn = np.vectorize(to_uint_fn)
-        self.custom_from_uint_fn = np.vectorize(from_uint_fn)
+        self.custom_to_uint_fn = None if to_uint_fn is None else \
+                                 np.vectorize(to_uint_fn)
+        self.custom_from_uint_fn = None if from_uint_fn is None else \
+                                   np.vectorize(from_uint_fn)
         self.matrix = np.empty((nsamples, nsites), dtype=np.uint32)
 
     def to_uint(self, x):
@@ -418,7 +420,7 @@ class BaseAlignment(AlignmentMatrix):
         self.descriptions = [s.description for s in sequence_list]
         self._metadata = ('ids', 'descriptions')
         # Overwrite empty matrix with data
-        self.matrix = np.array([self.to_uint(list(s.sequence_str))
+        self.matrix = np.array([self.to_uint(list(s.sequence))
                                 for s in sequence_list], dtype=np.uint32)
 
     @classmethod
@@ -692,8 +694,10 @@ class SampleAlignment(BaseAlignment):
         # Create an empty SampleAlignment
         new_aln = cls.__new__(cls)
         # Assign uint conversion functions
-        new_aln.custom_to_uint_fn = np.vectorize(ord)
-        new_aln.custom_from_uint_fn = np.vectorize(chr)
+        new_aln.custom_to_uint_fn = None if to_uint_fn is None else \
+                                    np.vectorize(to_uint_fn)
+        new_aln.custom_from_uint_fn = None if from_uint_fn is None else \
+                                    np.vectorize(from_uint_fn)
         new_aln.custom_to_block_fn = to_block_fn
         new_aln.custom_from_block_fn = from_block_fn
         # Assign values
@@ -776,7 +780,8 @@ class BinaryMarkerAlignment(MarkerAlignment):
         """
         to_uint_fn = int  # assumes x is '0' or '1'
         from_uint_fn = str   # assumes x is int 0 or 1
-        super().__init__(marker_list, to_uint_fn=to_uint_fn, from_uint_fn=from_uint_fn)
+        super().__init__(marker_list, to_uint_fn=to_uint_fn, 
+                         from_uint_fn=from_uint_fn)
 
 
 class Alignment(object):
@@ -1109,29 +1114,27 @@ class CatAlignment(Alignment):
             nonlocal start
             start += val
             return CatBlock(sid, start-val, start)
-        cat_sample_matrix = (aln.sample_matrix for aln in aln_list)
-        cat_marker_matrix = (aln.marker_matrix for aln in aln_list)
         # Create a new concat alignment
         new_aln = cls.__new__(cls)
         # Create new sample alignment from matrix
-        new_aln._sample_aln = SampleAlignment.from_matrix(
-            np.concatenate(cat_sample_matrix, axis=1),
+        new_aln._sample_aln = SampleAlignment.from_uint_matrix(
+            np.concatenate([aln.sample_matrix for aln in aln_list], axis=1),
             aln_list[0].samples.ids,
             aln_list[1].samples.descriptions,
             itertools.chain.from_iterable(
                 (aln.samples.block_lists for aln in aln_list)),
-            to_uint_fn=aln_list[0].samples.to_uint_fn,
-            from_uint_fn=aln_list[0].samples.from_uint_fn,
-            description_to_block_fn=aln_list[0].samples.description_to_block_fn,
-            block_to_description_fn=aln_list[0].samples.block_to_description_fn,
+            to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
+            from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
+            to_block_fn=aln_list[0].samples.custom_to_block_fn,
+            from_block_fn=aln_list[0].samples.custom_from_block_fn,
         )
         # Create new marker alignment from matrix
-        new_aln._marker_aln = MarkerAlignment.from_matrix(
-            np.concatenate(cat_marker_matrix, axis=1),
+        new_aln._marker_aln = MarkerAlignment.from_uint_matrix(
+            np.concatenate([aln.marker_matrix for aln in aln_list], axis=1),
             aln_list[0].samples.ids,
             aln_list[1].samples.descriptions,
-            to_uint_fn=aln_list[0].samples.to_uint_fn,
-            from_uint_fn=aln_list[0].samples.from_uint_fn,
+            to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
+            from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
         )
         if aln_ids is not None:
             new_aln.concat_list = tuple(coords(i, aln.nsites)
