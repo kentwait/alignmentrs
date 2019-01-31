@@ -789,7 +789,7 @@ class Alignment(object):
     of biological sequences an their annotations such as alignment markers and
     alignment block data.
     """
-    def __init__(self, sequence_list, marker_list,
+    def __init__(self, sequence_list, marker_list, name=None,
                  sample_to_uint_fn=None, uint_to_sample_fn=None,
                  marker_to_uint_fn=None, uint_to_marker_fn=None):
         """Creates a new Alignment object from a list of Sequence and Marker objects.
@@ -800,6 +800,7 @@ class Alignment(object):
         marker_list : list of Marker
 
         """
+        self.name = name
         self._sample_aln = SampleAlignment(sequence_list,
                                            to_uint_fn=sample_to_uint_fn,
                                            from_uint_fn=uint_to_sample_fn)
@@ -889,6 +890,7 @@ class Alignment(object):
                 raise ValueError('site_step value is considered only ' \
                                  'if sites is None')
         new_aln = cls.__new__(cls)
+        new_aln.name = aln.name
         new_aln._sample_aln = aln._sample_aln.__class__.subset(
             aln._sample_aln,
             rows=sample_ids, cols=sites,
@@ -1046,7 +1048,7 @@ class Alignment(object):
         return self.__class__.subset(self, sites=i)
 
     @classmethod
-    def from_fasta(cls, path, marker_kw=None,
+    def from_fasta(cls, path, name=None, marker_kw=None,
                    sample_to_uint_fn=None, uint_to_sample_fn=None,
                    marker_to_uint_fn=None, uint_to_marker_fn=None):
         """Create an Alignment from a FASTA-formatted file.
@@ -1081,7 +1083,7 @@ class Alignment(object):
                 marker_list.append(item)
             else:
                 raise TypeError('expected Sequence or Marker object')
-        return cls(sequence_list, marker_list,
+        return cls(sequence_list, marker_list, name=name,
                    sample_to_uint_fn=sample_to_uint_fn,
                    uint_to_sample_fn=uint_to_sample_fn,
                    marker_to_uint_fn=marker_to_uint_fn,
@@ -1108,7 +1110,7 @@ class CatAlignment(Alignment):
         self.concat_list = tuple(concat_list)
 
     @classmethod
-    def concatenate(cls, aln_list, aln_ids=None):
+    def concatenate(cls, aln_list, aln_ids=None, use_aln_names=True):
         start = 0
         def coords(sid, val):
             nonlocal start
@@ -1117,12 +1119,12 @@ class CatAlignment(Alignment):
         # Create a new concat alignment
         new_aln = cls.__new__(cls)
         # Create new sample alignment from matrix
+        empty_block_lists = [[] for i in range(aln_list[0].nsamples)]
         new_aln._sample_aln = SampleAlignment.from_uint_matrix(
             np.concatenate([aln.sample_matrix for aln in aln_list], axis=1),
             aln_list[0].samples.ids,
-            aln_list[1].samples.descriptions,
-            itertools.chain.from_iterable(
-                (aln.samples.block_lists for aln in aln_list)),
+            ['' for blist in empty_block_lists],  # Empties comments
+            empty_block_lists,  # empties block list
             to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
             to_block_fn=aln_list[0].samples.custom_to_block_fn,
@@ -1139,6 +1141,10 @@ class CatAlignment(Alignment):
         if aln_ids is not None:
             new_aln.concat_list = tuple(coords(i, aln.nsites)
                                         for i, aln in zip(aln_ids, aln_list))
+            return new_aln
+        elif use_aln_names:
+            new_aln.concat_list = tuple(coords(aln.name, aln.nsites)
+                                        for aln in aln_list)
             return new_aln
 
         new_aln.concat_list = tuple(coords(i, aln.nsites)
