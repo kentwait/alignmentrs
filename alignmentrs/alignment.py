@@ -679,7 +679,7 @@ class SampleAlignment(BaseAlignment):
         new_aln._metadata = aln._metadata  # copy tuple
         # Update block_lists
         drop_pos_lst = [i for i in range(aln.nsites) if i not in cols]
-        seq_list = (row for row in new_aln.to_string_list())
+        seq_list = (row for row in aln.to_string_list())
         new_aln.block_lists = [
             f(seq, blist, drop_pos_lst)
             for seq, blist in zip(seq_list, aln.block_lists)
@@ -1103,13 +1103,16 @@ class Alignment(object):
         return '\n'.join([str(self._sample_aln), str(self._marker_aln)])
 
 
-CatBlock = namedtuple('CatBlock', 'id start length')
+CatBlock = namedtuple('CatBlock', 'id start stop')
 
 
 class CatAlignment(Alignment):
     def __init__(self, sequence_list, marker_list, concat_list):
         super().__init__(sequence_list, marker_list)
-        self.concat_list = tuple(concat_list)
+        self.catblocks = tuple(concat_list)
+        self.catblocks_map = {cb.id: self.catblocks[i]
+                              for i, cb in enumerate(concat_list)}
+        self.block_lists_map = {}
 
     @classmethod
     def concatenate(cls, aln_list, aln_ids=None, use_aln_names=True):
@@ -1122,13 +1125,20 @@ class CatAlignment(Alignment):
         new_aln = cls.__new__(cls)
         new_aln.name = 'concat_' + '_'.join([str(aln.name) for aln in aln_list])
         # Create new sample alignment from matrix
-        empty_block_lists = [[] for i in range(aln_list[0].nsamples)]
+        total_sites = sum((aln.nsites for aln in aln_list))
+        concat_block_lists = [[Block(0, total_sites)]
+                              for i in range(aln_list[0].nsamples)]
+        # Put block lists in a mapping
+        new_aln.block_lists_map = {
+            aln.name: [[Block(b.start, b.stop) for b in blist]
+                       for blist in aln.samples.block_lists]
+            for aln in aln_list}
         new_aln._sample_aln = SampleAlignment.from_uint_matrix(
             np.concatenate([aln.sample_matrix for aln in aln_list], axis=1),
             aln_list[0].samples.ids,
             [','.join([str(aln.name) for aln in aln_list])] * \
                 len(aln_list[0].samples.descriptions),  # replaces desc
-            empty_block_lists,  # empties block list
+            concat_block_lists,  # empties block list
             to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
             to_block_fn=aln_list[0].samples.custom_to_block_fn,
@@ -1143,18 +1153,34 @@ class CatAlignment(Alignment):
             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
         )
         if aln_ids is not None:
-            new_aln.concat_list = tuple(coords(i, aln.nsites)
-                                        for i, aln in zip(aln_ids, aln_list))
-            return new_aln
+            new_aln.catblocks = tuple(coords(i, aln.nsites)
+                                      for i, aln in zip(aln_ids, aln_list))
         elif use_aln_names:
-            new_aln.concat_list = tuple(coords(aln.name, aln.nsites)
-                                        for aln in aln_list)
-            return new_aln
-
-        new_aln.concat_list = tuple(coords(i, aln.nsites)
-                                    for i, aln in enumerate(aln_list))
+            new_aln.catblocks = tuple(coords(aln.name, aln.nsites)
+                                      for aln in aln_list)
+        else:
+            new_aln.catblocks = tuple(coords(i, aln.nsites)
+                                      for i, aln in enumerate(aln_list))
+        new_aln.catblocks_map = {cb.id: new_aln.catblocks[i]
+                                 for i, cb in enumerate(new_aln.catblocks)}
         return new_aln
 
+    def get_alignment(self, name):
+        if name not in self.catblocks_map:
+            raise IndexError("name not found")
+        _, start, stop = self.catblocks_map[name]
+        aln = Alignment.subset(self, sites=range(start, stop))
+        aln.name = 'subaln_{}'.format(name)
+        aln.block_lists = [[Block(b.start, b.stop) for b in blist]
+                           for blist in self.block_lists_map[name]]
+        return aln
+
+    def splitg(self):
+        return (Alignment.subset(self, sites=range(cb.start, cb.stop))
+                for cb in self.catblocks)
+
+    def split(self):
+        return list(self.splitg())
 
 def fasta_file_to_list(path, marker_kw=None):
     """Reads a FASTA formatted text file to a list.
