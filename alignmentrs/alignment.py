@@ -387,7 +387,7 @@ class AlignmentMatrix(object):
             self.__class__.__name__,
             self.nsamples,
             self.nsites,
-            repr(self.matrix)
+            repr(self.from_uint(self.matrix))
         )
 
     def __str__(self):
