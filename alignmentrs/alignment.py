@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from collections import namedtuple
 from copy import deepcopy
 import itertools
@@ -6,6 +7,8 @@ from alignmentrs import Sequence, Marker
 from blockrs import Block
 from blockrs.block import remove_sites
 
+vector_ord = np.vectorize(ord)
+vector_chr = np.vectorize(chr)
 
 class AlignmentMatrix(object):
     """AlignmentMatrix depicts an aligned set of sequences as
@@ -22,13 +25,19 @@ class AlignmentMatrix(object):
             Number of sites (columns)
 
         """
-        self.to_uint_fn = np.vectorize(ord)
-        self.from_uint_fn = np.vectorize(chr)
-        if to_uint_fn is not None:
-            self.to_uint_fn = np.vectorize(to_uint_fn)
-        if from_uint_fn is not None:
-            self.from_uint_fn = np.vectorize(from_uint_fn)
+        self.custom_to_uint_fn = np.vectorize(to_uint_fn)
+        self.custom_from_uint_fn = np.vectorize(from_uint_fn)
         self.matrix = np.empty((nsamples, nsites), dtype=np.uint32)
+
+    def to_uint(self, x):
+        if self.custom_to_uint_fn is None:
+            return vector_ord(x)
+        return self.custom_to_uint_fn(x)
+
+    def from_uint(self, x):
+        if self.custom_from_uint_fn is None:
+            return vector_chr(x)
+        return self.custom_from_uint_fn(x)
 
     @classmethod
     def empty(cls, nsamples, nsites):
@@ -106,12 +115,16 @@ class AlignmentMatrix(object):
                 raise ValueError('col_step value is considered only if cols ' \
                                  'is None')
         new_matrix = np.copy(aln_matrix.matrix[rows][:, cols])
+        # Create a new alignment matrix
         new_aln_matrix = cls(*new_matrix.shape)
+        # Overwrite contents
+        new_aln_matrix.custom_to_uint_fn = deepcopy(aln_matrix.to_uint_fn)
+        new_aln_matrix.custom_from_uint_fn = deepcopy(aln_matrix.from_uint_fn)
         new_aln_matrix.matrix = new_matrix
         return new_aln_matrix
 
     @classmethod
-    def from_matrix(cls, matrix, to_uint_fn=None, from_uint_fn=None):
+    def from_uint_matrix(cls, matrix, to_uint_fn=None, from_uint_fn=None):
         """Creates a new AlignmentMatrix from a numpy array.
 
         Parameters
@@ -128,51 +141,76 @@ class AlignmentMatrix(object):
         AlignmentMatrix
 
         """
-
-        new_matrix = cls(*matrix.shape,
-                         to_uint_fn=to_uint_fn,
+        # Create a new alignment matrix
+        new_matrix = cls(*matrix.shape, to_uint_fn=to_uint_fn,
                          from_uint_fn=from_uint_fn)
-        for i, row in enumerate(matrix):
-            new_matrix.replace_sample(''.join(row), i)
-        
+        # Overwrite and copy uint_matrix
+        new_matrix.matrix = np.copy(matrix)
         return new_matrix
 
-    def replace_sample(self, i, sequence_str):
+    def replace_sample(self, i, sequence):
         """Replaces the sequence for a given row in the alignment matrix.
 
         Parameters
         ----------
-        sequence_str : str
+        sequence : str or iterable
         i : int
 
         """
-        self.matrix[i, :] = [self.to_uint_fn(s) for s in sequence_str]
+        # Check if nsites is equal
+        if len(sequence) != self.nsites:
+            raise ValueError(
+                'length of sequence not equal to {}'.format(self.nsites))
+        if isinstance(sequence, str):
+            self.matrix[i, :] = self.to_uint(list(sequence))
+        elif isinstance(sequence, Iterable):
+            self.matrix[i, :] = self.to_uint(sequence)
+        else:
+            raise TypeError('sequence must be a string or an iterable')
 
-    def insert_sample(self, i, sequence_str):
+    def insert_sample(self, i, sequence):
         """Inserts a new sequence in the alignment matrix at the specified
         row position. This increases the total number of rows.
 
         Parameters
         ----------
-        sequence_str : str
+        sequence : str or iterable
         i : int
 
         """
-        new_array = np.array([[self.to_uint_fn(s) for s in sequence_str]],
-                             dtype=np.uint32)
+        # Check if nsites is equal
+        if len(sequence) != self.nsites:
+            raise ValueError(
+                'length of sequence not equal to {}'.format(self.nsites))
+        if isinstance(sequence, str):
+            new_array = np.array([self.to_uint(list(sequence))],
+                                 dtype=np.uint32)
+        elif isinstance(sequence, Iterable):
+            new_array = np.array([self.to_uint(sequence)], dtype=np.uint32)
+        else:
+            raise TypeError('sequence must be a string or an iterable')
         self.matrix = np.insert(self.matrix, i, new_array, axis=0)
 
-    def append_sample(self, sequence_str):
+    def append_sample(self, sequence):
         """Inserts a new sequence after the last row of the alignment matrix.
         This increases the total number of rows by 1.
 
         Parameters
         ----------
-        sequence_str : str
+        sequence : str or iterable
 
         """
-        new_array = np.array([[self.to_uint_fn(s) for s in sequence_str]],
-                             dtype=np.uint32)
+        # Check if nsites is equal
+        if len(sequence) != self.nsites:
+            raise ValueError(
+                'length of sequence not equal to {}'.format(self.nsites))
+        if isinstance(sequence, str):
+            new_array = np.array([self.to_uint(list(sequence))],
+                                 dtype=np.uint32)
+        elif isinstance(sequence, Iterable):
+            new_array = np.array([self.to_uint(sequence)], dtype=np.uint32)
+        else:
+            raise TypeError('sequence must be a string or an iterable')
         self.matrix = np.append(self.matrix, new_array, axis=0)
 
     def remove_samples(self, i):
@@ -220,7 +258,7 @@ class AlignmentMatrix(object):
         """
         if isinstance(i, int):
             i = [i]
-        translated_g = (self.from_uint_fn(row) for row in self.matrix[i, :])
+        translated_g = (self.from_uint(row) for row in self.matrix[i, :])
         return [''.join(trans) for trans in translated_g]
 
     def get_sites(self, i):
@@ -255,45 +293,72 @@ class AlignmentMatrix(object):
         """
         if isinstance(i, int):
             i = [i]
-        translated_g = (self.from_uint_fn(row) for row in self.matrix[:, i])
+        translated_g = (self.from_uint(row) for row in self.matrix[:, i])
         return [''.join(trans) for trans in translated_g]
 
-    def replace_site(self, i, sequence_str):
+    def replace_site(self, i, sequence):
         """Replaces the sequence for a given column in the alignment matrix.
 
         Parameters
         ----------
-        sequence_str : str
+        sequence : str or iterable
         i : int
 
         """
-        self.matrix[:, i] = [self.to_uint_fn(s) for s in sequence_str]
+        # Check if nsamples is equal
+        if len(sequence) != self.nsites:
+            raise ValueError(
+                'length of sequence not equal to {}'.format(self.nsamples))
+        if isinstance(sequence, str):
+            self.matrix[:, i] = self.to_uint(list(sequence))
+        elif isinstance(sequence, Iterable):
+            self.matrix[:, i] = self.to_uint(sequence)
+        else:
+            raise TypeError('sequence must be a string or an iterable')
 
-    def insert_site(self, i, sequence_str):
+    def insert_site(self, i, sequence):
         """Inserts a new sequence in the alignment matrix at the specified
         site position. This increases the total number of columns.
 
         Parameters
         ----------
-        sequence_str : str
+        sequence : str or iterable
         i : int
 
         """
-        new_array = np.array([self.to_uint_fn(s) for s in sequence_str],
-                             dtype=np.uint32)
+        # Check if nsamples is equal
+        if len(sequence) != self.nsites:
+            raise ValueError(
+                'length of sequence not equal to {}'.format(self.nsamples))
+        if isinstance(sequence, str):
+            new_array = np.array([self.to_uint(list(sequence))],
+                                 dtype=np.uint32)
+        elif isinstance(sequence, Iterable):
+            new_array = np.array([self.to_uint(sequence)], dtype=np.uint32)
+        else:
+            raise TypeError('sequence must be a string or an iterable')
         self.matrix = np.insert(self.matrix, i, new_array, axis=1)
 
-    def append_site(self, sequence_str):
+    def append_site(self, sequence):
         """Inserts a new sequence at after the last column of the
         alignment matrix. This increases the total number of columns by 1.
 
         Parameters
         ----------
-        sequence_str : str
+        sequence : str or iterable
 
         """
-        new_array = np.array([[self.to_uint_fn(s) for s in sequence_str]],
-                             dtype=np.uint32).T
+        # Check if nsamples is equal
+        if len(sequence) != self.nsites:
+            raise ValueError(
+                'length of sequence not equal to {}'.format(self.nsamples))
+        if isinstance(sequence, str):
+            new_array = np.array([self.to_uint(list(sequence))],
+                                 dtype=np.uint32).T
+        elif isinstance(sequence, Iterable):
+            new_array = np.array([self.to_uint(sequence)], dtype=np.uint32).T
+        else:
+            raise TypeError('sequence must be a string or an iterable')
         self.matrix = np.append(self.matrix, new_array, axis=1)
 
     def remove_sites(self, i):
@@ -310,7 +375,7 @@ class AlignmentMatrix(object):
         self.matrix = np.delete(self.matrix, i, axis=1)
 
     def to_string_list(self):
-        return [''.join(self.from_uint_fn(row)) for row in self.matrix]
+        return [''.join(self.from_uint(row)) for row in self.matrix]
 
     def __len__(self):
         return len(self.matrix)
