@@ -618,39 +618,34 @@ class SampleAlignment(BaseAlignment):
     biological sequences.
     """
     def __init__(self, sequence_list, to_uint_fn=None, from_uint_fn=None,
-                 description_to_block_fn=None,
-                 block_to_description_fn=None):
+                 to_block_fn=None, from_block_fn=None):
         super().__init__(sequence_list, to_uint_fn=to_uint_fn,
                          from_uint_fn=from_uint_fn)
         # Set conversion functions
-        self.description_to_block_fn = self._description_to_block_fn
-        if description_to_block_fn is not None:
-            self.description_to_block_fn = description_to_block_fn
-        self.block_to_description_fn = self._block_to_description_fn
-        if block_to_description_fn is not None:
-            self.block_to_description_fn = block_to_description_fn
+        self.custom_to_block_fn = to_block_fn
+        self.custom_from_block_fn = from_block_fn
         # Generate sample block lists from sample descriptions
-        self.block_lists = [self.description_to_block_fn(desc)
+        self.block_lists = [self.to_block(desc)
                             for desc in self.descriptions]
         # Include block_lists in _metadata
         self._metadata = ('ids', 'descriptions', 'block_lists')
 
-    @staticmethod
-    def _description_to_block_fn(description):
-        tuple_list = (tuple(map(int, paired.split(':')))
-                      for paired in description.split('_')[-1].split(';'))
-        return [Block(tpl[0], tpl[1]) for tpl in tuple_list]
+    def to_block(self, string):
+        if self.custom_to_block_fn is None:
+            tuple_list = (tuple(map(int, paired.split(':')))
+                          for paired in string.split('_')[-1].split(';'))
+            return [Block(tpl[0], tpl[1]) for tpl in tuple_list]
+        return self.custom_to_block_fn(string)
 
-    @staticmethod
-    def _block_to_description_fn(block_list):
-        return '{}_{}'.format(
-            len(block_list),
-            ';'.join([str(b) for b in block_list]),
-        )
+    def from_block(self, block_list):
+        if self.custom_from_block_fn is None:
+            return '{}_{}'.format(
+                len(block_list), ';'.join([str(b) for b in block_list]),
+            )
+        return self.custom_from_block_fn(block_list)
 
     @classmethod
-    def subset(cls, aln, rows=None, cols=None,
-               row_step=1, col_step=1):
+    def subset(cls, aln, rows=None, cols=None, row_step=1, col_step=1):
         if rows is None:
             rows = range(0, aln.nsamples, row_step)
         else:
@@ -667,61 +662,48 @@ class SampleAlignment(BaseAlignment):
             if col_step != 1:
                 raise ValueError('col_step value is considered only if cols ' \
                                  'is None')
+        # Creates a new SampleAlignment
         new_aln = cls.__new__(cls)
-        new_aln._metadata = aln._metadata  # copy tuple
-        for name in new_aln._metadata:
-            new_value = [v for i, v in enumerate(aln.__getattribute__(name))
-                         if i in rows]
-            new_aln.__setattr__(name, new_value)
+        # Copies custom functions
+        new_aln.custom_to_block_fn = deepcopy(aln.custom_to_block_fn)
+        new_aln.custom_from_block_fn = deepcopy(aln.custom_from_block_fn)
+        # Copy the subset of the matrix
         new_aln.matrix = np.copy(aln.matrix[rows][:, cols])
-        new_aln.description_to_block_fn = aln.description_to_block_fn
-        new_aln.block_to_description_fn = aln.block_to_description_fn
+        # Copies metadata
+        new_aln.ids = [v for i, v in aln.ids if i in rows]
+        new_aln._metadata = aln._metadata  # copy tuple
         # Update block_lists
         drop_pos_lst = [i for i in range(0, aln.nsites)
-                        if i not in new_aln.nsites]
-        seq_list = (row.to_string_list for row in new_aln.matrix)
+                        if i not in cols]
+        seq_list = (row for row in new_aln.to_string_list())
         new_aln.block_lists = [
             remove_sites(seq, blk_lst, drop_pos_lst)
             for seq, blk_lst in zip(aln.block_lists, seq_list)
         ]
         # Update descriptions
-        new_aln.descriptions = [
-            new_aln.block_to_description_fn(blist)
-            for blist in new_aln.block_lists
-        ]
+        new_aln.descriptions = [new_aln.from_block(blist)
+                                for blist in new_aln.block_lists]
         return new_aln
 
     @classmethod
-    def from_matrix(cls, matrix, ids, descriptions, block_lists,
-                    to_uint_fn=None, from_uint_fn=None,
-                    description_to_block_fn=None,
-                    block_to_description_fn=None):
+    def from_uint_matrix(cls, matrix, ids, descriptions, block_lists,
+                         to_uint_fn=None, from_uint_fn=None,
+                         to_block_fn=None, from_block_fn=None):
         # Create an empty SampleAlignment
         new_aln = cls.__new__(cls)
         # Assign uint conversion functions
-        new_aln.to_uint_fn = np.vectorize(ord)
-        new_aln.from_uint_fn = np.vectorize(chr)
-        if to_uint_fn is not None:
-            new_aln.to_uint_fn = np.vectorize(to_uint_fn)
-        if from_uint_fn is not None:
-            new_aln.from_uint_fn = np.vectorize(from_uint_fn)
-        # Assign block conversion functions
-        new_aln.description_to_block_fn = \
-            np.vectorize(new_aln._description_to_block_fn)
-        new_aln.block_to_description_fn = \
-            np.vectorize(new_aln._block_to_description_fn)
-        if description_to_block_fn is not None:
-            new_aln.description_to_block_fn = \
-                np.vectorize(description_to_block_fn)
-        if block_to_description_fn is not None:
-            new_aln.block_to_description_fn = \
-                np.vectorize(block_to_description_fn)
+        new_aln.custom_to_uint_fn = np.vectorize(ord)
+        new_aln.custom_from_uint_fn = np.vectorize(chr)
+        new_aln.custom_to_block_fn = to_block_fn
+        new_aln.custom_from_block_fn = from_block_fn
         # Assign values
         new_aln.ids = deepcopy(ids)
         new_aln.descriptions = deepcopy(descriptions)
-        new_aln.block_lists = deepcopy(block_lists)
+        new_aln.block_lists = [[Block(b.start, b.stop) for b in blist]
+                               for blist in block_lists]  # deepcopy blocks
         new_aln._metadata = ('ids', 'descriptions', 'block_lists')
-        new_aln.matrix = to_uint_fn(matrix).astype(np.uint32)
+        # Copy the matrix
+        new_aln.matrix = np.copy(matrix)
         return new_aln
 
     # TODO: Add a from_fasta method
