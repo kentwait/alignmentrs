@@ -1045,6 +1045,55 @@ class Alignment(object):
         return '\n'.join([str(self._sample_aln), str(self._marker_aln)])
 
 
+CatBlock = namedtuple('CatBlock', 'id start length')
+
+
+class CatAlignment(Alignment):
+    def __init__(self, sequence_list, marker_list, concat_list):
+        super().__init__(sequence_list, marker_list)
+        self.concat_list = tuple(concat_list)
+
+    @classmethod
+    def concatenate(cls, aln_list, aln_ids=None):
+        start = 0
+        def coords(sid, val):
+            nonlocal start
+            start += val
+            return CatBlock(sid, start-val, start)
+        cat_sample_matrix = (aln.sample_matrix for aln in aln_list)
+        cat_marker_matrix = (aln.marker_matrix for aln in aln_list)
+        # Create a new concat alignment
+        new_aln = cls.__new__()
+        # Create new sample alignment from matrix
+        new_aln._sample_aln = SampleAlignment.from_matrix(
+            np.concatenate(cat_sample_matrix, axis=1),
+            aln_list[0].samples.ids,
+            aln_list[1].samples.descriptions,
+            itertools.chain.from_iterable(
+                (aln.samples.block_lists for aln in aln_list)),
+            to_uint_fn=aln_list[0].samples.to_uint_fn,
+            from_uint_fn=aln_list[0].samples.from_uint_fn,
+            description_to_block_fn=aln_list[0].samples.description_to_block_fn,
+            block_to_description_fn=aln_list[0].samples.block_to_description_fn,
+        )
+        # Create new marker alignment from matrix
+        new_aln._marker_aln = MarkerAlignment.from_matrix(
+            np.concatenate(cat_marker_matrix, axis=1),
+            aln_list[0].samples.ids,
+            aln_list[1].samples.descriptions,
+            to_uint_fn=aln_list[0].samples.to_uint_fn,
+            from_uint_fn=aln_list[0].samples.from_uint_fn,
+        )
+        if aln_ids is not None:
+            new_aln.concat_list = tuple(coords(i, aln.nsites)
+                                        for i, aln in zip(aln_ids, aln_list))
+            return new_aln
+
+        new_aln.concat_list = tuple(coords(i, aln.nsites)
+                                    for i, aln in enumerate(aln_list))
+        return new_aln
+
+
 def fasta_file_to_list(path, marker_kw=None):
     """Reads a FASTA formatted text file to a list.
 
