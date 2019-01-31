@@ -524,7 +524,7 @@ class BaseAlignment(AlignmentMatrix):
     def from_matrix(cls, matrix, ids, descriptions,
                     to_uint_fn=None, from_uint_fn=None):
         # Create an empty BaseAlignment
-        new_aln = cls.__new__()
+        new_aln = cls.__new__(cls)
         # Assign uint conversion functions
         new_aln.to_uint_fn = np.vectorize(ord)
         new_aln.from_uint_fn = np.vectorize(chr)
@@ -630,7 +630,7 @@ class SampleAlignment(BaseAlignment):
                     description_to_block_fn=None,
                     block_to_description_fn=None):
         # Create an empty SampleAlignment
-        new_aln = cls.__new__()
+        new_aln = cls.__new__(cls)
         # Assign uint conversion functions
         new_aln.to_uint_fn = np.vectorize(ord)
         new_aln.from_uint_fn = np.vectorize(chr)
@@ -1063,7 +1063,7 @@ class CatAlignment(Alignment):
         cat_sample_matrix = (aln.sample_matrix for aln in aln_list)
         cat_marker_matrix = (aln.marker_matrix for aln in aln_list)
         # Create a new concat alignment
-        new_aln = cls.__new__()
+        new_aln = cls.__new__(cls)
         # Create new sample alignment from matrix
         new_aln._sample_aln = SampleAlignment.from_matrix(
             np.concatenate(cat_sample_matrix, axis=1),
