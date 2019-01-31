@@ -54,9 +54,7 @@ class AlignmentMatrix(object):
             Number of sites (columns)
 
         """
-        mat = cls.__new__(cls)
-        mat.matrix = np.empty((nsamples, nsites), dtype=np.uint32)
-        return mat
+        return cls(nsamples, nsites)
 
     @property
     def nsamples(self):
