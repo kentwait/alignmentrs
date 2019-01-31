@@ -1,6 +1,10 @@
+from collections import namedtuple
+from copy import deepcopy
 import itertools
 import numpy as np
 from alignmentrs import Sequence, Marker
+from blockrs import Block
+from blockrs.block import remove_sites
 
 
 class AlignmentMatrix(object):
@@ -305,6 +309,9 @@ class AlignmentMatrix(object):
         """
         self.matrix = np.delete(self.matrix, i, axis=1)
 
+    def to_string_list(self):
+        return [''.join(self.from_uint_fn(row)) for row in self.matrix]
+
     def __len__(self):
         return len(self.matrix)
 
@@ -341,6 +348,7 @@ class BaseAlignment(AlignmentMatrix):
                          to_uint_fn=to_uint_fn, from_uint_fn=from_uint_fn)
         self.ids = [s.id for s in sequence_list]
         self.descriptions = [s.description for s in sequence_list]
+        self._metadata = ('ids', 'descriptions')
         # TODO: Adds option to generate different matrix if
         # to_uint_fn, from_uint_fn is not None
         self.matrix = np.array([s.sequence_to_uint32() for s in sequence_list])
@@ -380,9 +388,11 @@ class BaseAlignment(AlignmentMatrix):
                 raise ValueError('col_step value is considered only if cols ' \
                                  'is None')
         new_aln = cls.__new__(cls)
-        new_aln.ids = [sid for i, sid in enumerate(aln.ids) if i in rows]
-        new_aln.descriptions = [desc for i, desc in enumerate(aln.descriptions)
-                                if i in rows]
+        new_aln._metadata = aln._metadata  # copy tuple
+        for name in new_aln._metadata:
+            new_value = [v for i, v in enumerate(aln.__getattribute__(name))
+                         if i in rows]
+            new_aln.__setattr__(name, new_value)
         new_aln.matrix = np.copy(aln.matrix[rows][:, cols])
 
         return new_aln
@@ -510,6 +520,25 @@ class BaseAlignment(AlignmentMatrix):
         """
         super().remove_sites(i)
 
+    @classmethod
+    def from_matrix(cls, matrix, ids, descriptions,
+                    to_uint_fn=None, from_uint_fn=None):
+        # Create an empty BaseAlignment
+        new_aln = cls.__new__()
+        # Assign uint conversion functions
+        new_aln.to_uint_fn = np.vectorize(ord)
+        new_aln.from_uint_fn = np.vectorize(chr)
+        if to_uint_fn is not None:
+            new_aln.to_uint_fn = np.vectorize(to_uint_fn)
+        if from_uint_fn is not None:
+            new_aln.from_uint_fn = np.vectorize(from_uint_fn)
+        # Assign values
+        new_aln.ids = deepcopy(ids)
+        new_aln.descriptions = deepcopy(descriptions)
+        new_aln._metadata = ('ids', 'descriptions')
+        new_aln.matrix = to_uint_fn(matrix).astype(np.uint32)
+        return new_aln
+
     def __str__(self):
         id_lines = ['>{} {}'.format(sid, desc) if desc else '>{}'.format(sid)
                     for sid, desc in zip(self.ids, self.descriptions)]
@@ -521,7 +550,116 @@ class SampleAlignment(BaseAlignment):
     """SampleAlignment represents a mulitple sequence alignment of
     biological sequences.
     """
-    pass
+    def __init__(self, sequence_list, to_uint_fn=None, from_uint_fn=None,
+                 description_to_block_fn=None,
+                 block_to_description_fn=None):
+        super().__init__(sequence_list, to_uint_fn=to_uint_fn,
+                         from_uint_fn=from_uint_fn)
+        # Set conversion functions
+        self.description_to_block_fn = self._description_to_block_fn
+        if description_to_block_fn is not None:
+            self.description_to_block_fn = description_to_block_fn
+        self.block_to_description_fn = self._block_to_description_fn
+        if block_to_description_fn is not None:
+            self.block_to_description_fn = block_to_description_fn
+        # Generate sample block lists from sample descriptions
+        self.block_lists = [self.description_to_block_fn(desc)
+                            for desc in self.descriptions]
+        # Include block_lists in _metadata
+        self._metadata = ('ids', 'descriptions', 'block_lists')
+
+    @staticmethod
+    def _description_to_block_fn(description):
+        tuple_list = (tuple(map(int, paired.split(':')))
+                      for paired in description.split('_')[-1].split(';'))
+        return [Block(tpl[0], tpl[1]) for tpl in tuple_list]
+
+    @staticmethod
+    def _block_to_description_fn(block_list):
+        return '{}_{}'.format(
+            len(block_list),
+            ';'.join([str(b) for b in block_list]),
+        )
+
+    @classmethod
+    def subset(cls, aln, rows=None, cols=None,
+               row_step=1, col_step=1):
+        if rows is None:
+            rows = range(0, aln.nsamples, row_step)
+        else:
+            if isinstance(rows, int):
+                rows = [rows]
+            if row_step != 1:
+                raise ValueError('row_step value is considered only if rows' \
+                                 'is None')
+        if cols is None:
+            cols = range(0, aln.nsites, col_step)
+        else:
+            if isinstance(cols, int):
+                cols = [cols]
+            if col_step != 1:
+                raise ValueError('col_step value is considered only if cols ' \
+                                 'is None')
+        new_aln = cls.__new__(cls)
+        new_aln._metadata = aln._metadata  # copy tuple
+        for name in new_aln._metadata:
+            new_value = [v for i, v in enumerate(aln.__getattribute__(name))
+                         if i in rows]
+            new_aln.__setattr__(name, new_value)
+        new_aln.matrix = np.copy(aln.matrix[rows][:, cols])
+        new_aln.description_to_block_fn = aln.description_to_block_fn
+        new_aln.block_to_description_fn = aln.block_to_description_fn
+        # Update block_lists
+        drop_pos_lst = [i for i in range(0, aln.nsites)
+                        if i not in new_aln.nsites]
+        seq_list = (row.to_string_list for row in new_aln.matrix)
+        new_aln.block_lists = [
+            remove_sites(seq, blk_lst, drop_pos_lst)
+            for seq, blk_lst in zip(aln.block_lists, seq_list)
+        ]
+        # Update descriptions
+        new_aln.descriptions = [
+            new_aln.block_to_description_fn(blist)
+            for blist in new_aln.block_lists
+        ]
+        return new_aln
+
+    @classmethod
+    def from_matrix(cls, matrix, ids, descriptions, block_lists,
+                    to_uint_fn=None, from_uint_fn=None,
+                    description_to_block_fn=None,
+                    block_to_description_fn=None):
+        # Create an empty SampleAlignment
+        new_aln = cls.__new__()
+        # Assign uint conversion functions
+        new_aln.to_uint_fn = np.vectorize(ord)
+        new_aln.from_uint_fn = np.vectorize(chr)
+        if to_uint_fn is not None:
+            new_aln.to_uint_fn = np.vectorize(to_uint_fn)
+        if from_uint_fn is not None:
+            new_aln.from_uint_fn = np.vectorize(from_uint_fn)
+        # Assign block conversion functions
+        new_aln.description_to_block_fn = \
+            np.vectorize(new_aln._description_to_block_fn)
+        new_aln.block_to_description_fn = \
+            np.vectorize(new_aln._block_to_description_fn)
+        if description_to_block_fn is not None:
+            new_aln.description_to_block_fn = \
+                np.vectorize(description_to_block_fn)
+        if block_to_description_fn is not None:
+            new_aln.block_to_description_fn = \
+                np.vectorize(block_to_description_fn)
+        # Assign values
+        new_aln.ids = deepcopy(ids)
+        new_aln.descriptions = deepcopy(descriptions)
+        new_aln.block_lists = deepcopy(block_lists)
+        new_aln._metadata = ('ids', 'descriptions', 'block_lists')
+        new_aln.matrix = to_uint_fn(matrix).astype(np.uint32)
+        return new_aln
+
+    # TODO: Add a from_fasta method
+
+    # TODO: Add a method that adds markers and makes this into an Alignment object
 
 
 class MarkerAlignment(BaseAlignment):
@@ -577,6 +715,7 @@ class MarkerAlignment(BaseAlignment):
         """
         return self.remove_samples(i)
 
+
 class BinaryMarkerAlignment(MarkerAlignment):
     def __init__(self, marker_list):
         """Creates a BinaryMarkerAlignment from a list of of Marker
@@ -589,6 +728,7 @@ class BinaryMarkerAlignment(MarkerAlignment):
         to_uint_fn = int  # assumes x is '0' or '1'
         from_uint_fn = str   # assumes x is int 0 or 1
         super().__init__(marker_list, to_uint_fn=to_uint_fn, from_uint_fn=from_uint_fn)
+
 
 class Alignment(object):
     """Alignment is a complete representation of a multiple sequence alignment
@@ -903,25 +1043,6 @@ class Alignment(object):
 
     def __str__(self):
         return '\n'.join([str(self._sample_aln), str(self._marker_aln)])
-
-class BlockAlignment(Alignment):
-    def __init__(self, sequence_list, marker_list, block_data_parser=None):
-        super().__init__(sequence_list, marker_list)
-        self.custom_block_data_parser = None
-
-    @staticmethod
-    def parse_block_data(string):
-        pass
-
-class ConcatAlignment(Alignment):
-    def __init__(self, sequence_list, marker_list, concat_data_parser=None):
-        super().__init__(sequence_list, marker_list)
-        self.concat_data_parser = self.parse_concat_data \
-            if concat_data_parser is None else concat_data_parser
-
-    @staticmethod
-    def parse_concat_data(string):
-        pass
 
 
 def fasta_file_to_list(path, marker_kw=None):
