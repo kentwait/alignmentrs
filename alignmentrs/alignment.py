@@ -409,18 +409,20 @@ class BaseAlignment(AlignmentMatrix):
         """
         nsamples = len(sequence_list)
         nsites = len(sequence_list[0].sequence) if nsamples > 0 else 0
+        # Call parent constructor
         super().__init__(nsamples, nsites,
-                         to_uint_fn=to_uint_fn, from_uint_fn=from_uint_fn)
+                         to_uint_fn=to_uint_fn,
+                         from_uint_fn=from_uint_fn)
+        # Add new attributes
         self.ids = [s.id for s in sequence_list]
         self.descriptions = [s.description for s in sequence_list]
         self._metadata = ('ids', 'descriptions')
-        # TODO: Adds option to generate different matrix if
-        # to_uint_fn, from_uint_fn is not None
-        self.matrix = np.array([s.sequence_to_uint32() for s in sequence_list])
+        # Overwrite empty matrix with data
+        self.matrix = np.array([self.to_uint(list(s.sequence_str))
+                                for s in sequence_list], dtype=np.uint32)
 
     @classmethod
-    def subset(cls, aln, rows=None, cols=None,
-               row_step=1, col_step=1):
+    def subset(cls, aln, rows=None, cols=None, row_step=1, col_step=1):
         """Returns a subset of the alignment matrix by both samples and sites.
 
         Parameters
@@ -452,14 +454,18 @@ class BaseAlignment(AlignmentMatrix):
             if col_step != 1:
                 raise ValueError('col_step value is considered only if cols ' \
                                  'is None')
+        # Create a new BaseAlignment
         new_aln = cls.__new__(cls)
+        # Add attributes
+        new_aln.custom_from_uint_fn = deepcopy(aln.custom_from_uint_fn)
+        new_aln.custom_to_uint_fn = deepcopy(aln.custom_to_uint_fn)
+        new_aln.matrix = np.copy(aln.matrix[rows][:, cols])
+        # Add metadata
         new_aln._metadata = aln._metadata  # copy tuple
         for name in new_aln._metadata:
             new_value = [v for i, v in enumerate(aln.__getattribute__(name))
                          if i in rows]
             new_aln.__setattr__(name, new_value)
-        new_aln.matrix = np.copy(aln.matrix[rows][:, cols])
-
         return new_aln
 
     def get_samples(self, i):
@@ -503,7 +509,7 @@ class BaseAlignment(AlignmentMatrix):
 
         """
         sample_array = self.get_samples(i)
-        translated_g = (self.from_uint_fn(row) for row in sample_array.matrix)
+        translated_g = (self.from_uint(row) for row in sample_array.matrix)
         return [''.join(trans) for trans in translated_g]
 
     def remove_samples(self, i):
@@ -569,7 +575,7 @@ class BaseAlignment(AlignmentMatrix):
 
         """
         sample_array = self.get_sites(i)
-        translated_g = (self.from_uint_fn(row) for row in sample_array.matrix)
+        translated_g = (self.from_uint(row) for row in sample_array.matrix)
         return [''.join(trans) for trans in translated_g]
 
     def remove_sites(self, i):
@@ -586,22 +592,18 @@ class BaseAlignment(AlignmentMatrix):
         super().remove_sites(i)
 
     @classmethod
-    def from_matrix(cls, matrix, ids, descriptions,
-                    to_uint_fn=None, from_uint_fn=None):
+    def from_uint_matrix(cls, matrix, ids, descriptions,
+                         to_uint_fn=None, from_uint_fn=None):
         # Create an empty BaseAlignment
         new_aln = cls.__new__(cls)
         # Assign uint conversion functions
-        new_aln.to_uint_fn = np.vectorize(ord)
-        new_aln.from_uint_fn = np.vectorize(chr)
-        if to_uint_fn is not None:
-            new_aln.to_uint_fn = np.vectorize(to_uint_fn)
-        if from_uint_fn is not None:
-            new_aln.from_uint_fn = np.vectorize(from_uint_fn)
+        new_aln.custom_from_uint_fn = from_uint_fn
+        new_aln.custom_to_uint_fn = to_uint_fn
         # Assign values
         new_aln.ids = deepcopy(ids)
         new_aln.descriptions = deepcopy(descriptions)
         new_aln._metadata = ('ids', 'descriptions')
-        new_aln.matrix = to_uint_fn(matrix).astype(np.uint32)
+        new_aln.matrix = np.copy(matrix)
         return new_aln
 
     def __str__(self):
