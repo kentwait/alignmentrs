@@ -22,7 +22,7 @@ setuptools.setup(
     rust_extensions=[
         RustExtension('libalignmentrs.alignment',
                       'Cargo.toml', binding=Binding.PyO3),
-        RustExtension('libalignmentrs.sequence',
+        RustExtension('libalignmentrs.sample',
                       'Cargo.toml', binding=Binding.PyO3),
         RustExtension('libalignmentrs.marker',
                       'Cargo.toml', binding=Binding.PyO3),
@@ -31,7 +31,7 @@ setuptools.setup(
     package_data={
         'alignmentrs': ['lib/libalignmentrs/alignment.cpython-37m-darwin.so',
                         'lib/libalignmentrs/marker.cpython-37m-darwin.so',
-                        'lib/libalignmentrs/sequence.cpython-37m-darwin.so']},
+                        'lib/libalignmentrs/sample.cpython-37m-darwin.so']},
     requires=[],
     zip_safe=False,  # Rust extensions are not zip safe, like C-extensions.
 )

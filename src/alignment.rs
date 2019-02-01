@@ -1,16 +1,13 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 
-use std::str;
-use std::io::Write;
-
-use crate::sequence::Sequence;
+use crate::sample::Sample;
 
 #[pyclass]
 #[derive(Clone)]
-/// Sequence(id, description, sequence_str)
+/// BaseAlignment(ids, descriptions, sequences)
 /// 
-/// Sequence represents a single biological sequence.
+/// BaseAlignment represents a multiple sequence alignment.
 pub struct BaseAlignment {
 
     #[prop(get)]
@@ -41,14 +38,14 @@ impl BaseAlignment {
     // Sequence getters
 
     /// Returns a sample id, description, and sequence at the given index as
-    /// as a Sequence object.
-    fn get_sample(&self, i: usize) -> PyResult<Sequence> {
+    /// as a Sample object.
+    fn get_sample(&self, i: usize) -> PyResult<Sample> {
         if self.sequences.len() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         } else if i >= self.ids.len() {
             return Err(exceptions::ValueError::py_err("sample index out of range"))
         }
-        Ok(Sequence {
+        Ok(Sample {
             id: self.ids[i].to_string(),
             description: self.descriptions[i].to_string(),
             sequence: self.sequences[i].to_string(),
@@ -80,9 +77,9 @@ impl BaseAlignment {
         })
     }
 
-    /// Returns the given site as a Sequence object. Uses the given site number
-    /// as the sample id of Sequence.
-    fn get_site(&self, i: usize) -> PyResult<Sequence> {
+    /// Returns the given site as a Sample object. Uses the given site number
+    /// as the sample id of Sample.
+    fn get_site(&self, i: usize) -> PyResult<Sample> {
         if self.sequences.len() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -94,7 +91,7 @@ impl BaseAlignment {
             let seq: Vec<char> = s.chars().collect();
             site_sequence.push(seq[i].to_string())
         }
-        Ok(Sequence {
+        Ok(Sample {
             id: format!("{}", i),
             description: String::new(),
             sequence: site_sequence.join(""),

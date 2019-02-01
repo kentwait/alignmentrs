@@ -5,7 +5,7 @@ extern crate pyo3;
 // extern crate numpy;
 
 pub mod alignment;
-pub mod sequence;
+pub mod sample;
 pub mod marker;
 
 // #[cfg(test)]
