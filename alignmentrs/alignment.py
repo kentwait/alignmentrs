@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from copy import deepcopy
 import itertools
 import numpy as np
@@ -1136,15 +1136,31 @@ class CatAlignment(Alignment):
         # Create a new concat alignment
         new_aln = cls.__new__(cls)
         new_aln.name = 'concat_' + '_'.join([str(aln.name) for aln in aln_list])
-        # Create new sample alignment from matrix
+        # Save alignment order
+        # Put block lists in a mapping
+        if aln_ids is not None:
+            new_aln.catblocks = OrderedDict([
+                (i, coords(i, v.nsites)) for i, v in zip(aln_ids, aln_list)])
+            new_aln.block_lists_map = OrderedDict([
+                (i, copy_block_lists(v.samples.block_lists))
+                for i, v in zip(aln_ids, aln_list)])
+        elif use_aln_names:
+            new_aln.catblocks = OrderedDict([
+                (v.name, coords(v.name, v.nsites)) for v in aln_list])
+            new_aln.block_lists_map = OrderedDict([
+                (v.name, copy_block_lists(v.samples.block_lists))
+                for v in aln_list])
+        else:
+            new_aln.catblocks = OrderedDict([
+                (i, coords(i, v.nsites)) for i, v in enumerate(aln_list)])
+            new_aln.block_lists_map = OrderedDict([
+                (i, copy_block_lists(v.samples.block_lists))
+                for i, v in enumerate(aln_list)])
+        # Create new concatenated block lists
         total_sites = sum((aln.nsites for aln in aln_list))
         concat_block_lists = [[Block(0, total_sites)]
                               for i in range(aln_list[0].nsamples)]
-        # Put block lists in a mapping
-        new_aln.block_lists_map = {
-            aln.name: [[Block(b.start, b.stop) for b in blist]
-                       for blist in aln.samples.block_lists]
-            for aln in aln_list}
+        # Create new sample alignment from matrix
         new_aln._sample_aln = SampleAlignment.from_uint_matrix(
             np.concatenate([aln.sample_matrix for aln in aln_list], axis=1),
             aln_list[0].samples.ids,
@@ -1262,3 +1278,6 @@ def fasta_file_to_alignment(path, marker_kw=None,
     return Alignment.from_fasta(path, marker_kw,
                                 sample_to_uint_fn, uint_to_sample_fn,
                                 marker_to_uint_fn, uint_to_marker_fn)
+
+def copy_block_lists(block_lists):
+    return [[Block(b.start, b.stop) for b in blist] for blist in block_lists]
