@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from collections import namedtuple, OrderedDict
 from copy import deepcopy
+import re
 import itertools
 import numpy as np
 from alignmentrs import Sequence, Marker
@@ -793,7 +794,7 @@ class MarkerAlignment(BaseAlignment):
 class BinaryMarkerAlignment(MarkerAlignment):
     """BinaryAlignment represents an set of alignment markers that are
     encoded as 0's and 1's
-    """    
+    """
     def __init__(self, marker_list):
         """Creates a BinaryMarkerAlignment from a list of of Marker
 
@@ -1113,6 +1114,17 @@ class Alignment:
                    marker_to_uint_fn=marker_to_uint_fn,
                    uint_to_marker_fn=uint_to_marker_fn)
 
+    def to_fasta(self, path):
+        """Saves the alignment as a FASTA-formatted text file.
+
+        Parameters
+        ----------
+        path : str
+
+        """
+        with open(path, 'w') as writer:
+            print(self, file=writer)
+
     def __repr__(self):
         return '{}(nsamples={}, nsites={}, nmarkers={})'.format(
             self.__class__.__name__,
@@ -1125,14 +1137,28 @@ class Alignment:
         return '\n'.join([str(self._sample_aln), str(self._marker_aln)])
 
 
-CatBlock = namedtuple('CatBlock', 'id start stop')
+class CatBlock:
+    def __init__(self, name, start, stop):
+        self.name = name
+        self.start = start
+        self.stop = stop
 
+    def __repr__(self):
+        return 'CatBlock(name={}, start={}, stop={})'.format(
+            self.name, self.start, self.stop
+        )
+
+    def __str__(self):
+        return '{}={}:{}'.format(self.name, self.start, self.stop)
 
 class CatAlignment(Alignment):
     """CatAlignment represents a superalignment of 2 or more
     alignments concatenated together laterally.
     """
-    def __init__(self, sequence_list, marker_list, concat_list):
+    def __init__(self, sequence_list, marker_list, catblocks, 
+                 block_lists_map=None, name=None,
+                 sample_to_uint_fn=None, uint_to_sample_fn=None,
+                 marker_to_uint_fn=None, uint_to_marker_fn=None):
         """Creates a new CatAlignment.
 
         Parameters
@@ -1142,10 +1168,15 @@ class CatAlignment(Alignment):
         concat_list : list of CatBlock
 
         """
-        super().__init__(sequence_list, marker_list)
+        super().__init__(sequence_list, marker_list, name=name,
+                         sample_to_uint_fn=sample_to_uint_fn,
+                         uint_to_sample_fn=uint_to_sample_fn,
+                         marker_to_uint_fn=marker_to_uint_fn,
+                         uint_to_marker_fn=uint_to_marker_fn)
         self.catblocks = OrderedDict([(cb.id, self.catblocks[i])
-                                      for i, cb in enumerate(concat_list)])
-        self.block_lists_map = OrderedDict()
+                                      for i, cb in enumerate(catblocks)])
+        self.block_lists_map = OrderedDict() if not block_lists_map else \
+                               block_lists_map
 
     @classmethod
     def concatenate(cls, aln_list, aln_ids=None, use_aln_names=True):
@@ -1222,8 +1253,85 @@ class CatAlignment(Alignment):
             to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
         )
-        
         return new_aln
+
+    @classmethod
+    def from_fasta(cls, path, name=None, marker_kw=None,
+                   block_lists_map=None,
+                   sample_to_uint_fn=None, uint_to_sample_fn=None,
+                   marker_to_uint_fn=None, uint_to_marker_fn=None):
+        """Create a CatAlignment from a FASTA-formatted file.
+
+        Parameters
+        ----------
+        path : str
+            Path to FASTA file
+        marker_kw : str, optional
+            A sample is considered a marker if this keyword is present
+            within the sequence ID
+        sample_to_uint_fn : function, optional
+        uint_to_sample_fn : function, optional
+        marker_to_uint_fn : function, optional
+        uint_to_marker_fn : function, optional
+
+        Raises
+        ------
+        TypeError
+
+        Returns
+        -------
+        Alignment
+
+        """
+        sequence_list = []
+        marker_list = []
+        for item in fasta_file_to_list(path, marker_kw=marker_kw):
+            if isinstance(item, Sequence):
+                sequence_list.append(item)
+            elif isinstance(item, Marker):
+                marker_list.append(item)
+            else:
+                raise TypeError('expected Sequence or Marker object')
+        catblocks = string_to_catblocks(sequence_list[0].description.rstrip())
+        return cls(sequence_list, marker_list, catblocks, name=name,
+                   block_lists_map=block_lists_map,
+                   sample_to_uint_fn=sample_to_uint_fn,
+                   uint_to_sample_fn=uint_to_sample_fn,
+                   marker_to_uint_fn=marker_to_uint_fn,
+                   uint_to_marker_fn=uint_to_marker_fn)
+
+    def to_fasta(self, path, catblocks_path=None, block_lists_path=None):
+        """Saves the concatenated alignment as a FASTA-formatted text file.
+        Catblocks and block lists can also be simultaneously saves as
+        tab-delimitted files.
+
+        Parameters
+        ----------
+        path : str
+        catblocks_path : str, optional
+        block_lists_path : str, optional
+
+        """
+        # Overwrite descriptions with catblocks
+        self.samples.descriptions = [catblocks_to_string(self.catblocks)
+                                     for i in self.nsamples]
+        if catblocks_path:
+            with open(catblocks_path, 'w') as cb_writer:
+                print('{}\t{}\t{}'.format('name', 'start', 'stop'), 
+                      file=cb_writer)
+                for cb in self.catblocks.values():
+                    print('{}\t{}\t{}'.format(cb.name, cb.start, cb.stop), 
+                          file=cb_writer)
+        if block_lists_path:
+            with open(block_lists_path, 'w') as b_writer:
+                print('{}\t{}\t{}'.format('name', 'start', 'stop'), 
+                      file=b_writer)
+                for name, blist in self.block_lists_map.items():
+                    for b in blist:
+                        print('{}\t{}\t{}'.format(name, b.start, b.stop),
+                              file=b_writer)
+        with open(path, 'w') as writer:
+            print(self, file=writer)
 
     def get_alignment(self, name):
         """Return the subalignment by name or key.
@@ -1276,6 +1384,7 @@ class CatAlignment(Alignment):
 
         """
         return list(self.splitg())
+
 
 def fasta_file_to_list(path, marker_kw=None):
     """Reads a FASTA formatted text file to a list.
@@ -1346,5 +1455,16 @@ def fasta_file_to_alignment(path, marker_kw=None,
                                 sample_to_uint_fn, uint_to_sample_fn,
                                 marker_to_uint_fn, uint_to_marker_fn)
 
+
 def copy_block_lists(block_lists):
     return [[Block(b.start, b.stop) for b in blist] for blist in block_lists]
+
+def catblocks_to_string(catblock_list):
+    return ';'.join([str(cb) for cb in catblock_list])
+
+def string_to_catblocks(string, int_names=False):
+    catblocks_raw = re.findall(r'(\S+?)\=(\d+?)\:(\d+?)', string)
+    if int_names:
+        return [CatBlock(int(i[0]), int(i[1]), int(i[2]))
+                for i in catblocks_raw]
+    return [CatBlock(i[0], int(i[1]), int(i[2])) for i in catblocks_raw]
