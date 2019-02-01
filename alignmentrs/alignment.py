@@ -71,7 +71,7 @@ class AlignmentMatrix:
     @property
     def shape(self):
         """Returns the shape of the alignment matrix.
-        
+
         Returns
         -------
         tuple
@@ -629,19 +629,24 @@ class SampleAlignment(BaseAlignment):
     biological sequences.
     """
     def __init__(self, sequence_list, to_uint_fn=None, from_uint_fn=None,
-                 to_block_fn=None, from_block_fn=None):
+                 to_block_fn=None, from_block_fn=None, custom_block_lists=None):
         super().__init__(sequence_list, to_uint_fn=to_uint_fn,
                          from_uint_fn=from_uint_fn)
         # Set conversion functions
         self.custom_to_block_fn = to_block_fn
         self.custom_from_block_fn = from_block_fn
         # Generate sample block lists from sample descriptions
-        self.block_lists = [self.to_block(desc)
-                            for desc in self.descriptions]
+        if custom_block_lists:
+            self.block_lists = copy_block_lists(custom_block_lists)
+        else:
+            self.block_lists = [self.to_block(desc)
+                                for desc in self.descriptions]
         # Include block_lists in _metadata
         self._metadata = ('ids', 'descriptions', 'block_lists')
 
     def to_block(self, string):
+        if not string:
+            return []
         if self.custom_to_block_fn is None:
             tuple_list = (tuple(map(int, paired.split(':')))
                           for paired in string.split('_')[-1].split(';'))
@@ -649,6 +654,8 @@ class SampleAlignment(BaseAlignment):
         return self.custom_to_block_fn(string)
 
     def from_block(self, block_list):
+        if not block_list:
+            return ''
         if self.custom_from_block_fn is None:
             return '{}_{}'.format(
                 len(block_list), ';'.join([str(b) for b in block_list]),
