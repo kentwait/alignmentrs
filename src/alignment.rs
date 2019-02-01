@@ -275,7 +275,7 @@ impl PyObjectProtocol for BaseAlignment {
                 fasta_strings.push(format!(">{}\n{}", self.ids[i], self.sequences[i]));
             }
         }
-        Ok(fasta_strings.join(""))
+        Ok(fasta_strings.join("\n"))
     }
 }
 
