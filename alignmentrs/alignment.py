@@ -10,7 +10,7 @@ from blockrs.block import remove_sites
 vector_ord = np.vectorize(ord)
 vector_chr = np.vectorize(chr)
 
-class AlignmentMatrix(object):
+class AlignmentMatrix:
     """AlignmentMatrix depicts an aligned set of sequences as
     a 2d array of uint32 values.
     """
@@ -784,6 +784,9 @@ class MarkerAlignment(BaseAlignment):
 
 
 class BinaryMarkerAlignment(MarkerAlignment):
+    """BinaryAlignment represents an set of alignment markers that are
+    encoded as 0's and 1's
+    """    
     def __init__(self, marker_list):
         """Creates a BinaryMarkerAlignment from a list of of Marker
 
@@ -798,7 +801,7 @@ class BinaryMarkerAlignment(MarkerAlignment):
                          from_uint_fn=from_uint_fn)
 
 
-class Alignment(object):
+class Alignment:
     """Alignment is a complete representation of a multiple sequence alignment
     of biological sequences an their annotations such as alignment markers and
     alignment block data.
@@ -1119,15 +1122,47 @@ CatBlock = namedtuple('CatBlock', 'id start stop')
 
 
 class CatAlignment(Alignment):
+    """CatAlignment represents a superalignment of 2 or more
+    alignments concatenated together laterally.
+    """
     def __init__(self, sequence_list, marker_list, concat_list):
+        """Creates a new CatAlignment.
+
+        Parameters
+        ----------
+        sequence_list : list of Sequence
+        marker_list : list of Marker
+        concat_list : list of CatBlock
+
+        """
         super().__init__(sequence_list, marker_list)
-        self.catblocks = tuple(concat_list)
-        self.catblocks_map = {cb.id: self.catblocks[i]
-                              for i, cb in enumerate(concat_list)}
-        self.block_lists_map = {}
+        self.catblocks = OrderedDict([(cb.id, self.catblocks[i])
+                                      for i, cb in enumerate(concat_list)])
+        self.block_lists_map = OrderedDict()
 
     @classmethod
     def concatenate(cls, aln_list, aln_ids=None, use_aln_names=True):
+        """Concatenates a list of Alignments into a single superalignment.
+
+        Parameters
+        ----------
+        aln_list : list of Alignment
+            [description]
+        aln_ids : list, optional
+            If specified, this list will be used as keys
+            to access individual alignments.
+        use_aln_names : bool, optional
+            When aln_ids is None, determines what values to use
+            as keys to access individual sequence alignments.
+            If True, alignment names are used . If False,
+            numbers from 0 corresponding to the position of the
+            alignment in the alignment list will be used.
+
+        Returns
+        -------
+        CatAlignment
+
+        """
         start = 0
         def coords(sid, val):
             nonlocal start
@@ -1180,34 +1215,59 @@ class CatAlignment(Alignment):
             to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
         )
-        if aln_ids is not None:
-            new_aln.catblocks = tuple(coords(i, aln.nsites)
-                                      for i, aln in zip(aln_ids, aln_list))
-        elif use_aln_names:
-            new_aln.catblocks = tuple(coords(aln.name, aln.nsites)
-                                      for aln in aln_list)
-        else:
-            new_aln.catblocks = tuple(coords(i, aln.nsites)
-                                      for i, aln in enumerate(aln_list))
-        new_aln.catblocks_map = {cb.id: new_aln.catblocks[i]
-                                 for i, cb in enumerate(new_aln.catblocks)}
+        
         return new_aln
 
     def get_alignment(self, name):
-        if name not in self.catblocks_map:
+        """Return the subalignment by name or key.
+
+        Parameters
+        ----------
+        name : int or str
+            Name assigned to the alignment during concatenation.
+
+        Raises
+        ------
+        IndexError
+            Returns an IndexError when the given name does not
+            match any alignment key.
+
+        Returns
+        -------
+        Alignment
+
+        """
+
+        if name not in self.catblocks:
             raise IndexError("name not found")
-        _, start, stop = self.catblocks_map[name]
+        _, start, stop = self.catblocks[name]
         aln = Alignment.subset(self, sites=range(start, stop))
         aln.name = 'subaln_{}'.format(name)
-        aln.block_lists = [[Block(b.start, b.stop) for b in blist]
-                           for blist in self.block_lists_map[name]]
+        aln.samples.block_lists = copy_block_lists(self.block_lists_map[name])
         return aln
 
     def splitg(self):
+        """Splits the concatenated superalignment into individual subalignments
+        and returns a generator.
+
+        Yields
+        ------
+        Alignment
+
+        """
+
         return (Alignment.subset(self, sites=range(cb.start, cb.stop))
                 for cb in self.catblocks)
 
     def split(self):
+        """Splits the concatenated superalignment as a list of its
+        individual subalignments.
+
+        Returns
+        -------
+        list of Alignment
+
+        """
         return list(self.splitg())
 
 def fasta_file_to_list(path, marker_kw=None):
