@@ -77,6 +77,27 @@ impl BaseAlignment {
         })
     }
 
+    fn get_samples_by_names(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let mut ids: Vec<i32> = Vec::new();
+        for name in names.iter() {
+            match self.ids.iter().position(|x| x == name) {
+                Some(i) => {
+                    ids.push(i as i32);
+                },
+                None => {
+                    return Err(exceptions::ValueError::py_err(format!("sample id {} not found", name)))
+                }
+            }
+        }
+        match self.get_samples(ids) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x)
+        }
+    }
+
     /// Returns the given site as a Sample object. Uses the given site number
     /// as the sample id of Sample.
     fn get_site(&self, i: usize) -> PyResult<Sample> {
@@ -288,7 +309,6 @@ impl BaseAlignment {
                 remove_ids.push(i as i32);
             }
         }
-        println!("{:?}", remove_ids);
         match self.remove_sites(remove_ids) {
             Err(x) => Err(x),
             Ok(x) => Ok(x)
