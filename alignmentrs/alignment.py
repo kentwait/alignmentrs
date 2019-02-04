@@ -335,7 +335,15 @@ class Alignment:
         Alignment
 
         """
-        return fasta_file_to_alignment(path, name, marker_kw=marker_kw)
+        d = fasta_file_to_lists(path, marker_kw=marker_kw)
+        sample_aln = BaseAlignment(d['sample']['ids'],
+                                   d['sample']['descriptions'],
+                                   d['sample']['sequences'])
+        marker_aln = BaseAlignment(d['marker']['ids'],
+                                   d['marker']['descriptions'],
+                                   d['marker']['sequences'])
+        # Create alignments
+        return cls(name, sample_aln, marker_aln)
 
     def to_fasta(self, path):
         """Saves the alignment as a FASTA-formatted text file.
@@ -681,8 +689,7 @@ class Alignment:
 #             seq_list.append(seq)
 #     return seq_list
 
-
-def fasta_file_to_alignment(path, name, marker_kw=None):
+def fasta_file_to_lists(path, marker_kw=None):
     """Reads a FASTA formatted text file to a list.
 
     Parameters
@@ -738,10 +745,41 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
                 sample_ids.append(_id)
                 sample_descs.append(_description)
                 sample_seqs.append(_seq)
+    return {
+        'sample': {
+            'ids': sample_ids,
+            'descriptions': sample_descs,
+            'sequences': sample_seqs,
+        },
+        'marker': {
+            'ids': marker_ids,
+            'descriptions': marker_descs,
+            'sequences': marker_seqs,
+        }
+    }
+
+def fasta_file_to_alignment(path, name, marker_kw=None):
+    """Reads a FASTA formatted text file to a list.
+
+    Parameters
+    ----------
+    path : str
+    name : str
+
+    Returns
+    -------
+    Alignment
+
+    """
+    d = fasta_file_to_lists(path, marker_kw=marker_kw)
+    sample_aln = BaseAlignment(d['sample']['ids'],
+                               d['sample']['descriptions'],
+                               d['sample']['sequences'])
+    marker_aln = BaseAlignment(d['marker']['ids'],
+                               d['marker']['descriptions'],
+                               d['marker']['sequences'])
     # Create alignments
-    return Alignment(name,
-                     BaseAlignment(sample_ids, sample_descs, sample_seqs),
-                     BaseAlignment(marker_ids, marker_descs, marker_seqs))
+    return Alignment(name, sample_aln, marker_aln)
 
 
 # def copy_block_lists(block_lists):
