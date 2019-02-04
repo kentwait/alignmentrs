@@ -111,7 +111,7 @@ impl BaseAlignment {
             for i in sites.iter().map(|x| *x as usize) {
                 if checked == false {
                     if i >= self.ids.len() {
-                        return Err(exceptions::ValueError::py_err("sample index out of range"))
+                        return Err(exceptions::ValueError::py_err("site index out of range"))
                     }
                 }
                 let seq: Vec<char> = seq.chars().collect();
@@ -247,13 +247,14 @@ impl BaseAlignment {
         Ok(())
     }
     fn remove_sites(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
+        // TODO: add update block
         ids.sort_unstable();
         ids.reverse();
         for sequence in self.sequences.iter_mut() {
             let mut sequence_chars: Vec<char> = sequence.chars().collect();
             for i in ids.iter().map(|x| *x as usize) {
-                if i >= self.ids.len() {
-                    return Err(exceptions::ValueError::py_err("sample index out of range"))
+                if i >= sequence_chars.len() {
+                    return Err(exceptions::ValueError::py_err("site index out of range"))
                 }
                 sequence_chars.remove(i);
             }
@@ -261,6 +262,37 @@ impl BaseAlignment {
             *sequence = sequence_str;
         }
         Ok(())
+    }
+
+    fn retain_sequences(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.ids.len() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        match self.remove_sequences(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
+    }
+
+    fn retain_sites(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        // TODO: add update block
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.sequences[0].chars().count() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        println!("{:?}", remove_ids);
+        match self.remove_sites(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
     }
 
     // TODO: Manipulation methods - insert, append, remove
