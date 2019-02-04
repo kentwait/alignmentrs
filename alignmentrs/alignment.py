@@ -462,7 +462,7 @@ class Alignment:
         # Create alignments
         return cls(name, sample_aln, marker_aln)
 
-    def to_fasta(self, path):
+    def to_fasta(self, path, include_markers=True):
         """Saves the alignment as a FASTA-formatted text file.
 
         Parameters
@@ -472,7 +472,8 @@ class Alignment:
         """
         with open(path, 'w') as writer:
             print(self.samples, file=writer)
-            print(self.markers, file=writer)
+            if include_markers:
+                print(self.markers, file=writer)
 
     def set_blocklists(self, ref_seq, description_encoder=None):
         self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
@@ -484,16 +485,48 @@ class Alignment:
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
 
-    def parse_add_blocks(self, block_strings):
-        if self.blocklists and len(block_strings) != self.samples.nsamples:
-            raise ValueError('length of block string list not equal to the number of sequences')
-        elif not self.blocklists:
+    def parse_description_as_blocks(self, description_decoder=None):
+        if not self.blocklists:
             self.blocklists = [None for _ in range(self.samples.nsamples)]
-        for i, block_str in enumerate(block_strings):
+        for i, desc in enumerate(self.samples.descriptions):
+            if description_decoder:
+                desc = description_decoder(desc)
             # Parse block str into blocks
-            blocks = []
-            # Adds to blocklists
-            self.blocklists[i] = blocks
+            self.blocklists[i] = blockrs.libblock.from_block_str(desc)
+
+    def iter_sites(self, start=0, stop=None, size=1):
+        if stop is None:
+            stop = self.nsites
+        if (stop - start) % size != 0:
+            raise ValueError('alignment cannot be completely divided into '
+                             'chucks of size {}'.format(size))
+        for i in range(start, stop, size):
+            samples = [s[i:i+size] for s in self.samples.sequences]
+            if not (self.markers is None or self.markers.nsamples == 0):
+                markers = [s[i:i+size] for s in self.markers.sequences]
+                yield samples + markers
+            else:
+                yield samples
+
+    def iter_sample_sites(self, start=0, stop=None, size=1):
+        if stop is None:
+            stop = self.nsites
+        if (stop - start) % size != 0:
+            raise ValueError('alignment cannot be completely divided into '
+                             'chucks of size {}'.format(size))
+        for i in range(start, stop, size):
+            yield [s[i:i+size] for s in self.samples.sequences]
+
+    def iter_marker_sites(self, start=0, stop=None, size=1):
+        if self.markers is None or self.markers.nsamples == 0:
+            return
+        if stop is None:
+            stop = self.nsites
+        if (stop - start) % size != 0:
+            raise ValueError('alignment cannot be completely divided into '
+                             'chucks of size {}'.format(size))
+        for i in range(start, stop, size):
+            yield [s[i:i+size] for s in self.markers.sequences]
 
     def __repr__(self):
         return '{}(nsamples={}, nsites={}, nmarkers={})'.format(
@@ -505,6 +538,9 @@ class Alignment:
 
     def __str__(self):
         return '\n'.join([str(self.samples), str(self.markers)])
+
+    def __len__(self):
+        return self.nsites
 
 
 # class CatBlock:
