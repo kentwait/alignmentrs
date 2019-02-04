@@ -295,6 +295,34 @@ impl BaseAlignment {
         }
     }
 
+    fn remove_samples_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.sample_prefix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        match self.remove_samples(ids) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x)
+        }
+    }
+
+    fn remove_samples_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.sample_suffix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        match self.remove_samples(ids) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x)
+        }
+    }
+
     fn remove_sites(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
         // TODO: add update block
         ids.sort_unstable();
@@ -343,6 +371,41 @@ impl BaseAlignment {
         }
     }
 
+    fn retain_samples_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
+        let ids = match self.sample_prefix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.ids.len() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        match self.remove_samples(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
+    }
+
+    fn retain_samples_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
+        let ids = match self.sample_suffix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.ids.len() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        match self.remove_samples(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
+    }
+
+
     fn retain_sites(&mut self, ids: Vec<i32>) -> PyResult<()> {
         // TODO: add update block
         if self.sequences.len() == 0 {
@@ -369,6 +432,42 @@ impl BaseAlignment {
         let mut ids: Vec<i32> = Vec::new();
         for name in names.iter() {
             match self.ids.iter().position(|x| x == name) {
+                Some(i) => {
+                    ids.push(i as i32);
+                },
+                None => {
+                    return Err(exceptions::ValueError::py_err(format!("sample id {} not found", name)))
+                }
+            }
+        }
+        Ok(ids)
+    }
+
+    fn sample_prefix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let mut ids: Vec<i32> = Vec::new();
+        for name in names.iter() {
+            match self.ids.iter().position(|x| x.starts_with(name)) {
+                Some(i) => {
+                    ids.push(i as i32);
+                },
+                None => {
+                    return Err(exceptions::ValueError::py_err(format!("sample id {} not found", name)))
+                }
+            }
+        }
+        Ok(ids)
+    }
+
+    fn sample_suffix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let mut ids: Vec<i32> = Vec::new();
+        for name in names.iter() {
+            match self.ids.iter().position(|x| x.ends_with(name)) {
                 Some(i) => {
                     ids.push(i as i32);
                 },
