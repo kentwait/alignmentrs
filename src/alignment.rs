@@ -91,6 +91,34 @@ impl BaseAlignment {
         }
     }
 
+    fn get_samples_by_prefix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.sample_prefix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        match self.get_samples(ids) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x)
+        }
+    }
+
+    fn get_samples_by_suffix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.sample_suffix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        match self.get_samples(ids) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x)
+        }
+    }
+
     /// Returns the given site as a Sample object. Uses the given site number
     /// as the sample id of Sample.
     fn get_site(&self, i: usize) -> PyResult<Sample> {
