@@ -200,8 +200,7 @@ impl BaseAlignment {
         })
     }
 
-    // Metadata
-    // Setters
+    // Metadata setters
 
     /// Sets the ID of an existing sample.
     fn set_id(&mut self, i: i32, value: &str) -> PyResult<()> {
@@ -271,6 +270,8 @@ impl BaseAlignment {
         }
         Ok(())
     }
+
+    // Sequence setters
 
     /// Sets many sample sequences simulateneously using a list of indices.
     fn set_sequences(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
@@ -498,7 +499,31 @@ impl BaseAlignment {
         }
     }
 
-    // TODO: Manipulation methods - insert, append, remove
+    // TODO: Insert and append sites
+
+    /// Inserts one or more samples at the specified position.
+    fn insert_samples(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+        let i = i as usize;
+        if i >= self.ids.len() {
+            return Err(exceptions::ValueError::py_err("sample index out of range"))
+        }
+        for offset in 0..sequences.len() {
+            self.ids.insert(i + offset, ids[offset].to_string());
+            self.descriptions.insert(i + offset, descriptions[offset].to_string());
+            self.sequences.insert(i + offset, sequences[offset].to_string());
+        }
+        Ok(())
+    }
+
+    /// Appends one or more samples at the end of the list.
+    fn append_samples(&mut self, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+        for offset in 0..sequences.len() {
+            self.ids.push(ids[offset].to_string());
+            self.descriptions.push(descriptions[offset].to_string());
+            self.sequences.push(sequences[offset].to_string());
+        }
+        Ok(())
+    }
 
     /// Converts a list of sample names to its corresponding sample indices.
     fn sample_names_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
