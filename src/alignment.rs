@@ -454,12 +454,13 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut ids: Vec<i32> = Vec::new();
-        let mut matches: Vec<&str> = Vec::new();
         for name in names.iter() {
-            for (i, id) in self.ids.iter().enumerate() {
-                if name == id && !matches.contains(&name) {
+            match self.ids.iter().position(|x| x == name) {
+                Some(i) => {
                     ids.push(i as i32);
-                    matches.push(id);
+                },
+                None => {
+                    return Err(exceptions::ValueError::py_err(format!("sample id {} not found", name)))
                 }
             }
         }
