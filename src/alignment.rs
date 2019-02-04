@@ -3,7 +3,7 @@ use pyo3::{PyObjectProtocol, exceptions};
 
 use crate::sample::Sample;
 
-#[pyclass]
+#[pyclass(subclass)]
 #[derive(Clone)]
 /// BaseAlignment(ids, descriptions, sequences)
 /// 
@@ -152,7 +152,8 @@ impl BaseAlignment {
     }
 
     // Metadata
-    // Set one
+    // Setters
+
     fn set_id(&mut self, i: i32, value: &str) -> PyResult<()> {
         let i = i as usize;
         if self.sequences.len() == 0 {
@@ -227,6 +228,37 @@ impl BaseAlignment {
                 return Err(exceptions::ValueError::py_err("sequence length is not the same"))
             }
             self.sequences[i] = values[c].to_string();
+        }
+        Ok(())
+    }
+
+    // Deleters
+    fn remove_sequences(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
+        ids.sort_unstable();
+        ids.reverse();
+        for i in ids.iter().map(|x| *x as usize) {
+            if i >= self.ids.len() {
+                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            }
+            self.ids.remove(i);
+            self.descriptions.remove(i);
+            self.sequences.remove(i);
+        }
+        Ok(())
+    }
+    fn remove_sites(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
+        ids.sort_unstable();
+        ids.reverse();
+        for sequence in self.sequences.iter_mut() {
+            let mut sequence_chars: Vec<char> = sequence.chars().collect();
+            for i in ids.iter().map(|x| *x as usize) {
+                if i >= self.ids.len() {
+                    return Err(exceptions::ValueError::py_err("sample index out of range"))
+                }
+                sequence_chars.remove(i);
+            }
+            let sequence_str: String = sequence_chars.into_iter().collect();
+            *sequence = sequence_str;
         }
         Ok(())
     }
