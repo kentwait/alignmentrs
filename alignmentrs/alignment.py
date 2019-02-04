@@ -152,7 +152,7 @@ class Alignment:
     #     """
     #     self._sample_aln.append_sample(sequence_str)
 
-    def remove_samples(self, i):
+    def remove_samples(self, i, match_prefix=False, match_suffix=False):
         """Removes sample sequences based on the given index.
         If index is a number, only one sequence is removed.
         If the index is a list of numbers, the sequence found at each row
@@ -166,28 +166,47 @@ class Alignment:
         if isinstance(i, int):
             self.samples.remove_samples([i])
         elif isinstance(i, str):
-            self.samples.remove_samples_by_name([i])
+            if match_prefix:
+                self.samples.remove_samples_by_prefix([i])
+            elif match_suffix:
+                self.samples.remove_samples_by_suffix([i])
+            else:
+                self.samples.remove_samples_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
             self.samples.remove_samples(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
-            self.samples.remove_samples_by_name(i)        
+            if match_prefix:
+                self.samples.remove_samples_by_prefix(i)
+            elif match_suffix:
+                self.samples.remove_samples_by_suffix(i)
+            else:
+                self.samples.remove_samples_by_name(i)        
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
-    def retain_samples(self, i):
+    def retain_samples(self, i, match_prefix=False, match_suffix=False):
         """Keeps sample sequences based on the given index.
         """
         if isinstance(i, int):
             self.samples.retain_samples([i])
         if isinstance(i, str):
-            self.samples.retain_samples_by_name([i])
+            if match_prefix:
+                self.samples.retain_samples_by_prefix([i])
+            elif match_suffix:
+                self.samples.retain_samples_by_suffix([i])
+            else:
+                self.samples.retain_samples_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
             self.samples.retain_samples(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
-            self.samples.retain_samples_by_name(i)
+            if match_prefix:
+                self.samples.retain_samples_by_prefix(i)
+            elif match_suffix:
+                self.samples.retain_samples_by_suffix(i)
+            else:
+                self.samples.retain_samples_by_name(i)
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
-        self.samples.retain_samples(i)
 
     # def insert_sites(self, sequence_str, i, marker_str=None):
     #     """Inserts a new sequence in the alignment matrix at the specified
@@ -289,7 +308,7 @@ class Alignment:
             )
 
 
-    def get_samples(self, i):
+    def get_samples(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the samples
         specified by the index.
 
@@ -305,11 +324,21 @@ class Alignment:
         if isinstance(i, int):
             return self.samples.get_samples([i])
         elif isinstance(i, str):
-            return self.samples.get_samples_by_name([i])
+            if match_prefix:
+                return self.samples.get_samples_by_prefix([i])
+            elif match_suffix:
+                return self.samples.get_samples_by_suffixx([i])
+            else:
+                return self.samples.get_samples_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
             return self.samples.get_samples(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
-            return self.samples.get_samples_by_name(i)
+            if match_prefix:
+                return self.samples.get_samples_by_prefix(i)
+            elif match_suffix:
+                return self.samples.get_samples_by_suffixx(i)
+            else:
+                return self.samples.get_samples_by_name(i)
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
