@@ -1,5 +1,5 @@
 from libalignmentrs.alignment import BaseAlignment
-from blockrs import block
+import blockrs
 
 
 class Alignment:
@@ -215,7 +215,7 @@ class Alignment:
     #     if self._marker_aln:
     #         self._marker_aln.append_site(marker_str)
 
-    def remove_sites(self, i):
+    def remove_sites(self, i, description_block_encoder=None):
         """Removes sites based on the given index.
         If index is a number, only one site is removed.
         If the index is a list of numbers, the sequence found at each column
@@ -233,8 +233,20 @@ class Alignment:
             self.markers.remove_sites(i)
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
+        # Update blocks if exists
+        if self.blocklists:
+            self.blocklists = [
+                blockrs.remove_sites_from_blocks(blist, i)
+                for seq, blist in zip(self.samples.sequences, self.blocklists)]
+        if description_block_encoder:
+            self.samples.set_descriptions(
+                list(range(self.samples.nsamples)),
+                [description_block_encoder(sid, blist)
+                 for sid, blist in zip(self.samples.ids, self.blocklists)]
+            )
 
-    def retain_sites(self, i):
+
+    def retain_sites(self, i, description_block_encoder=None):
         """Keeps sites based on the given index.
         If index is a number, only one site is retained.
         If the index is a list of numbers, the characters at columns not
@@ -252,6 +264,19 @@ class Alignment:
             self.markers.retain_sites(i)
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
+        # Update blocks if exists
+        if self.blocklists:
+            j = [pos for pos in range(self.samples.nsites) if pos not in i]
+            self.blocklists = [
+                blockrs.remove_sites_from_blocks(blist, j)
+                for seq, blist in zip(self.samples.sequences, self.blocklists)]
+        if description_block_encoder:
+            self.samples.set_descriptions(
+                list(range(self.samples.nsamples)),
+                [description_block_encoder(sid, blist)
+                 for sid, blist in zip(self.samples.ids, self.blocklists)]
+            )
+
 
     def get_samples(self, i):
         """Returns a list of sequence strings containing only the samples
@@ -357,13 +382,13 @@ class Alignment:
             print(self.samples, file=writer)
             print(self.markers, file=writer)
 
-    def set_blocklists(self, ref_seq, description_fn=None):
-        self.blocklists = [block.pairwise_to_blocks(ref_seq, seq)
+    def set_blocklists(self, ref_seq, description_block_encoder=None):
+        self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
                            for seq in self.samples.sequences]
-        if description_fn:
+        if description_block_encoder:
             self.samples.set_descriptions(
                 list(range(self.samples.nsamples)),
-                [description_fn(sid, blist)
+                [description_block_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
 
