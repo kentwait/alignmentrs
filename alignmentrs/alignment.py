@@ -491,6 +491,8 @@ class Alignment:
         for i, desc in enumerate(self.samples.descriptions):
             if description_decoder:
                 desc = description_decoder(desc)
+            else:
+                desc = desc.split('_')[-1]
             # Parse block str into blocks
             self.blocklists[i] = blockrs.libblock.from_block_str(desc)
 
