@@ -226,7 +226,7 @@ class Alignment:
     #     if self._marker_aln:
     #         self._marker_aln.append_site(marker_str)
 
-    def remove_sites(self, i, description_block_encoder=None):
+    def remove_sites(self, i, description_encoder=None):
         """Removes sites based on the given index.
         If index is a number, only one site is removed.
         If the index is a list of numbers, the sequence found at each column
@@ -249,15 +249,15 @@ class Alignment:
             self.blocklists = [
                 blockrs.remove_sites_from_blocks(blist, i)
                 for seq, blist in zip(self.samples.sequences, self.blocklists)]
-        if description_block_encoder:
+        if description_encoder:
             self.samples.set_descriptions(
                 list(range(self.samples.nsamples)),
-                [description_block_encoder(sid, blist)
+                [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
 
 
-    def retain_sites(self, i, description_block_encoder=None):
+    def retain_sites(self, i, description_encoder=None):
         """Keeps sites based on the given index.
         If index is a number, only one site is retained.
         If the index is a list of numbers, the characters at columns not
@@ -281,10 +281,10 @@ class Alignment:
             self.blocklists = [
                 blockrs.remove_sites_from_blocks(blist, j)
                 for seq, blist in zip(self.samples.sequences, self.blocklists)]
-        if description_block_encoder:
+        if description_encoder:
             self.samples.set_descriptions(
                 list(range(self.samples.nsamples)),
-                [description_block_encoder(sid, blist)
+                [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
 
@@ -393,13 +393,13 @@ class Alignment:
             print(self.samples, file=writer)
             print(self.markers, file=writer)
 
-    def set_blocklists(self, ref_seq, description_block_encoder=None):
+    def set_blocklists(self, ref_seq, description_encoder=None):
         self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
                            for seq in self.samples.sequences]
-        if description_block_encoder:
+        if description_encoder:
             self.samples.set_descriptions(
                 list(range(self.samples.nsamples)),
-                [description_block_encoder(sid, blist)
+                [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
 
