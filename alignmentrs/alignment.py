@@ -25,23 +25,56 @@ class Alignment:
 
     @property
     def nsites(self):
-        """Returns the number of sites in the alignment.
-        """
+        """Returns the number of sites in the alignment."""
         return self.samples.nsites
 
     @property
     def nsamples(self):
-        """Returns the number of samples in the alignment.
-        """
+        """Returns the number of samples in the alignment."""
         return self.samples.nsamples
 
     @property
     def nmarkers(self):
-        """Returns the number of markers in the alignment
-        """
+        """Returns the number of markers in the alignment."""
         if self.markers is None:
             return None
         return self.markers.nsamples
+
+    @property
+    def sample_ids(self):
+        """Returns the list of sample sequences."""
+        return self.samples.ids
+
+    @property
+    def marker_ids(self):
+        """Returns the list of sample sequences."""
+        if self.markers is None:
+            return None
+        return self.markers.ids
+
+    @property
+    def sample_descriptions(self):
+        """Returns the list of sample sequences."""
+        return self.samples.descriptions
+
+    @property
+    def marker_descriptions(self):
+        """Returns the list of sample sequences."""
+        if self.markers is None:
+            return None
+        return self.markers.descriptions
+
+    @property
+    def sample_sequences(self):
+        """Returns the list of sample sequences."""
+        return self.samples.sequences
+
+    @property
+    def marker_sequences(self):
+        """Returns the list of sample sequences."""
+        if self.markers is None:
+            return None
+        return self.markers.sequences
 
     @classmethod
     def subset(cls, aln, sample_ids=None, marker_ids=None, sites=None):
