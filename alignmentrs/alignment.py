@@ -55,57 +55,70 @@ class Alignment:
     #     """
     #     return self._marker_aln.matrix
 
-    # @classmethod
-    # def subset(cls, aln, sample_ids=None, marker_ids=None, sites=None,
-    #            sample_id_step=1, marker_id_step=1, site_step=1):
-    #     """Returns a subset of the alignment by samples, markers and sites.
+    @classmethod
+    def subset(cls, aln, sample_ids=None, marker_ids=None, sites=None):
+        """Returns a subset of the alignment by samples, markers and sites.
 
-    #     Parameters
-    #     ----------
-    #     aln : Alignment
-    #     sample_ids : list
-    #     marker_ids : list
-    #     sites : list
-    #     sample_id_step : int
-    #     marker_id_step : int
-    #     site_step : int
+        Parameters
+        ----------
+        aln : Alignment
+        sample_ids : list
+        marker_ids : list
+        sites : list
+        sample_id_step : int
+        marker_id_step : int
+        site_step : int
 
-    #     Returns
-    #     -------
-    #     Alignment
+        Returns
+        -------
+        Alignment
 
-    #     """
-    #     if sample_ids is None:
-    #         sample_ids = range(0, aln.nsamples, sample_id_step)
-    #     else:
-    #         if sample_id_step != 1:
-    #             raise ValueError('sample_id_step value is considered only ' \
-    #                              'if sample_ids is None')
-    #     if marker_ids is None:
-    #         marker_ids = range(0, aln.nmarkers, marker_id_step)
-    #     else:
-    #         if marker_id_step != 1:
-    #             raise ValueError('marker_id_step value is considered only ' \
-    #                              'if marker_ids is None')
-    #     if sites is None:
-    #         sites = range(0, aln.nsites, site_step)
-    #     else:
-    #         if site_step != 1:
-    #             raise ValueError('site_step value is considered only ' \
-    #                              'if sites is None')
-    #     new_aln = cls.__new__(cls)
-    #     new_aln.name = aln.name
-    #     new_aln._sample_aln = aln._sample_aln.__class__.subset(
-    #         aln._sample_aln,
-    #         rows=sample_ids, cols=sites,
-    #         row_step=sample_id_step, col_step=site_step
-    #     )
-    #     new_aln._marker_aln = aln._marker_aln.__class__.subset(
-    #         aln._marker_aln,
-    #         rows=marker_ids, cols=sites,
-    #         row_step=marker_id_step, col_step=site_step
-    #     )
-    #     return new_aln
+        """
+        if sample_ids is None:
+            sample_ids = list(range(0, aln.nsamples))
+        elif isinstance(sample_ids, int):
+            sample_ids = [sample_ids]
+        elif isinstance(sample_ids, str):
+            sample_ids = aln.samples.sample_names_to_ids([sample_ids])
+        elif (isinstance(sample_ids, list) and
+              sum((isinstance(j, int) for j in sample_ids))):
+            pass
+        elif (isinstance(sample_ids, list) and
+              sum((isinstance(j, str) for j in sample_ids))):
+            sample_ids = aln.samples.sample_names_to_ids(sample_ids)
+        else:
+            raise ValueError('sample_ids must be an int, str, list of int, '
+                             'or list of str.')
+
+        if marker_ids is None:
+            marker_ids = list(range(0, aln.nsites))
+        elif isinstance(marker_ids, int):
+            marker_ids = [marker_ids]
+        elif isinstance(marker_ids, str):
+            marker_ids = aln.samples.sample_names_to_ids([marker_ids])
+        elif (isinstance(marker_ids, list) and
+              sum((isinstance(j, int) for j in marker_ids))):
+            pass
+        elif (isinstance(marker_ids, list) and
+              sum((isinstance(j, str) for j in marker_ids))):
+            marker_ids = aln.samples.sample_names_to_ids(marker_ids)
+        else:
+            raise ValueError('marker_ids must be an int, str, list of int, '
+                             'or list of str.')
+
+        if sites is None:
+            sites = list(range(0, aln.nsites))
+        elif isinstance(sites, int):
+            sites = [sites]
+        elif (isinstance(sites, list) and
+              sum((isinstance(j, int) for j in sites))):
+            pass
+        else:
+            raise ValueError('sites must be an int, or list of int.')
+
+        sample_aln = aln.samples.subset(sample_ids, sites)
+        marker_aln = aln.samples.subset(marker_ids, sites)
+        return cls(aln.name, sample_aln, marker_aln)
 
     def replace_samples(self, i, sequences):
         """Replaces the sequence for a given row in the alignment matrix.
