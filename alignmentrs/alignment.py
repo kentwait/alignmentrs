@@ -28,7 +28,7 @@ class Alignment:
     @property
     def nsamples(self):
         """Returns the number of samples in the alignment.
-        """        
+        """
         return self.samples.nsamples
 
     @property
@@ -37,7 +37,7 @@ class Alignment:
         """
         if self.markers is None:
             return None
-        return self.markers.nmarkers
+        return self.markers.nsamples
 
     # @property
     # def sample_matrix(self):
@@ -149,8 +149,30 @@ class Alignment:
 
         """
         if isinstance(i, int):
-            i = [i]
-        self.samples.remove_samples(i)
+            self.samples.remove_samples([i])
+        elif isinstance(i, str):
+            self.samples.remove_samples_by_name([i])
+        elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
+            self.samples.remove_samples(i)
+        elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
+            self.samples.remove_samples_by_name(i)        
+        else:
+            raise ValueError('i must be an int, str, list of int, or list of str.')
+
+    def retain_samples(self, i):
+        """Keeps sample sequences based on the given index.
+        """
+        if isinstance(i, int):
+            self.samples.retain_samples([i])
+        if isinstance(i, str):
+            self.samples.retain_samples_by_name([i])
+        elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
+            self.samples.retain_samples(i)
+        elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
+            self.samples.retain_samples_by_name(i)
+        else:
+            raise ValueError('i must be an int, str, list of int, or list of str.')
+        self.samples.retain_samples(i)
 
     # def insert_sites(self, sequence_str, i, marker_str=None):
     #     """Inserts a new sequence in the alignment matrix at the specified
@@ -203,8 +225,29 @@ class Alignment:
         if isinstance(i, int):
             i = [i]
         self.samples.remove_sites(i)
-        if isinstance(self.markers, BaseAlignment):
+        if not (self.markers is None or self.markers.nsamples == 0):
             self.markers.remove_sites(i)
+            assert self.samples.nsites == self.markers.nsites, \
+                "Sample and marker nsites are not equal."
+
+    def retain_sites(self, i):
+        """Keeps sites based on the given index.
+        If index is a number, only one site is retained.
+        If the index is a list of numbers, the characters at columns not
+        found in the list is deleted.
+
+        Parameters
+        ----------
+        i : int or list of int
+
+        """
+        if isinstance(i, int):
+            i = [i]
+        self.samples.retain_sites(i)
+        if not (self.markers is None or self.markers.nsamples == 0):
+            self.markers.retain_sites(i)
+            assert self.samples.nsites == self.markers.nsites, \
+                "Sample and marker nsites are not equal."
 
     def get_samples(self, i):
         """Returns a list of sequence strings containing only the samples
@@ -220,8 +263,15 @@ class Alignment:
 
         """
         if isinstance(i, int):
-            i = [i]
-        return self.samples.get_samples(i)
+            return self.samples.get_samples([i])
+        elif isinstance(i, str):
+            return self.samples.get_samples_by_name([i])
+        elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
+            return self.samples.get_samples(i)
+        elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
+            return self.samples.get_samples_by_name(i)
+        else:
+            raise ValueError('i must be an int, str, list of int, or list of str.')
 
     def get_markers(self, i):
         """Returns a list of sequence strings containing only the markers
@@ -237,8 +287,15 @@ class Alignment:
 
         """
         if isinstance(i, int):
-            i = [i]
-        return self.markers.get_samples(i)
+            return self.markers.get_samples([i])
+        elif isinstance(i, str):
+            return self.markers.get_samples_by_name([i])
+        elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
+            return self.markers.get_samples(i)
+        elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
+            return self.markers.get_samples_by_name(i)
+        else:
+            raise ValueError('i must be an int, str, list of int, or list of str.')
 
     # def get_sites(self, i):
     #     """Returns a new alignment containing only the sites specified
