@@ -476,6 +476,19 @@ class Alignment:
                 print(self.markers, file=writer)
 
     def set_blocklists(self, ref_seq, description_encoder=None):
+        """Creates new block information for the sequences given a reference.
+
+        Parameters
+        ----------
+        ref_seq : str
+            Reference sequence length must match alignment length.
+        description_encoder : function
+            This function returns a formatted string encoding the block data.
+            The block string will replace the sample's description.
+            This function receives two parameters, the sample ID and the
+            sample's block data.
+
+        """
         self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
                            for seq in self.samples.sequences]
         if description_encoder:
@@ -486,6 +499,16 @@ class Alignment:
             )
 
     def parse_description_as_blocks(self, description_decoder=None):
+        """Parses sample description into block data.
+
+        Parameters
+        ----------
+        description_decoder : function
+            This function returns the stringed block data from the description.
+            If not provided, the default parse will take the entire string after
+            the last under underscore "_".
+
+        """
         if not self.blocklists:
             self.blocklists = [None for _ in range(self.samples.nsamples)]
         for i, desc in enumerate(self.samples.descriptions):
@@ -497,6 +520,32 @@ class Alignment:
             self.blocklists[i] = blockrs.libblock.from_block_str(desc)
 
     def iter_sites(self, start=0, stop=None, size=1):
+        """Iterates over columns of the alignment.
+
+        Parameters
+        ----------
+        start : int, optional
+            Starting position. (default is 0)
+        stop : [type], optional
+            Stopping position. If None (default is None), the iterator will
+            continue until the end of the alignment.
+        size : int, optional
+            Size of chunks to yield. For single characters, size = 1.
+            For codons, size = 3. (default is 1)
+
+        Raises
+        ------
+        ValueError
+            If the alignment cannot be cleanly cut up into the specified
+            chunk size (nsites not divisible be size), a ValueError is raised.
+
+        Yields
+        ------
+        list of str
+            List of sequences representing a site or chunk of the alignment.
+
+        """
+
         if stop is None:
             stop = self.nsites
         if (stop - start) % size != 0:
@@ -510,25 +559,61 @@ class Alignment:
             else:
                 yield samples
 
-    def iter_sample_sites(self, start=0, stop=None, size=1):
+    def iter_sample_sites(self, start=0, stop=None, step=1):
+        """Iterates over rows in the sample alignment. Excludes markers.
+
+        Parameters
+        ----------
+        start : int, optional
+            Starting index. (default is 0)
+        stop : int, optional
+            Stopping index. If None, the iterator will continue until
+            the last row. (default is None)
+        step : int, optional
+            Increment size. If step == 1, the iterator will iterate over
+            all samples in the alignment.
+            If step > 1, the iterator will skip step - 1
+            samples. (default is 1)
+
+        Yields
+        ------
+        str
+            Sample sequences
+
+        """
         if stop is None:
             stop = self.nsites
-        if (stop - start) % size != 0:
-            raise ValueError('alignment cannot be completely divided into '
-                             'chucks of size {}'.format(size))
-        for i in range(start, stop, size):
-            yield [s[i:i+size] for s in self.samples.sequences]
+        for i in range(start, stop, step):
+            yield self.samples.sequences[i]
 
-    def iter_marker_sites(self, start=0, stop=None, size=1):
+    def iter_marker_sites(self, start=0, stop=None, step=1):
+        """Iterates over rows in the markers alignment. Excludes samples.
+
+        Parameters
+        ----------
+        start : int, optional
+            Starting index. (default is 0)
+        stop : int, optional
+            Stopping index. If None, the iterator will continue until
+            the last row. (default is None)
+        step : int, optional
+            Increment size. If step == 1, the iterator will iterate over
+            all markers in the alignment.
+            If step > 1, the iterator will skip step - 1
+            markers. (default is 1)
+
+        Yields
+        ------
+        str
+            Marker sequences
+
+        """
         if self.markers is None or self.markers.nsamples == 0:
             return
         if stop is None:
             stop = self.nsites
-        if (stop - start) % size != 0:
-            raise ValueError('alignment cannot be completely divided into '
-                             'chucks of size {}'.format(size))
-        for i in range(start, stop, size):
-            yield [s[i:i+size] for s in self.markers.sequences]
+        for i in range(start, stop, step):
+            yield self.markers.sequences[i]
 
     def __repr__(self):
         return '{}(nsamples={}, nsites={}, nmarkers={})'.format(
@@ -850,11 +935,15 @@ def fasta_file_to_lists(path, marker_kw=None):
     Parameters
     ----------
     path : str
-    name : str
+        Location of FASTA file.
+    marker_kw : str
+        Keyword indicating the sample is a marker.
 
     Returns
     -------
-    Alignment
+    dict
+        Contains list of ids, descriptions, and sequences for sample
+        and marker categories.
 
     """
     _id = ''
@@ -919,7 +1008,11 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
     Parameters
     ----------
     path : str
+        Location of FASTA file.
     name : str
+        Name of the alignment.
+    marker_kw : str
+        Keyword indicating the sample is a marker.
 
     Returns
     -------
