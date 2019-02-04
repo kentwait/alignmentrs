@@ -147,19 +147,15 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut new_sequences: Vec<String> = Vec::new();
-        let mut checked = false;
         for seq in self.sequences.iter() {
             let mut new_sequence: Vec<String> = Vec::new();
             for i in sites.iter().map(|x| *x as usize) {
-                if checked == false {
-                    if i >= self.ids.len() {
-                        return Err(exceptions::ValueError::py_err("site index out of range"))
-                    }
+                if i >= seq.chars().count() {
+                    return Err(exceptions::ValueError::py_err("site index out of range"))
                 }
                 let seq: Vec<char> = seq.chars().collect();
                 new_sequence.push(seq[i].to_string());
             }
-            checked = true;
             new_sequences.push(new_sequence.join(""))
         }
         Ok(BaseAlignment {
@@ -458,13 +454,12 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut ids: Vec<i32> = Vec::new();
+        let mut matches: Vec<&str> = Vec::new();
         for name in names.iter() {
-            match self.ids.iter().position(|x| x == name) {
-                Some(i) => {
+            for (i, id) in self.ids.iter().enumerate() {
+                if name == id && !matches.contains(&name) {
                     ids.push(i as i32);
-                },
-                None => {
-                    return Err(exceptions::ValueError::py_err(format!("sample id {} not found", name)))
+                    matches.push(id);
                 }
             }
         }
@@ -476,13 +471,12 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut ids: Vec<i32> = Vec::new();
+        let mut matches: Vec<&str> = Vec::new();
         for name in names.iter() {
-            match self.ids.iter().position(|x| x.starts_with(name)) {
-                Some(i) => {
+            for (i, id) in self.ids.iter().enumerate() {
+                if name.starts_with(id) && !matches.contains(&name) {
                     ids.push(i as i32);
-                },
-                None => {
-                    return Err(exceptions::ValueError::py_err(format!("sample id {} not found", name)))
+                    matches.push(id);
                 }
             }
         }
@@ -494,13 +488,12 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut ids: Vec<i32> = Vec::new();
+        let mut matches: Vec<&str> = Vec::new();
         for name in names.iter() {
-            match self.ids.iter().position(|x| x.ends_with(name)) {
-                Some(i) => {
+            for (i, id) in self.ids.iter().enumerate() {
+                if name.ends_with(id) && !matches.contains(&name) {
                     ids.push(i as i32);
-                },
-                None => {
-                    return Err(exceptions::ValueError::py_err(format!("sample id {} not found", name)))
+                    matches.push(id);
                 }
             }
         }
