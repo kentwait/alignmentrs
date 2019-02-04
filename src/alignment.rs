@@ -554,7 +554,7 @@ impl BaseAlignment {
         let mut matches: Vec<&str> = Vec::new();
         for name in names.iter() {
             for (i, id) in self.ids.iter().enumerate() {
-                if name.starts_with(id) && !matches.contains(&name) {
+                if id.starts_with(name) && !matches.contains(name) {
                     ids.push(i as i32);
                     matches.push(id);
                 }
@@ -573,7 +573,7 @@ impl BaseAlignment {
         let mut matches: Vec<&str> = Vec::new();
         for name in names.iter() {
             for (i, id) in self.ids.iter().enumerate() {
-                if name.ends_with(id) && !matches.contains(&name) {
+                if id.ends_with(name) && !matches.contains(name) {
                     ids.push(i as i32);
                     matches.push(id);
                 }
