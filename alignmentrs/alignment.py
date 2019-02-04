@@ -1,4 +1,5 @@
 from libalignmentrs.alignment import BaseAlignment
+from blockrs import block
 
 
 class Alignment:
@@ -17,7 +18,10 @@ class Alignment:
         self.name = name
         self.samples = sample_alignment
         self.markers = marker_alignment
-        assert self.samples.nsites == self.markers.nsites, "Sample and marker nsites are not equal."
+        self.blocklists = []
+        if not (self.markers is None or self.markers.nsamples == 0):
+            assert self.samples.nsites == self.markers.nsites, \
+                "Sample and marker nsites are not equal."
 
     @property
     def nsites(self):
@@ -344,6 +348,27 @@ class Alignment:
         with open(path, 'w') as writer:
             print(self.samples, file=writer)
             print(self.markers, file=writer)
+
+    def set_blocklists(self, ref_seq, description_fn=None):
+        self.blocklists = [block.pairwise_to_blocks(ref_seq, seq)
+                           for seq in self.samples.sequences]
+        if description_fn:
+            self.samples.set_descriptions(
+                list(range(self.samples.nsamples)),
+                [description_fn(sid, blist)
+                 for sid, blist in zip(self.samples.ids, self.blocklists)]
+            )
+
+    def parse_add_blocks(self, block_strings):
+        if self.blocklists and len(block_strings) != self.samples.nsamples:
+            raise ValueError('length of block string list not equal to the number of sequences')
+        elif not self.blocklists:
+            self.blocklists = [None for _ in range(self.samples.nsamples)]
+        for i, block_str in enumerate(block_strings):
+            # Parse block str into blocks
+            blocks = []
+            # Adds to blocklists
+            self.blocklists[i] = blocks
 
     def __repr__(self):
         return '{}(nsamples={}, nsites={}, nmarkers={})'.format(
