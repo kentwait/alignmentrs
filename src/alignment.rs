@@ -208,7 +208,7 @@ impl BaseAlignment {
         if self.sequences.len() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        for (c, i) in ids.iter().map(|x| *x as usize).enumerate() {
+        for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
             if i >= self.ids.len() {
                 return Err(exceptions::ValueError::py_err("sample index out of range"))
             }
@@ -221,7 +221,7 @@ impl BaseAlignment {
         if self.sequences.len() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        for (c, i) in ids.iter().map(|x| *x as usize).enumerate() {
+        for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
             if i >= self.ids.len() {
                 return Err(exceptions::ValueError::py_err("sample index out of range"))
             }
@@ -234,7 +234,27 @@ impl BaseAlignment {
         if self.sequences.len() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        for (c, i) in ids.iter().map(|x| *x as usize).enumerate() {
+        for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
+            if i >= self.ids.len() {
+                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            }
+            if values[c].chars().count() != self.sequences[i].chars().count() {
+                return Err(exceptions::ValueError::py_err("sequence length is not the same"))
+            }
+            self.sequences[i] = values[c].to_string();
+        }
+        Ok(())
+    }
+
+    fn set_sequences_by_name(&mut self, names: Vec<&str>, values: Vec<&str>) -> PyResult<()> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.sample_names_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
             if i >= self.ids.len() {
                 return Err(exceptions::ValueError::py_err("sample index out of range"))
             }
