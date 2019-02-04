@@ -107,16 +107,27 @@ class Alignment:
     #     )
     #     return new_aln
 
-    # def replace_sample(self, sequence_str, i):
-    #     """Replaces the sequence for a given row in the alignment matrix.
+    def replace_samples(self, i, sequences):
+        """Replaces the sequence for a given row in the alignment matrix.
 
-    #     Parameters
-    #     ----------
-    #     sequence_str : str
-    #     i : int
+        Parameters
+        ----------
+        i : int, str, list
+        sequences : str
 
-    #     """
-    #     self._sample_aln.replace_sample(sequence_str, i)
+        """
+        if isinstance(i, int) and isinstance(sequences, str):
+            self.samples.set_sequences([i], [sequences])
+        elif isinstance(i, str) and isinstance(sequences, str):
+            ids = self.samples.sample_names_to_ids([i])
+            self.samples.set_sequences([ids], [sequences])
+        elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
+            self.samples.set_sequences(i, sequences)
+        elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
+            ids = self.samples.sample_names_to_ids(i)
+            self.samples.set_sequences(ids, sequences)
+        else:
+            raise ValueError('i must be an int, str, list of int, or list of str.')
 
     # def insert_samples(self, sequence_str, i):
     #     """Inserts a new sequence in the alignment matrix at the specified
