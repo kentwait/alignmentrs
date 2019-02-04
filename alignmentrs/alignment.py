@@ -43,18 +43,6 @@ class Alignment:
             return None
         return self.markers.nsamples
 
-    # @property
-    # def sample_matrix(self):
-    #     """Returns the sample alignent matrix
-    #     """
-    #     return self._sample_aln.matrix
-
-    # @property
-    # def marker_matrix(self):
-    #     """Returns the marker alignment matrix
-    #     """
-    #     return self._marker_aln.matrix
-
     @classmethod
     def subset(cls, aln, sample_ids=None, marker_ids=None, sites=None):
         """Returns a subset of the alignment by samples, markers and sites.
@@ -142,28 +130,46 @@ class Alignment:
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
-    # def insert_samples(self, sequence_str, i):
-    #     """Inserts a new sequence in the alignment matrix at the specified
-    #     row position. This increases the total number of rows.
+    def insert_samples_from_lists(self, pos, ids, descriptions, samples):
+        """Inserts a new sequence in the alignment matrix at the specified
+        row position. This increases the total number of rows.
 
-    #     Parameters
-    #     ----------
-    #     sequence_str : str or list of str
-    #     i : int or list of int
+        Parameters
+        ----------
+        sequence_str : str or list of str
+        i : int or list of int
 
-    #     """
-    #     self._sample_aln.insert_samples(sequence_str, i)
+        """
+        if not(isinstance(ids, list) and 
+               sum((isinstance(j, int) for j in ids))):
+            raise ValueError('ids must be a list of str.')
+        if not(isinstance(descriptions, list) and 
+               sum((isinstance(j, int) for j in descriptions))):
+            raise ValueError('descriptions must be a list of str.')
+        if not(isinstance(samples, list) and 
+               sum((isinstance(j, int) for j in samples))):
+            raise ValueError('samples must be a list of str.')
+        self.samples.insert_samples(pos, ids, descriptions, samples)
 
-    # def append_sample(self, sequence_str):
-    #     """Inserts a new sequence after the last row of the alignment matrix.
-    #     This increases the total number of rows by 1.
+    def append_sample_from_lists(self, ids, descriptions, samples):
+        """Inserts a new sequence after the last row of the alignment matrix.
+        This increases the total number of rows by 1.
 
-    #     Parameters
-    #     ----------
-    #     sequence_str : str
+        Parameters
+        ----------
+        sequence_str : str
 
-    #     """
-    #     self._sample_aln.append_sample(sequence_str)
+        """
+        if not(isinstance(ids, list) and 
+               sum((isinstance(j, int) for j in ids))):
+            raise ValueError('ids must be a list of str.')
+        if not(isinstance(descriptions, list) and 
+               sum((isinstance(j, int) for j in descriptions))):
+            raise ValueError('descriptions must be a list of str.')
+        if not(isinstance(samples, list) and 
+               sum((isinstance(j, int) for j in samples))):
+            raise ValueError('samples must be a list of str.')
+        self.samples.append_samples(ids, descriptions, samples)
 
     def remove_samples(self, i, match_prefix=False, match_suffix=False):
         """Removes sample sequences based on the given index.
