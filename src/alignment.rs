@@ -500,6 +500,31 @@ impl BaseAlignment {
         Ok(ids)
     }
 
+    fn transpose(&self) -> PyResult<BaseAlignment> {
+        if self.sequences.len() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let length = self.sequences[0].chars().count();
+        let mut new_ids: Vec<String> = Vec::new();
+        let new_descriptions: Vec<String> = vec![String::new(); length];
+        let mut new_sequences: Vec<String> = Vec::new();
+        
+        for i in 0..length {
+            let mut column = String::new();
+            for seq in self.sequences.iter() {
+                let sequence_vec: Vec<char> = seq.chars().collect();
+                column.push(sequence_vec[i]);
+            }
+            new_ids.push(format!("{}", i));
+            new_sequences.push(column);
+        }
+        Ok(BaseAlignment {
+            ids: new_ids,
+            descriptions: new_descriptions,
+            sequences: new_sequences,
+        })
+    }
+
     // Properties
     #[getter]
     fn nsamples(&self) -> PyResult<i32> {
