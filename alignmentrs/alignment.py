@@ -1,4 +1,5 @@
 from libalignmentrs.alignment import BaseAlignment
+import os
 import blockrs
 
 
@@ -985,6 +986,8 @@ def fasta_file_to_lists(path, marker_kw=None):
     marker_descs = []
     marker_seqs = []
 
+    if not os.path.exists(path):
+        raise Exception('{} does not exist'.format(path))
     with open(path, 'r') as f:  # pylint: disable=invalid-name
         for line in f.readlines():
             line = line.rstrip()
@@ -1052,8 +1055,8 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
                                d['sample']['sequences'])
     if len(d['marker']['ids']) > 0:
         marker_aln = BaseAlignment(d['marker']['ids'],
-                                d['marker']['descriptions'],
-                                d['marker']['sequences'])
+                                   d['marker']['descriptions'],
+                                   d['marker']['sequences'])
     else:
         marker_aln = None
     # Create alignments
