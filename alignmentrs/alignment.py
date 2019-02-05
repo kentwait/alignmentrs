@@ -1,5 +1,6 @@
 from libalignmentrs.alignment import BaseAlignment
 import os
+import numpy as np
 import blockrs
 
 
@@ -495,6 +496,8 @@ class Alignment:
         # Create alignments
         return cls(name, sample_aln, marker_aln)
 
+    # Format converters
+
     def to_fasta(self, path, include_markers=True):
         """Saves the alignment as a FASTA-formatted text file.
 
@@ -507,6 +510,38 @@ class Alignment:
             print(self.samples, file=writer)
             if include_markers:
                 print(self.markers, file=writer)
+
+    def to_sample_matrix(self, size=1):
+        """Converts sequences into a numpy matrix.
+
+        Parameters
+        ----------
+        size : int, optional
+            Defines the number of characters is in each cell.
+            For example, for a codon-based matrix, set size=3.
+
+        Returns
+        -------
+        np.array
+
+        """
+        return np.array([list(s) for s in self.iter_sample_sites(size=size)]).T
+
+    def to_marker_matrix(self, size=1):
+        """Converts sequences into a numpy matrix.
+
+        Parameters
+        ----------
+        size : int, optional
+            Defines the number of characters is in each cell.
+            For example, for a codon-based matrix, set size=3.
+
+        Returns
+        -------
+        np.array
+
+        """
+        return np.array([list(s) for s in self.iter_marker_sites(size=size)]).T
 
     def set_blocklists(self, ref_seq, description_encoder=None):
         """Creates new block information for the sequences given a reference.
