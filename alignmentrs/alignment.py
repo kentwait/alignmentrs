@@ -90,12 +90,14 @@ class Alignment:
         Parameters
         ----------
         aln : Alignment
-        sample_ids : list
-        marker_ids : list
-        sites : list
-        sample_id_step : int
-        marker_id_step : int
-        site_step : int
+        sample_ids : int, list of int, or None
+            Row indices for samples in the alignment.
+            If None, all samples will be included in the subset.
+        marker_ids : int, list of int, or None
+            Row indices for markers in the alignment.
+            If None, all markers will be included in the subset.
+        sites : int, list of int, or None
+            Site positions. If None, all sites will be included in the subset.
 
         Returns
         -------
@@ -153,7 +155,7 @@ class Alignment:
 
         Parameters
         ----------
-        i : int, str, list
+        i : int, str, list of int, or list of str
         sequences : str
 
         """
@@ -176,8 +178,8 @@ class Alignment:
 
         Parameters
         ----------
-        sequence_str : str or list of str
-        i : int or list of int
+        i : int, str, list of int, or list of str
+        sequences : str
 
         """
         if not(isinstance(ids, list) and 
@@ -197,7 +199,9 @@ class Alignment:
 
         Parameters
         ----------
-        sequence_str : str
+        ids : list of str
+        descriptions : list of str
+        samples : list of str
 
         """
         if not(isinstance(ids, list) and 
@@ -219,7 +223,9 @@ class Alignment:
 
         Parameters
         ----------
-        i : int or list of int
+        ids : list of str
+        descriptions : list of str
+        samples : list of str
 
         """
         if isinstance(i, int):
@@ -313,6 +319,14 @@ class Alignment:
         Parameters
         ----------
         i : int or list of int
+        description_encoder : function, optional
+            This function returns a formatted string encoding the block data.
+            The block string will replace the sample's description.
+            This function receives two parameters, the sample ID and the
+            sample's block data.
+            If None and blocks are used, block data are updated but
+            is note written to the sample description
+            (default is None)
 
         """
         if isinstance(i, int):
@@ -344,6 +358,14 @@ class Alignment:
         Parameters
         ----------
         i : int or list of int
+        description_encoder : function, optional
+            This function returns a formatted string encoding the block data.
+            The block string will replace the sample's description.
+            This function receives two parameters, the sample ID and the
+            sample's block data.
+            If None and blocks are used, block data are updated but
+            is note written to the sample description
+            (default is None)
 
         """
         if isinstance(i, int):
@@ -373,7 +395,11 @@ class Alignment:
 
         Parameters
         ----------
-        i : int or list of int
+        i : int, str, list of int, or list of str
+            Sample names/IDs or row indices specifying whic
+        match_prefix : bool, optional
+
+        match_suffix : bool, optional
 
         Returns
         -------
@@ -493,7 +519,10 @@ class Alignment:
             This function returns a formatted string encoding the block data.
             The block string will replace the sample's description.
             This function receives two parameters, the sample ID and the
-            sample's block data. (default is None)
+            sample's block data.
+            If None and blocks are used, block data are updated but
+            is note written to the sample description
+            (default is None)
 
         """
         self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
