@@ -1,5 +1,6 @@
 from alignmentrs.alignment import Alignment
 from libalignmentrs.alignment import concat_basealignments
+from blockrs import CatBlock
 import random
 import os
 import blockrs
@@ -48,7 +49,8 @@ class AlignmentSet:
         aln_list = [aln for k, aln in self._alignments.items() if k in keys]
         return self.__class__(name, aln_list)
 
-    def concatenate(self, name='concatenated_alignment', keys=None):
+    def concatenate(self, name='concatenated_alignment', keys=None,
+                    description_encoder=None):
         """Returns an concatenated alignment from the alignment set.
 
         Parameters
@@ -60,6 +62,13 @@ class AlignmentSet:
             determines the order of concatenation.
             If None, alignments are concatenated based on original order.
             (default is None)
+        description_encoder : function or None, optional
+            This function returns a formatted string encoding CatBlock data.
+            The CatBlock string will replace the sample's description.
+            This function receives two parameters, the sample ID and the
+            sample's concatenation order as a list of CatBlocks.
+            If None, the description will follow the description of the
+            first alignment in during concatenation.
 
         Returns
         -------
@@ -79,6 +88,21 @@ class AlignmentSet:
                 [aln.markers for aln in self._alignments.values()])
         except Exception:
             marker_alignment = None
+
+        if description_encoder:
+            start = 0
+            def cb(sid, val):
+                nonlocal start
+                start += val
+                return CatBlock(sid, start-val, start)
+            cblist = [cb(name, aln.nsites)
+                      for name, aln in self._alignments.items()]
+            descriptions = [description_encoder(sid, cblist)
+                            for sid in sample_alignment.ids]
+            sample_alignment.set_descriptions(
+                list(range(sample_alignment.nsamples)),
+                descriptions
+            )
         return Alignment(name, sample_alignment, marker_alignment)
 
     @classmethod
