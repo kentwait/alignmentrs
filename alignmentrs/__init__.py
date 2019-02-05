@@ -8,7 +8,7 @@ import libalignmentrs.sample as libsample
 import libalignmentrs.marker as libmarker
 
 __author__ = 'Kent Kawashima'
-__version__ = '0.6.1'
+__version__ = '0.6.2'
 __all__ = ['libsample', 'libmarker', 'Sample', 'Marker',
            'BaseAlignment', 'Alignment', 'AlignmentSet',
            'fasta_file_to_alignment']
