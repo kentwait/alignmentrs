@@ -105,6 +105,68 @@ class AlignmentSet:
             )
         return Alignment(name, sample_alignment, marker_alignment)
 
+    def to_fasta_files(self, path_mapping, include_markers=True):
+        """Saves specific alignments as FASTA-formatted text files
+        based on a dictionary of alignment names and their corresponding
+        save paths.
+
+        Parameters
+        ----------
+        path_mapping : dict
+            Keys are alignment names, values are paths where to
+            write alignments.
+        include_markers : bool, optional
+            If True, markers are also written to the FASTA file.
+            (default is True)
+
+        Returns
+        -------
+        int
+            Number of FASTA files written.
+
+        """
+        c = 0
+        for key, path in path_mapping.items():
+            if key not in self._alignments.keys():
+                raise KeyError('path_mapping key "{}" does not match '
+                               'any alignment name.'.format(key))
+            self._alignments[key].to_fasta(path, include_markers)
+            c += 1
+        return c
+
+    def to_fasta_dir(self, dirpath, include_markers=True,
+                     name_to_filename_encoder=None):
+        """Saves all alignments as FASTA-formatted text files
+        in a single directory.
+
+        Parameters
+        ----------
+        dirpath : str
+            Folder/directory to save the FASTA files in.
+        include_markers : bool, optional
+            If True, markers are also written to the FASTA file.
+            (default is True)
+        name_to_filename_encoder : function or None, optional
+            This function returns the alignment's filename
+            given its name. The function receives one parater,
+            the alignment name.
+            If not specified, the output filename will be in the
+            format `{name}.aln` where name is the alignment's name.
+            (default is None)
+
+        Returns
+        -------
+        int
+            Number of FASTA files written.
+
+        """
+        if name_to_filename_encoder is None:
+            name_to_filename_encoder = lambda x: '{}.aln'.format(x)
+        path_mapping = {
+            name: os.path.join(dirpath, name_to_filename_encoder(name))
+            for name in self._alignments.keys()}
+        return self.to_fasta_files(path_mapping, include_markers)
+
     @classmethod
     def from_fasta_files(cls, paths, name, marker_kw=None,
                          filename_to_key_encoder=None):
