@@ -181,13 +181,13 @@ class Alignment:
 
         """
         if not(isinstance(ids, list) and 
-               sum((isinstance(j, int) for j in ids))):
+               sum((isinstance(j, str) for j in ids))):
             raise ValueError('ids must be a list of str.')
         if not(isinstance(descriptions, list) and 
-               sum((isinstance(j, int) for j in descriptions))):
+               sum((isinstance(j, str) for j in descriptions))):
             raise ValueError('descriptions must be a list of str.')
         if not(isinstance(samples, list) and 
-               sum((isinstance(j, int) for j in samples))):
+               sum((isinstance(j, str) for j in samples))):
             raise ValueError('samples must be a list of str.')
         self.samples.insert_samples(pos, ids, descriptions, samples)
 
@@ -201,13 +201,13 @@ class Alignment:
 
         """
         if not(isinstance(ids, list) and 
-               sum((isinstance(j, int) for j in ids))):
+               sum((isinstance(j, str) for j in ids))):
             raise ValueError('ids must be a list of str.')
         if not(isinstance(descriptions, list) and 
-               sum((isinstance(j, int) for j in descriptions))):
+               sum((isinstance(j, str) for j in descriptions))):
             raise ValueError('descriptions must be a list of str.')
         if not(isinstance(samples, list) and 
-               sum((isinstance(j, int) for j in samples))):
+               sum((isinstance(j, str) for j in samples))):
             raise ValueError('samples must be a list of str.')
         self.samples.append_samples(ids, descriptions, samples)
 
