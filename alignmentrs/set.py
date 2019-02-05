@@ -93,7 +93,7 @@ class AlignmentSet:
             def cb(sid, val):
                 nonlocal start
                 start += val
-                return CatBlock(sid, start-val, start)
+                return CatBlock(str(sid), start-val, start)
             cblist = [cb(name, aln.nsites)
                       for name, aln in self._alignments.items()]
             descriptions = [description_encoder(sid, cblist)
@@ -243,7 +243,7 @@ class AlignmentSet:
         else:
             if not os.path.isdir(dirpath):
                 raise Exception('{} is not a directory'.format(dirpath))
-        paths = (fname for fname in os.listdir(dirpath)
+        paths = (os.path.join(dirpath, fname) for fname in os.listdir(dirpath)
                  if fname.endswith(suffix))
         return cls.from_fasta_files(paths, name, marker_kw,
                                     filename_to_key_encoder)
