@@ -161,7 +161,7 @@ class AlignmentSet:
 
         """
         if not os.path.exists(dirpath):
-            os.makedirs(dirpath)
+            os.makedirs(os.path.abspath(dirpath))
         if name_to_filename_encoder is None:
             name_to_filename_encoder = lambda x: '{}.aln'.format(x)
         path_mapping = {

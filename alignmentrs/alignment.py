@@ -566,61 +566,75 @@ class Alignment:
             else:
                 yield samples
 
-    def iter_sample_sites(self, start=0, stop=None, step=1):
-        """Iterates over rows in the sample alignment. Excludes markers.
+    def iter_sample_sites(self, start=0, stop=None, size=1):
+        """Iterates over sample sites of the alignment. Excludes markers.
 
         Parameters
         ----------
         start : int, optional
-            Starting index. (default is 0)
-        stop : int, optional
-            Stopping index. If None, the iterator will continue until
-            the last row. (default is None)
-        step : int, optional
-            Increment size. If step == 1, the iterator will iterate over
-            all samples in the alignment.
-            If step > 1, the iterator will skip step - 1
-            samples. (default is 1)
+            Starting position. (default is 0)
+        stop : [type], optional
+            Stopping position. If None (default is None), the iterator will
+            continue until the end of the sample alignment.
+        size : int, optional
+            Size of chunks to yield. For single characters, size = 1.
+            For codons, size = 3. (default is 1)
+
+        Raises
+        ------
+        ValueError
+            If the alignment cannot be cleanly cut up into the specified
+            chunk size (nsites not divisible be size), a ValueError is raised.
 
         Yields
         ------
-        str
-            Sample sequences
+        list of str
+            List of sequences representing a site or chunk of the alignment.
 
         """
         if stop is None:
             stop = self.nsites
-        for i in range(start, stop, step):
-            yield self.samples.sequences[i]
+        if (stop - start) % size != 0:
+            raise ValueError('alignment cannot be completely divided into '
+                             'chucks of size {}'.format(size))
+        for i in range(start, stop, size):
+            yield [s[i:i+size] for s in self.samples.sequences]
 
-    def iter_marker_sites(self, start=0, stop=None, step=1):
-        """Iterates over rows in the markers alignment. Excludes samples.
+    def iter_marker_sites(self, start=0, stop=None, size=1):
+        """Iterates over marker sites of the alignment. Excludes samples.
 
         Parameters
         ----------
         start : int, optional
-            Starting index. (default is 0)
-        stop : int, optional
-            Stopping index. If None, the iterator will continue until
-            the last row. (default is None)
-        step : int, optional
-            Increment size. If step == 1, the iterator will iterate over
-            all markers in the alignment.
-            If step > 1, the iterator will skip step - 1
-            markers. (default is 1)
+            Starting position. (default is 0)
+        stop : [type], optional
+            Stopping position. If None (default is None), the iterator will
+            continue until the end of the marker alignment.
+        size : int, optional
+            Size of chunks to yield. For single characters, size = 1.
+            For codons, size = 3. (default is 1)
+
+        Raises
+        ------
+        ValueError
+            If the alignment cannot be cleanly cut up into the specified
+            chunk size (nsites not divisible be size), a ValueError is raised.
 
         Yields
         ------
-        str
-            Marker sequences
+        list of str
+            List of sequences representing a site or chunk of the alignment.
 
         """
         if self.markers is None or self.markers.nsamples == 0:
             return
         if stop is None:
             stop = self.nsites
-        for i in range(start, stop, step):
-            yield self.markers.sequences[i]
+        if (stop - start) % size != 0:
+            raise ValueError('alignment cannot be completely divided into '
+                             'chucks of size {}'.format(size))
+        for i in range(start, stop, size):
+            yield [s[i:i+size] for s in self.markers.sequences]
 
     def __getitem__(self, key):
         if key in self.samples.ids():
