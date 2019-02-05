@@ -251,7 +251,7 @@ class AlignmentSet:
         return self._alignments[key]
 
     def __delitem__(self, key):
-        del self._alignments[key]
+        self._alignments.__delitem__(key)
 
     def __iter__(self):
         for name, aln in self._alignments.items():
