@@ -1023,9 +1023,12 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
     sample_aln = BaseAlignment(d['sample']['ids'],
                                d['sample']['descriptions'],
                                d['sample']['sequences'])
-    marker_aln = BaseAlignment(d['marker']['ids'],
-                               d['marker']['descriptions'],
-                               d['marker']['sequences'])
+    if len(d['marker']['ids']) > 0:
+        marker_aln = BaseAlignment(d['marker']['ids'],
+                                d['marker']['descriptions'],
+                                d['marker']['sequences'])
+    else:
+        marker_aln = None
     # Create alignments
     return Alignment(name, sample_aln, marker_aln)
 
