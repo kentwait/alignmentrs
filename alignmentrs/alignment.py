@@ -224,10 +224,11 @@ class Alignment:
 
         Parameters
         ----------
-        ids : list of str
-        descriptions : list of str
-        samples : list of str
-
+        i : int, str, list of int, or list of str
+            Sample names/IDs or row indices specifying which samples to
+            retrieve.
+        match_prefix : bool, optional
+        match_suffix : bool, optional
         """
         if isinstance(i, int):
             self.samples.remove_samples([i])
@@ -252,6 +253,15 @@ class Alignment:
 
     def retain_samples(self, i, match_prefix=False, match_suffix=False):
         """Keeps sample sequences based on the given index.
+
+        Parameters
+        ----------
+        i : int, str, list of int, or list of str
+            Sample names/IDs or row indices specifying which samples to
+            retrieve.
+        match_prefix : bool, optional
+        match_suffix : bool, optional
+
         """
         if isinstance(i, int):
             self.samples.retain_samples([i])
@@ -360,9 +370,9 @@ class Alignment:
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            Sample names/IDs or row indices specifying whic
+            Sample names/IDs or row indices specifying which samples to
+            retrieve.
         match_prefix : bool, optional
-
         match_suffix : bool, optional
 
         Returns
