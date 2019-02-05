@@ -78,3 +78,23 @@ class AlignmentSet:
         except Exception:
             marker_alignment = None
         return Alignment(name, sample_alignment, marker_alignment)
+
+    def __getitem__(self, key):
+        return self._alignments[key]
+
+    def __delitem__(self, key):
+        del self._alignments[key]
+
+    def __iter__(self):
+        yield from self._alignments
+
+    def __repr__(self):
+        return '{}(nalns={}, nsamples={}, nmarkers={})'.format(
+            self.__class__.__name__,
+            self.nalns,
+            self.alignments[0].nsamples if self.nalns > 0 else None,
+            self.alignments[0].nmarkers if self.nalns > 0 else None
+        )
+
+    def __len__(self):
+        return len(self._alignments)
