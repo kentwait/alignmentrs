@@ -274,43 +274,6 @@ class Alignment:
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
-    # def insert_sites(self, sequence_str, i, marker_str=None):
-    #     """Inserts a new sequence in the alignment matrix at the specified
-    #     site position. This increases the total number of columns.
-
-    #     Parameters
-    #     ----------
-    #     sequence_str : str or list of str
-    #     i : int or list of int
-
-    #     """
-    #     if marker_str is None and self._marker_aln:
-    #         assert ValueError('marker_str cannot be None if the alignment ' \
-    #                           'has marker sequences')
-    #     if (marker_str is not None) and (not self._marker_aln):
-    #         assert ValueError('The alignment does not use marker sequences')
-    #     self._sample_aln.insert_sites(sequence_str, i)
-    #     if self._marker_aln:
-    #         self._marker_aln.insert_sites(marker_str, i)
-
-    # def append_site(self, sequence_str, marker_str=None):
-    #     """Inserts a new sequence at after the last column of the
-    #     alignment matrix. This increases the total number of columns by 1.
-
-    #     Parameters
-    #     ----------
-    #     sequence_str : str
-
-    #     """
-    #     if marker_str is None and self._marker_aln:
-    #         assert ValueError('marker_str cannot be None if the alignment ' \
-    #                           'has marker sequences')
-    #     if (marker_str is not None) and (not self._marker_aln):
-    #         assert ValueError('The alignment does not use marker sequences')
-    #     self._sample_aln.append_site(sequence_str)
-    #     if self._marker_aln:
-    #         self._marker_aln.append_site(marker_str)
-
     def remove_sites(self, i, description_encoder=None):
         """Removes sites based on the given index.
         If index is a number, only one site is removed.
@@ -611,6 +574,8 @@ class Alignment:
         else:
             raise ValueError('Block list is empty')
 
+    # Iterators
+
     def iter_sites(self, start=0, stop=None, size=1):
         """Iterates over columns of the alignment.
 
@@ -637,7 +602,6 @@ class Alignment:
             List of sequences representing a site or chunk of the alignment.
 
         """
-
         if stop is None:
             stop = self.nsites
         if (stop - start) % size != 0:
@@ -754,307 +718,12 @@ class Alignment:
         return '\n'.join([str(self.samples), str(self.markers)])
 
     def __len__(self):
-        raise NotImplementedError('len() is not implemented for Alignment.\n Use .nsamples to get the number of samples, .nmarkers to get the number of markers, or .nrows to get all the number of alignment rows.')
+        raise NotImplementedError(
+            'len() is not implemented for Alignment.\n'
+            'Use .nsamples to get the number of samples, '
+            '.nmarkers to get the number of markers, or '
+            '.nrows to get all the number of alignment rows.')
 
-
-# class CatBlock:
-#     def __init__(self, name, start, stop):
-#         self.name = name
-#         self.start = start
-#         self.stop = stop
-
-#     def __repr__(self):
-#         return 'CatBlock(name={}, start={}, stop={})'.format(
-#             self.name, self.start, self.stop
-#         )
-
-#     def __str__(self):
-#         return '{}={}:{}'.format(self.name, self.start, self.stop)
-
-# class CatAlignment(Alignment):
-#     """CatAlignment represents a superalignment of 2 or more
-#     alignments concatenated together laterally.
-#     """
-#     def __init__(self, sequence_list, marker_list, catblocks, 
-#                  block_lists_map=None, name=None,
-#                  sample_to_uint_fn=None, uint_to_sample_fn=None,
-#                  marker_to_uint_fn=None, uint_to_marker_fn=None):
-#         """Creates a new CatAlignment.
-
-#         Parameters
-#         ----------
-#         sequence_list : list of Sequence
-#         marker_list : list of Marker
-#         concat_list : list of CatBlock
-
-#         """
-#         super().__init__(sequence_list, marker_list, name=name,
-#                          sample_to_uint_fn=sample_to_uint_fn,
-#                          uint_to_sample_fn=uint_to_sample_fn,
-#                          marker_to_uint_fn=marker_to_uint_fn,
-#                          uint_to_marker_fn=uint_to_marker_fn)
-#         self.catblocks = OrderedDict([(cb.id, self.catblocks[i])
-#                                       for i, cb in enumerate(catblocks)])
-#         self.block_lists_map = OrderedDict() if not block_lists_map else \
-#                                block_lists_map
-
-#     @classmethod
-#     def concatenate(cls, aln_list, aln_ids=None, use_aln_names=True):
-#         """Concatenates a list of Alignments into a single superalignment.
-
-#         Parameters
-#         ----------
-#         aln_list : list of Alignment
-#             [description]
-#         aln_ids : list, optional
-#             If specified, this list will be used as keys
-#             to access individual alignments.
-#         use_aln_names : bool, optional
-#             When aln_ids is None, determines what values to use
-#             as keys to access individual sequence alignments.
-#             If True, alignment names are used . If False,
-#             numbers from 0 corresponding to the position of the
-#             alignment in the alignment list will be used.
-
-#         Returns
-#         -------
-#         CatAlignment
-
-#         """
-#         start = 0
-#         def coords(sid, val):
-#             nonlocal start
-#             start += val
-#             return CatBlock(sid, start-val, start)
-#         # Create a new concat alignment
-#         new_aln = cls.__new__(cls)
-#         new_aln.name = 'concat_' + '_'.join([str(aln.name) for aln in aln_list])
-#         # Save alignment order
-#         # Put block lists in a mapping
-#         if aln_ids is not None:
-#             new_aln.catblocks = OrderedDict([
-#                 (i, coords(i, v.nsites)) for i, v in zip(aln_ids, aln_list)])
-#             new_aln.block_lists_map = OrderedDict([
-#                 (i, copy_block_lists(v.samples.block_lists))
-#                 for i, v in zip(aln_ids, aln_list)])
-#         elif use_aln_names:
-#             new_aln.catblocks = OrderedDict([
-#                 (v.name, coords(v.name, v.nsites)) for v in aln_list])
-#             new_aln.block_lists_map = OrderedDict([
-#                 (v.name, copy_block_lists(v.samples.block_lists))
-#                 for v in aln_list])
-#         else:
-#             new_aln.catblocks = OrderedDict([
-#                 (i, coords(i, v.nsites)) for i, v in enumerate(aln_list)])
-#             new_aln.block_lists_map = OrderedDict([
-#                 (i, copy_block_lists(v.samples.block_lists))
-#                 for i, v in enumerate(aln_list)])
-#         # Create new concatenated block lists
-#         total_sites = sum((aln.nsites for aln in aln_list))
-#         concat_block_lists = [[Block(0, total_sites)]
-#                               for i in range(aln_list[0].nsamples)]
-#         # Create new sample alignment from matrix
-#         new_aln._sample_aln = SampleAlignment.from_uint_matrix(
-#             np.concatenate([aln.sample_matrix for aln in aln_list], axis=1),
-#             aln_list[0].samples.ids,
-#             [','.join([str(aln.name) for aln in aln_list])] * \
-#                 len(aln_list[0].samples.descriptions),  # replaces desc
-#             concat_block_lists,  # empties block list
-#             to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
-#             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
-#             to_block_fn=aln_list[0].samples.custom_to_block_fn,
-#             from_block_fn=aln_list[0].samples.custom_from_block_fn,
-#         )
-#         # Create new marker alignment from matrix
-#         new_aln._marker_aln = MarkerAlignment.from_uint_matrix(
-#             np.concatenate([aln.marker_matrix for aln in aln_list], axis=1),
-#             aln_list[0].markers.ids,
-#             aln_list[1].markers.descriptions,
-#             to_uint_fn=aln_list[0].samples.custom_to_uint_fn,
-#             from_uint_fn=aln_list[0].samples.custom_from_uint_fn,
-#         )
-#         return new_aln
-
-#     @classmethod
-#     def from_fasta(cls, path, name=None, marker_kw=None,
-#                    block_lists_map=None,
-#                    sample_to_uint_fn=None, uint_to_sample_fn=None,
-#                    marker_to_uint_fn=None, uint_to_marker_fn=None):
-#         """Create a CatAlignment from a FASTA-formatted file.
-
-#         Parameters
-#         ----------
-#         path : str
-#             Path to FASTA file
-#         marker_kw : str, optional
-#             A sample is considered a marker if this keyword is present
-#             within the sequence ID
-#         sample_to_uint_fn : function, optional
-#         uint_to_sample_fn : function, optional
-#         marker_to_uint_fn : function, optional
-#         uint_to_marker_fn : function, optional
-
-#         Raises
-#         ------
-#         TypeError
-
-#         Returns
-#         -------
-#         Alignment
-
-#         """
-#         sequence_list = []
-#         marker_list = []
-#         for item in fasta_file_to_list(path, marker_kw=marker_kw):
-#             if isinstance(item, Sequence):
-#                 sequence_list.append(item)
-#             elif isinstance(item, Marker):
-#                 marker_list.append(item)
-#             else:
-#                 raise TypeError('expected Sequence or Marker object')
-#         catblocks = string_to_catblocks(sequence_list[0].description.rstrip())
-#         return cls(sequence_list, marker_list, catblocks, name=name,
-#                    block_lists_map=block_lists_map,
-#                    sample_to_uint_fn=sample_to_uint_fn,
-#                    uint_to_sample_fn=uint_to_sample_fn,
-#                    marker_to_uint_fn=marker_to_uint_fn,
-#                    uint_to_marker_fn=uint_to_marker_fn)
-
-#     def to_fasta(self, path, catblocks_path=None, block_lists_path=None):
-#         """Saves the concatenated alignment as a FASTA-formatted text file.
-#         Catblocks and block lists can also be simultaneously saves as
-#         tab-delimitted files.
-
-#         Parameters
-#         ----------
-#         path : str
-#         catblocks_path : str, optional
-#         block_lists_path : str, optional
-
-#         """
-#         # Overwrite descriptions with catblocks
-#         self.samples.descriptions = [catblocks_to_string(self.catblocks)
-#                                      for i in self.nsamples]
-#         if catblocks_path:
-#             with open(catblocks_path, 'w') as cb_writer:
-#                 print('{}\t{}\t{}'.format('name', 'start', 'stop'), 
-#                       file=cb_writer)
-#                 for cb in self.catblocks.values():
-#                     print('{}\t{}\t{}'.format(cb.name, cb.start, cb.stop), 
-#                           file=cb_writer)
-#         if block_lists_path:
-#             with open(block_lists_path, 'w') as b_writer:
-#                 print('{}\t{}\t{}'.format('name', 'start', 'stop'), 
-#                       file=b_writer)
-#                 for name, blist in self.block_lists_map.items():
-#                     for b in blist:
-#                         print('{}\t{}\t{}'.format(name, b.start, b.stop),
-#                               file=b_writer)
-#         with open(path, 'w') as writer:
-#             print(self, file=writer)
-
-#     def get_alignment(self, name):
-#         """Return the subalignment by name or key.
-
-#         Parameters
-#         ----------
-#         name : int or str
-#             Name assigned to the alignment during concatenation.
-
-#         Raises
-#         ------
-#         IndexError
-#             Returns an IndexError when the given name does not
-#             match any alignment key.
-
-#         Returns
-#         -------
-#         Alignment
-
-#         """
-
-#         if name not in self.catblocks:
-#             raise IndexError("name not found")
-#         _, start, stop = self.catblocks[name]
-#         aln = Alignment.subset(self, sites=range(start, stop))
-#         aln.name = 'subaln_{}'.format(name)
-#         aln.samples.block_lists = copy_block_lists(self.block_lists_map[name])
-#         return aln
-
-#     def splitg(self):
-#         """Splits the concatenated superalignment into individual subalignments
-#         and returns a generator.
-
-#         Yields
-#         ------
-#         Alignment
-
-#         """
-
-#         return (Alignment.subset(self, sites=range(cb.start, cb.stop))
-#                 for cb in self.catblocks)
-
-#     def split(self):
-#         """Splits the concatenated superalignment as a list of its
-#         individual subalignments.
-
-#         Returns
-#         -------
-#         list of Alignment
-
-#         """
-#         return list(self.splitg())
-
-
-# def fasta_file_to_list(path, marker_kw=None):
-#     """Reads a FASTA formatted text file to a list.
-
-#     Parameters
-#     ----------
-#     path : str
-
-#     Returns
-#     -------
-#     list of tuple
-
-#     """
-#     name = ''
-#     description = ''
-#     _seq = ''
-#     seq_list = []
-#     with open(path, 'r') as f:  # pylint: disable=invalid-name
-#         for line in f.readlines():
-#             line = line.rstrip()
-#             if line.startswith('>'):
-#                 # Store sequence if _seq has contents
-#                 if _seq:
-#                     if marker_kw:
-#                         if marker_kw in name:
-#                             seq = Marker(name, description, _seq)
-#                         else:
-#                             seq = Sequence(name, description, _seq)
-#                     else:
-#                         seq = Sequence(name, description, _seq)
-#                     seq_list.append(seq)
-#                     _seq = ''
-#                 # Split id and description
-#                 try:
-#                     name, description = line[1:].split(' ', 1)
-#                 except ValueError:
-#                     name = line[1:]
-#                     description = ''
-#             else:
-#                 _seq += line
-#         if _seq:
-#             if marker_kw:
-#                 if marker_kw in name:
-#                     seq = Marker(name, description, _seq)
-#                 else:
-#                     seq = Sequence(name, description, _seq)
-#             else:
-#                 seq = Sequence(name, description, _seq)
-#             seq_list.append(seq)
-#     return seq_list
 
 def fasta_file_to_lists(path, marker_kw=None):
     """Reads a FASTA formatted text file to a list.
@@ -1161,16 +830,6 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
     # Create alignments
     return Alignment(name, sample_aln, marker_aln)
 
-
-# def copy_block_lists(block_lists):
-#     return [[Block(b.start, b.stop) for b in blist] for blist in block_lists]
-
-# def catblocks_to_string(catblock_list):
-#     return ';'.join([str(cb) for cb in catblock_list])
-
-# def string_to_catblocks(string, int_names=False):
-#     catblocks_raw = re.findall(r'(\S+?)\=(\d+?)\:(\d+?)', string)
-#     if int_names:
-#         return [CatBlock(int(i[0]), int(i[1]), int(i[2]))
-#                 for i in catblocks_raw]
-#     return [CatBlock(i[0], int(i[1]), int(i[2])) for i in catblocks_raw]
+def split_concatenated_alignment(aln, catblocks=None,
+                                 description_decoder=None):
+    pass
