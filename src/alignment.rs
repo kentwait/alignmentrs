@@ -615,6 +615,26 @@ impl BaseAlignment {
         })
     }
 
+    /// Concatenates a list of alignments to the current alignment side-by-site
+    /// on the site (column) axis.
+    fn concat(&self, aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignment> {
+        let ids = self.ids.clone();
+        let descriptions = self.descriptions.clone();
+        let sequence_len = self.sequences.len();
+        let mut sequences: Vec<String> = vec![String::new(); sequence_len];
+        for i in 0..sequence_len {
+            sequences[i].push_str(&self.sequences[i]);
+            for aln in aln_list.iter() {
+                let aln_len = aln.sequences.len();
+                if aln_len != sequence_len {
+                    return Err(exceptions::ValueError::py_err(format!("cannot concatenate alignments with unequal number of samples: {} != {}", sequence_len, aln_len)))
+                }
+                sequences[i].push_str(&aln.sequences[i]);
+            }
+        }
+        Ok(BaseAlignment {ids, descriptions, sequences})
+    }
+
     // Properties
     #[getter]
     fn nsamples(&self) -> PyResult<i32> {
@@ -661,9 +681,32 @@ impl PyObjectProtocol for BaseAlignment {
     }
 }
 
+#[pyfunction]
+/// Concatenates a list of alignments over the site (column) axis.
+fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignment> {
+    if aln_list.len() == 0 {
+        return Err(exceptions::ValueError::py_err("empty list"))
+    }
+    let ids = aln_list[0].ids.clone();
+    let descriptions = aln_list[0].descriptions.clone();
+    let sequence_len = aln_list[0].sequences.len();
+    let mut sequences: Vec<String> = vec![String::new(); sequence_len];
+    for i in 0..sequence_len {
+        for aln in aln_list.iter() {
+            let aln_len = aln.sequences.len();
+            if aln_len != sequence_len {
+                return Err(exceptions::ValueError::py_err(format!("cannot concatenate alignments with unequal number of samples: {} != {}", sequence_len, aln_len)))
+            }
+            sequences[i].push_str(&aln.sequences[i]);
+        }
+    }
+    Ok(BaseAlignment {ids, descriptions, sequences})
+}
+
 // Register python functions to PyO3
 #[pymodinit]
 fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_function!(concat_basealignments))?;
 
     // Add Block class
     m.add_class::<BaseAlignment>()?;
