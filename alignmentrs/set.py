@@ -160,6 +160,8 @@ class AlignmentSet:
             Number of FASTA files written.
 
         """
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
         if name_to_filename_encoder is None:
             name_to_filename_encoder = lambda x: '{}.aln'.format(x)
         path_mapping = {
