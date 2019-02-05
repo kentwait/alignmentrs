@@ -41,6 +41,12 @@ class Alignment:
         return self.markers.nsamples
 
     @property
+    def nrows(self):
+        """Returns the number of rows in the alignment."""
+        nmarkers = self.markers.nsamples if self.nmarkers else 0
+        return self.samples.nsamples + nmarkers
+
+    @property
     def sample_ids(self):
         """Returns the list of sample sequences."""
         return self.samples.ids
