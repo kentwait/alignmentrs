@@ -621,6 +621,27 @@ class Alignment:
         for i in range(start, stop, step):
             yield self.markers.sequences[i]
 
+    def __getitem__(self, key):
+        if key in self.samples.ids():
+            i = self.samples.sample_names_to_ids([key])[0]
+            return self.samples.get_sample(i)
+        elif key in self.markers.ids():
+            i = self.markers.sample_names_to_ids([key])[0]
+            return self.markers.get_sample(i)
+        raise KeyError('key did not match any sample or marker ID')
+
+    def __delitem__(self, key):
+        if key in self.samples.ids():
+            i = self.samples.sample_names_to_ids([key])
+            return self.samples.remove_samples(i)
+        elif key in self.markers.ids():
+            i = self.markers.sample_names_to_ids([key])
+            return self.markers.remove_samples(i)
+        raise KeyError('key did not match any sample or marker ID')
+
+    def __iter__(self):
+        yield from self.iter_sites()
+
     def __repr__(self):
         return '{}(nsamples={}, nsites={}, nmarkers={})'.format(
             self.__class__.__name__,
@@ -633,7 +654,7 @@ class Alignment:
         return '\n'.join([str(self.samples), str(self.markers)])
 
     def __len__(self):
-        return self.nsites
+        raise NotImplementedError('len() is not implemented for Alignment.\n Use .nsamples to get the number of samples, .nmarkers to get the number of markers, or .nrows to get all the number of alignment rows.')
 
 
 # class CatBlock:
