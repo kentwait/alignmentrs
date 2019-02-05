@@ -9,6 +9,11 @@ class AlignmentSet:
         self._alignments = {aln.name: aln for aln in aln_list}
 
     @property
+    def nalns(self):
+        """Returns the number of alignments in the set"""
+        return len(self)
+
+    @property
     def alignment_names(self):
         """Returns list of alignment names"""
         return list(self._alignments.keys())
