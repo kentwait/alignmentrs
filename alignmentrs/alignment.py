@@ -489,11 +489,11 @@ class Alignment:
         ----------
         ref_seq : str
             Reference sequence length must match alignment length.
-        description_encoder : function
+        description_encoder : function, optional
             This function returns a formatted string encoding the block data.
             The block string will replace the sample's description.
             This function receives two parameters, the sample ID and the
-            sample's block data.
+            sample's block data. (default is None)
 
         """
         self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
@@ -525,6 +525,27 @@ class Alignment:
                 desc = desc.split('_')[-1]
             # Parse block str into blocks
             self.blocklists[i] = blockrs.libblock.from_block_str(desc)
+
+    def write_blocks_to_description(self, description_encoder):
+        """Write block data to each sample's description.
+
+        Parameters
+        ----------
+        description_encoder : function, optional
+            This function returns a formatted string encoding the block data.
+            The block string will replace the sample's description.
+            This function receives two parameters, the sample ID and the
+            sample's block data. (default is None)
+
+        """
+        if self.blocklists:
+            self.samples.set_descriptions(
+                list(range(self.samples.nsamples)),
+                [description_encoder(sid, blist)
+                 for sid, blist in zip(self.samples.ids, self.blocklists)]
+            )
+        else:
+            raise ValueError('Block list is empty')
 
     def iter_sites(self, start=0, stop=None, size=1):
         """Iterates over columns of the alignment.
