@@ -76,16 +76,15 @@ class AlignmentSet:
 
         """
         if keys is not None:
-            if isinstance(keys, list) and \
-               sum((isinstance(k, str) for k in keys)):
-                pass
-            else:
+            if not isinstance(keys, list):
                 raise ValueError('keys must be None or a list of alignment names')
+        else:
+            keys = (name for name in self.alignment_names)
         sample_alignment = concat_basealignments(
-            [aln.samples for aln in self._alignments.values()])
+            [self._alignments[k].samples for k in keys])
         try:
             marker_alignment = concat_basealignments(
-                [aln.markers for aln in self._alignments.values()])
+                [self._alignments[k].markers for k in keys])
         except Exception:
             marker_alignment = None
 
