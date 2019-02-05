@@ -418,20 +418,20 @@ class Alignment:
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
-    # def get_sites(self, i):
-    #     """Returns a new alignment containing only the sites specified
-    #     by the index.
+    def get_sites(self, i):
+        """Returns a new alignment containing only the sites specified
+        by the index.
 
-    #     Parameters
-    #     ----------
-    #     i : int or list of int
+        Parameters
+        ----------
+        i : int or list of int
 
-    #     Returns
-    #     -------
-    #     AlignmentMatrix
+        Returns
+        -------
+        AlignmentMatrix
 
-    #     """
-    #     return self.__class__.subset(self, sites=i)
+        """
+        return self.__class__.subset(self, sites=i)
 
     @classmethod
     def from_fasta(cls, path, name, marker_kw=None):
