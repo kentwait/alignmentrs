@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name='alignmentrs',
     author='Kent Kawashima',
-    version='0.2.1',
+    version='0.6.2',
     author_email='kentkawashima@gmail.com',
     description='Quickly read and manipulate multiple sequence alignments in Python',
     long_description=long_description,
@@ -20,14 +20,18 @@ setuptools.setup(
     ],
     keywords=['block', 'alignment', 'bioinformatics'],
     rust_extensions=[
-        RustExtension('libalignmentrs.sequence',
+        RustExtension('libalignmentrs.alignment',
+                      'Cargo.toml', binding=Binding.PyO3),
+        RustExtension('libalignmentrs.sample',
                       'Cargo.toml', binding=Binding.PyO3),
         RustExtension('libalignmentrs.marker',
                       'Cargo.toml', binding=Binding.PyO3),
     ],
     packages=['alignmentrs'],
     package_data={
-        'alignmentrs': ['lib/libalignmentrs/alignment.cpython-37m-darwin.so']},
-    requires=[],
+        'alignmentrs': ['lib/libalignmentrs/alignment.cpython-37m-darwin.so',
+                        'lib/libalignmentrs/marker.cpython-37m-darwin.so',
+                        'lib/libalignmentrs/sample.cpython-37m-darwin.so']},
+    install_requires=['blockrs'],
     zip_safe=False,  # Rust extensions are not zip safe, like C-extensions.
 )
