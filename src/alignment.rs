@@ -671,6 +671,22 @@ impl BaseAlignment {
         Ok(BaseAlignment {ids, descriptions, sequences})
     }
 
+    fn is_row_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
+        if self._nrows() != other._nrows() {
+            return Ok(false)
+        } else if self.ids != other.ids {
+            return Ok(false)
+        }
+        Ok(true)
+    }
+
+    fn is_col_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
+        if self._ncols() != other._ncols() {
+            return Ok(false)
+        }
+        Ok(true)
+    }
+
     // Properties
     #[getter]
     fn nrows(&self) -> PyResult<i32> {
