@@ -17,18 +17,32 @@ class Alignment:
         sample_alignment
         marker_alignment
         """
+        if not sample_alignment:
+            raise ValueError(
+                'Cannot create an Alignment using an empty '
+                'sample_alignment BaseAlignment.')
+        if marker_alignment and \
+           sample_alignment.nsites != marker_alignment.nsites:
+            raise ValueError(
+                'Number of sites in sample and marker alignments are '
+                'not equal: {} != {}'.format(
+                    sample_alignment.nsites, marker_alignment.nsites))
         self.name = name
         self.samples = sample_alignment
-        self.markers = marker_alignment
+        self.markers = marker_alignment if marker_alignment else \
+                       BaseAlignment([], [], [])
         self.blocklists = []
-        if not (self.markers is None or self.markers.nrows == 0):
-            assert self.samples.nsites == self.markers.nsites, \
-                "Sample and marker nsites are not equal."
+
+    # Properties to retrieve the number of rows in the alignment.
+    # Because the alignment object distinguishes between samples and markers,
+    # nsamples and nmarker properties are provided, while nrows returns
+    # the total number of samples and markers combined.
 
     @property
-    def nsites(self):
-        """Returns the number of sites in the alignment."""
-        return self.samples.nsites
+    def nrows(self):
+        """Returns the number of rows in the alignment."""
+        nmarkers = self.markers.nrows if self.nmarkers else 0
+        return self.samples.nrows + nmarkers
 
     @property
     def nsamples(self):
@@ -38,15 +52,25 @@ class Alignment:
     @property
     def nmarkers(self):
         """Returns the number of markers in the alignment."""
-        if self.markers is None:
-            return None
+        if not self.markers:
+            return 0
         return self.markers.nrows
 
+    # nsites property assumes that the number of columns in
+    # the sample alignment matches the number of columns in
+    # the marker alignment (if it exists).
+    # Because the marker alignment is optional, nsites is taken
+    # from the number of columns in the sample alignment.
+
     @property
-    def nrows(self):
-        """Returns the number of rows in the alignment."""
-        nmarkers = self.markers.nrows if self.nmarkers else 0
-        return self.samples.nrows + nmarkers
+    def nsites(self):
+        """Returns the number of sites in the alignment."""
+        return self.samples.nsites
+
+    # The following properties are shortcuts to attributes
+    # in sample and marker BaseAlignment object.
+    # These exposes the properties so that it can be retrieved
+    # from the Alignment object and is just for convenience.
 
     @property
     def sample_ids(self):
@@ -54,23 +78,9 @@ class Alignment:
         return self.samples.ids
 
     @property
-    def marker_ids(self):
-        """Returns the list of sample sequences."""
-        if self.markers is None:
-            return None
-        return self.markers.ids
-
-    @property
     def sample_descriptions(self):
         """Returns the list of sample sequences."""
         return self.samples.descriptions
-
-    @property
-    def marker_descriptions(self):
-        """Returns the list of sample sequences."""
-        if self.markers is None:
-            return None
-        return self.markers.descriptions
 
     @property
     def sample_sequences(self):
@@ -78,11 +88,27 @@ class Alignment:
         return self.samples.sequences
 
     @property
+    def marker_ids(self):
+        """Returns the list of sample sequences."""
+        if not self.markers:
+            return []
+        return self.markers.ids
+
+    @property
+    def marker_descriptions(self):
+        """Returns the list of sample sequences."""
+        if not self.markers:
+            return []
+        return self.markers.descriptions
+
+    @property
     def marker_sequences(self):
         """Returns the list of sample sequences."""
-        if self.markers is None:
-            return None
+        if not self.markers:
+            return []
         return self.markers.sequences
+
+    # Methods
 
     @classmethod
     def subset(cls, aln, sample_ids=None, marker_ids=None, sites=None):
@@ -105,6 +131,7 @@ class Alignment:
         Alignment
 
         """
+        # Checks the value of sample_ids and converts if necessary.
         if sample_ids is None:
             sample_ids = list(range(0, aln.nsamples))
         elif isinstance(sample_ids, int):
@@ -120,7 +147,10 @@ class Alignment:
         else:
             raise ValueError('sample_ids must be an int, str, list of int, '
                              'or list of str.')
-
+        # Check if marker_ids is not None and checks if markers exist
+        if marker_ids and not aln.markers:
+            raise ValueError('Markers are not present in this alignment.')
+        # Checks the value of marker_ids and converts if necessary.
         if marker_ids is None:
             marker_ids = list(range(0, aln.nsites))
         elif isinstance(marker_ids, int):
@@ -136,7 +166,7 @@ class Alignment:
         else:
             raise ValueError('marker_ids must be an int, str, list of int, '
                              'or list of str.')
-
+        # Checks the value of sites and converts if necessary.
         if sites is None:
             sites = list(range(0, aln.nsites))
         elif isinstance(sites, int):
@@ -146,9 +176,11 @@ class Alignment:
             pass
         else:
             raise ValueError('sites must be an int, or list of int.')
-
+        # Create new BaseAlignments for sample and marker,
+        # if it exists in the original
         sample_aln = aln.samples.subset(sample_ids, sites)
-        marker_aln = aln.samples.subset(marker_ids, sites)
+        marker_aln = aln.samples.subset(marker_ids, sites) if aln.markers else \
+                     None
         return cls(aln.name, sample_aln, marker_aln)
 
     def replace_samples(self, i, sequences):
@@ -183,13 +215,13 @@ class Alignment:
         sequences : str
 
         """
-        if not(isinstance(ids, list) and 
+        if not(isinstance(ids, list) and
                sum((isinstance(j, str) for j in ids))):
             raise ValueError('ids must be a list of str.')
-        if not(isinstance(descriptions, list) and 
+        if not(isinstance(descriptions, list) and
                sum((isinstance(j, str) for j in descriptions))):
             raise ValueError('descriptions must be a list of str.')
-        if not(isinstance(samples, list) and 
+        if not(isinstance(samples, list) and
                sum((isinstance(j, str) for j in samples))):
             raise ValueError('samples must be a list of str.')
         self.samples.insert_samples(pos, ids, descriptions, samples)
@@ -205,19 +237,21 @@ class Alignment:
         samples : list of str
 
         """
-        if not(isinstance(ids, list) and 
+        if not(isinstance(ids, list) and
                sum((isinstance(j, str) for j in ids))):
             raise ValueError('ids must be a list of str.')
-        if not(isinstance(descriptions, list) and 
+        if not(isinstance(descriptions, list) and
                sum((isinstance(j, str) for j in descriptions))):
             raise ValueError('descriptions must be a list of str.')
-        if not(isinstance(samples, list) and 
+        if not(isinstance(samples, list) and
                sum((isinstance(j, str) for j in samples))):
             raise ValueError('samples must be a list of str.')
         self.samples.append_samples(ids, descriptions, samples)
 
+    # TODO: add insert/append ONE sample and insert/append marker/s
+
     # Deleters
-    
+
     def remove_samples(self, i, match_prefix=False, match_suffix=False):
         """Removes sample sequences based on the given index.
         If index is a number, only one sequence is removed.
@@ -305,10 +339,12 @@ class Alignment:
             (default is None)
 
         """
+        # Check type of i, and convert if necessary
         if isinstance(i, int):
             i = [i]
+        # Perform removal inplace
         self.samples.remove_sites(i)
-        if not (self.markers is None or self.markers.nrows == 0):
+        if not self.markers:
             self.markers.remove_sites(i)
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
@@ -317,13 +353,13 @@ class Alignment:
             self.blocklists = [
                 blockrs.remove_sites_from_blocks(blist, i)
                 for seq, blist in zip(self.samples.sequences, self.blocklists)]
+        # Update block data in description if description encoder is specified
         if description_encoder:
             self.samples.set_descriptions(
                 list(range(self.samples.nrows)),
                 [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
-
 
     def retain_sites(self, i, description_encoder=None):
         """Keeps sites based on the given index.
@@ -344,8 +380,10 @@ class Alignment:
             (default is None)
 
         """
+        # Check type of i, and convert if necessary
         if isinstance(i, int):
             i = [i]
+        # Perform removal inplace
         self.samples.retain_sites(i)
         if not (self.markers is None or self.markers.nrows == 0):
             self.markers.retain_sites(i)
@@ -357,13 +395,13 @@ class Alignment:
             self.blocklists = [
                 blockrs.remove_sites_from_blocks(blist, j)
                 for seq, blist in zip(self.samples.sequences, self.blocklists)]
+        # Update block data in description if description encoder is specified
         if description_encoder:
             self.samples.set_descriptions(
                 list(range(self.samples.nrows)),
                 [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
-
 
     def get_samples(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the samples
@@ -379,9 +417,11 @@ class Alignment:
 
         Returns
         -------
-        list of str
+        BaseAlignment
 
         """
+        # Call get_sample/s method for sample BaseAlignment depending on the
+        # type of i
         if isinstance(i, int):
             return self.samples.get_samples([i])
         elif isinstance(i, str):
@@ -403,27 +443,43 @@ class Alignment:
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
-    def get_markers(self, i):
+    def get_markers(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the markers
         specified by the index.
 
         Parameters
         ----------
-        i : int or list of int
+        i : int, str, list of int, or list of str
+            Sample names/IDs or row indices specifying which samples to
+            retrieve.
+        match_prefix : bool, optional
+        match_suffix : bool, optional
 
         Returns
         -------
-        list of str
+        BaseAlignment
 
         """
+        # Call get_sample/s method for sample BaseAlignment depending on the
+        # type of i
         if isinstance(i, int):
             return self.markers.get_samples([i])
         elif isinstance(i, str):
-            return self.markers.get_samples_by_name([i])
+            if match_prefix:
+                return self.markers.get_samples_by_prefix([i])
+            elif match_suffix:
+                return self.markers.get_samples_by_suffixx([i])
+            else:
+                return self.markers.get_samples_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            return self.markers.get_samples(i)
+            return self.samples.get_samples(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
-            return self.markers.get_samples_by_name(i)
+            if match_prefix:
+                return self.markers.get_samples_by_prefix(i)
+            elif match_suffix:
+                return self.markers.get_samples_by_suffixx(i)
+            else:
+                return self.markers.get_samples_by_name(i)
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
