@@ -181,14 +181,14 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         match ids.iter().max() {
-            Some(x) if *x as usize > self._nrows() => {
+            Some(x) if *x as usize >= self._nrows() => {
                 return Err(exceptions::IndexError::py_err(
                     "row position cannot be larger than the number of rows"))
             },
             _ => ()
         }
         match sites.iter().max() {
-            Some(x) if *x as usize > self._ncols() => {
+            Some(x) if *x as usize >= self._ncols() => {
                 return Err(exceptions::IndexError::py_err(
                     "site position cannot be larger than the number of sites"))
             },
