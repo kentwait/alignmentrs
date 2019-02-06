@@ -514,6 +514,7 @@ impl BaseAlignment {
     }
 
     // TODO: Insert and append sites
+    // TODO: Insert/append ONE sample using Record object
 
     /// Inserts one or more samples at the specified position.
     fn insert_samples(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
@@ -627,16 +628,21 @@ impl BaseAlignment {
         let length = self.sequences[0].chars().count();
         let mut new_ids: Vec<String> = Vec::new();
         let new_descriptions: Vec<String> = vec![String::new(); length];
-        let mut new_sequences: Vec<String> = Vec::new();
-        
-        for i in 0..length {
-            let mut column = String::new();
-            for seq in self.sequences.iter() {
-                let sequence_vec: Vec<char> = seq.chars().collect();
-                column.push(sequence_vec[i]);
+        let mut new_sequences_matrix: Vec<Vec<char>> = vec![
+            vec!['#'; self.sequences.len()]; length];
+        // Transpose values
+        for (i, seq) in self.sequences.iter().enumerate() {
+            let sequence_vec: Vec<char> = seq.chars().collect();
+            for j in 0..length {
+                new_sequences_matrix[j][i] = sequence_vec[i];
             }
-            new_ids.push(format!("{}", i));
-            new_sequences.push(column);
+        }
+        // Finalize
+        let mut new_sequences: Vec<String> = Vec::new();
+        for j in 0..length {
+            new_ids.push(format!("{}", j));
+            let seq: String = new_sequences_matrix[j].iter().collect();;
+            new_sequences.push(seq);
         }
         Ok(BaseAlignment {
             ids: new_ids,
