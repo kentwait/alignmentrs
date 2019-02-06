@@ -224,7 +224,7 @@ class Alignment:
         if not(isinstance(samples, list) and
                sum((isinstance(j, str) for j in samples))):
             raise ValueError('samples must be a list of str.')
-        self.samples.insert_samples(pos, ids, descriptions, samples)
+        self.samples.insert_rows(pos, ids, descriptions, samples)
 
     def append_sample_from_lists(self, ids, descriptions, samples):
         """Inserts a new sequence after the last row of the alignment matrix.
@@ -246,7 +246,7 @@ class Alignment:
         if not(isinstance(samples, list) and
                sum((isinstance(j, str) for j in samples))):
             raise ValueError('samples must be a list of str.')
-        self.samples.append_samples(ids, descriptions, samples)
+        self.samples.append_rows(ids, descriptions, samples)
 
     # TODO: add insert/append ONE sample and insert/append marker/s
 
@@ -267,23 +267,23 @@ class Alignment:
         match_suffix : bool, optional
         """
         if isinstance(i, int):
-            self.samples.remove_samples([i])
+            self.samples.remove_rows([i])
         elif isinstance(i, str):
             if match_prefix:
-                self.samples.remove_samples_by_prefix([i])
+                self.samples.remove_rows_by_prefix([i])
             elif match_suffix:
-                self.samples.remove_samples_by_suffix([i])
+                self.samples.remove_rows_by_suffix([i])
             else:
-                self.samples.remove_samples_by_name([i])
+                self.samples.remove_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            self.samples.remove_samples(i)
+            self.samples.remove_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
-                self.samples.remove_samples_by_prefix(i)
+                self.samples.remove_rows_by_prefix(i)
             elif match_suffix:
-                self.samples.remove_samples_by_suffix(i)
+                self.samples.remove_rows_by_suffix(i)
             else:
-                self.samples.remove_samples_by_name(i)        
+                self.samples.remove_rows_by_name(i)        
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
@@ -300,23 +300,23 @@ class Alignment:
 
         """
         if isinstance(i, int):
-            self.samples.retain_samples([i])
+            self.samples.retain_rows([i])
         if isinstance(i, str):
             if match_prefix:
-                self.samples.retain_samples_by_prefix([i])
+                self.samples.retain_rows_by_prefix([i])
             elif match_suffix:
-                self.samples.retain_samples_by_suffix([i])
+                self.samples.retain_rows_by_suffix([i])
             else:
-                self.samples.retain_samples_by_name([i])
+                self.samples.retain_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            self.samples.retain_samples(i)
+            self.samples.retain_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
-                self.samples.retain_samples_by_prefix(i)
+                self.samples.retain_rows_by_prefix(i)
             elif match_suffix:
-                self.samples.retain_samples_by_suffix(i)
+                self.samples.retain_rows_by_suffix(i)
             else:
-                self.samples.retain_samples_by_name(i)
+                self.samples.retain_rows_by_name(i)
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
@@ -423,23 +423,23 @@ class Alignment:
         # Call get_sample/s method for sample BaseAlignment depending on the
         # type of i
         if isinstance(i, int):
-            return self.samples.get_samples([i])
+            return self.samples.get_rows([i])
         elif isinstance(i, str):
             if match_prefix:
-                return self.samples.get_samples_by_prefix([i])
+                return self.samples.get_rows_by_prefix([i])
             elif match_suffix:
-                return self.samples.get_samples_by_suffixx([i])
+                return self.samples.get_rows_by_suffixx([i])
             else:
-                return self.samples.get_samples_by_name([i])
+                return self.samples.get_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            return self.samples.get_samples(i)
+            return self.samples.get_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
-                return self.samples.get_samples_by_prefix(i)
+                return self.samples.get_rows_by_prefix(i)
             elif match_suffix:
-                return self.samples.get_samples_by_suffixx(i)
+                return self.samples.get_rows_by_suffixx(i)
             else:
-                return self.samples.get_samples_by_name(i)
+                return self.samples.get_rows_by_name(i)
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
@@ -463,23 +463,23 @@ class Alignment:
         # Call get_sample/s method for sample BaseAlignment depending on the
         # type of i
         if isinstance(i, int):
-            return self.markers.get_samples([i])
+            return self.markers.get_rows([i])
         elif isinstance(i, str):
             if match_prefix:
-                return self.markers.get_samples_by_prefix([i])
+                return self.markers.get_rows_by_prefix([i])
             elif match_suffix:
-                return self.markers.get_samples_by_suffixx([i])
+                return self.markers.get_rows_by_suffixx([i])
             else:
-                return self.markers.get_samples_by_name([i])
+                return self.markers.get_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            return self.samples.get_samples(i)
+            return self.samples.get_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
-                return self.markers.get_samples_by_prefix(i)
+                return self.markers.get_rows_by_prefix(i)
             elif match_suffix:
-                return self.markers.get_samples_by_suffixx(i)
+                return self.markers.get_rows_by_suffixx(i)
             else:
-                return self.markers.get_samples_by_name(i)
+                return self.markers.get_rows_by_name(i)
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
 
@@ -756,19 +756,19 @@ class Alignment:
     def __getitem__(self, key):
         if key in self.samples.ids():
             i = self.samples.sample_names_to_ids([key])[0]
-            return self.samples.get_sample(i)
+            return self.samples.get_row(i)
         elif key in self.markers.ids():
             i = self.markers.sample_names_to_ids([key])[0]
-            return self.markers.get_sample(i)
+            return self.markers.get_row(i)
         raise KeyError('key did not match any sample or marker ID')
 
     def __delitem__(self, key):
         if key in self.samples.ids():
             i = self.samples.sample_names_to_ids([key])
-            return self.samples.remove_samples(i)
+            return self.samples.remove_rows(i)
         elif key in self.markers.ids():
             i = self.markers.sample_names_to_ids([key])
-            return self.markers.remove_samples(i)
+            return self.markers.remove_rows(i)
         raise KeyError('key did not match any sample or marker ID')
 
     def __iter__(self):
