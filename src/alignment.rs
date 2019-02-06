@@ -683,11 +683,6 @@ impl BaseAlignment {
     }
 
     #[getter]
-    fn nsamples(&self) -> PyResult<i32> {
-        Ok(self._nrows() as i32)
-    }
-
-    #[getter]
     fn nsites(&self) -> PyResult<i32> {
         Ok(self._ncols() as i32)
     }

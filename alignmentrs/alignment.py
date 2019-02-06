@@ -21,7 +21,7 @@ class Alignment:
         self.samples = sample_alignment
         self.markers = marker_alignment
         self.blocklists = []
-        if not (self.markers is None or self.markers.nsamples == 0):
+        if not (self.markers is None or self.markers.nrows == 0):
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
 
@@ -33,20 +33,20 @@ class Alignment:
     @property
     def nsamples(self):
         """Returns the number of samples in the alignment."""
-        return self.samples.nsamples
+        return self.samples.nrows
 
     @property
     def nmarkers(self):
         """Returns the number of markers in the alignment."""
         if self.markers is None:
             return None
-        return self.markers.nsamples
+        return self.markers.nrows
 
     @property
     def nrows(self):
         """Returns the number of rows in the alignment."""
-        nmarkers = self.markers.nsamples if self.nmarkers else 0
-        return self.samples.nsamples + nmarkers
+        nmarkers = self.markers.nrows if self.nmarkers else 0
+        return self.samples.nrows + nmarkers
 
     @property
     def sample_ids(self):
@@ -216,6 +216,8 @@ class Alignment:
             raise ValueError('samples must be a list of str.')
         self.samples.append_samples(ids, descriptions, samples)
 
+    # Deleters
+    
     def remove_samples(self, i, match_prefix=False, match_suffix=False):
         """Removes sample sequences based on the given index.
         If index is a number, only one sequence is removed.
@@ -306,7 +308,7 @@ class Alignment:
         if isinstance(i, int):
             i = [i]
         self.samples.remove_sites(i)
-        if not (self.markers is None or self.markers.nsamples == 0):
+        if not (self.markers is None or self.markers.nrows == 0):
             self.markers.remove_sites(i)
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
@@ -317,7 +319,7 @@ class Alignment:
                 for seq, blist in zip(self.samples.sequences, self.blocklists)]
         if description_encoder:
             self.samples.set_descriptions(
-                list(range(self.samples.nsamples)),
+                list(range(self.samples.nrows)),
                 [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
@@ -345,7 +347,7 @@ class Alignment:
         if isinstance(i, int):
             i = [i]
         self.samples.retain_sites(i)
-        if not (self.markers is None or self.markers.nsamples == 0):
+        if not (self.markers is None or self.markers.nrows == 0):
             self.markers.retain_sites(i)
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
@@ -357,7 +359,7 @@ class Alignment:
                 for seq, blist in zip(self.samples.sequences, self.blocklists)]
         if description_encoder:
             self.samples.set_descriptions(
-                list(range(self.samples.nsamples)),
+                list(range(self.samples.nrows)),
                 [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
@@ -537,7 +539,7 @@ class Alignment:
                            for seq in self.samples.sequences]
         if description_encoder:
             self.samples.set_descriptions(
-                list(range(self.samples.nsamples)),
+                list(range(self.samples.nrows)),
                 [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
@@ -554,7 +556,7 @@ class Alignment:
 
         """
         if not self.blocklists:
-            self.blocklists = [None for _ in range(self.samples.nsamples)]
+            self.blocklists = [None for _ in range(self.samples.nrows)]
         for i, desc in enumerate(self.samples.descriptions):
             if description_decoder:
                 desc = description_decoder(desc)
@@ -577,7 +579,7 @@ class Alignment:
         """
         if self.blocklists:
             self.samples.set_descriptions(
-                list(range(self.samples.nsamples)),
+                list(range(self.samples.nrows)),
                 [description_encoder(sid, blist)
                  for sid, blist in zip(self.samples.ids, self.blocklists)]
             )
@@ -619,7 +621,7 @@ class Alignment:
                              'chucks of size {}'.format(size))
         for i in range(start, stop, size):
             samples = [s[i:i+size] for s in self.samples.sequences]
-            if not (self.markers is None or self.markers.nsamples == 0):
+            if not (self.markers is None or self.markers.nrows == 0):
                 markers = [s[i:i+size] for s in self.markers.sequences]
                 yield samples + markers
             else:
@@ -685,7 +687,7 @@ class Alignment:
             List of sequences representing a site or chunk of the alignment.
 
         """
-        if self.markers is None or self.markers.nsamples == 0:
+        if self.markers is None or self.markers.nrows == 0:
             return
         if stop is None:
             stop = self.nsites
@@ -842,4 +844,10 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
 
 def split_concatenated_alignment(aln, catblocks=None,
                                  description_decoder=None):
+    pass
+
+def blocks_list_to_df(blocks_list):
+    pass
+
+def catblocks_list_to_df(catblocks_list):
     pass
