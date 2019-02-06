@@ -27,6 +27,11 @@ impl BaseAlignment {
     /// Creates a new BaseAlignment object from a list of ids, descriptions,
     /// and sequences.
     fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+        if (ids.len() != descriptions.len()) ||
+           (descriptions.len() != sequences.len()) ||
+           (ids.len() != sequences.len()) {
+            return Err(exceptions::ValueError::py_err("lists must have the same length"))
+        }
         obj.init(|_| {
             BaseAlignment { 
                 ids: ids.iter().map(|s| s.to_string()).collect(), 
