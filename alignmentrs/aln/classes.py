@@ -227,7 +227,7 @@ class Alignment:
               sum((isinstance(j, int) for j in sites))):
             pass
         else:
-            raise TypeError('sites must be an int, or list of int.')
+            raise TypeError('Sites must be an int, or list of int.')
         # Create new BaseAlignments for sample and marker,
         # if it exists in the original
         sample_aln = aln.samples.subset(sample_ids, sites)
@@ -274,7 +274,7 @@ class Alignment:
             if match_prefix:
                 sample_aln = self.samples.get_rows_by_prefix([i])
             elif match_suffix:
-                sample_aln = self.samples.get_rows_by_suffixx([i])
+                sample_aln = self.samples.get_rows_by_suffix([i])
             else:
                 sample_aln = self.samples.get_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
@@ -283,7 +283,7 @@ class Alignment:
             if match_prefix:
                 sample_aln = self.samples.get_rows_by_prefix(i)
             elif match_suffix:
-                sample_aln = self.samples.get_rows_by_suffixx(i)
+                sample_aln = self.samples.get_rows_by_suffix(i)
             else:
                 sample_aln = self.samples.get_rows_by_name(i)
         else:
@@ -330,16 +330,16 @@ class Alignment:
             if match_prefix:
                 return self.markers.get_rows_by_prefix([i])
             elif match_suffix:
-                return self.markers.get_rows_by_suffixx([i])
+                return self.markers.get_rows_by_suffix([i])
             else:
                 return self.markers.get_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            return self.samples.get_rows(i)
+            return self.markers.get_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
                 return self.markers.get_rows_by_prefix(i)
             elif match_suffix:
-                return self.markers.get_rows_by_suffixx(i)
+                return self.markers.get_rows_by_suffix(i)
             else:
                 return self.markers.get_rows_by_name(i)
         else:
@@ -760,7 +760,7 @@ class Alignment:
         if stop is None:
             stop = self.nsites
         if (stop - start) % size != 0:
-            raise ValueError('alignment cannot be completely divided into '
+            raise ValueError('Alignment cannot be completely divided into '
                              'chucks of size {}'.format(size))
         for i in range(start, stop, size):
             samples = [s[i:i+size] for s in self.samples.sequences]
@@ -800,7 +800,7 @@ class Alignment:
         if stop is None:
             stop = self.nsites
         if (stop - start) % size != 0:
-            raise ValueError('alignment cannot be completely divided into '
+            raise ValueError('Alignment cannot be completely divided into '
                              'chucks of size {}'.format(size))
         for i in range(start, stop, size):
             yield [s[i:i+size] for s in self.samples.sequences]
@@ -837,7 +837,7 @@ class Alignment:
         if stop is None:
             stop = self.nsites
         if (stop - start) % size != 0:
-            raise ValueError('alignment cannot be completely divided into '
+            raise ValueError('Alignment cannot be completely divided into '
                              'chucks of size {}'.format(size))
         for i in range(start, stop, size):
             yield [s[i:i+size] for s in self.markers.sequences]
@@ -927,7 +927,7 @@ class Alignment:
         elif key in self.markers.ids():
             i = self.markers.row_names_to_ids([key])[0]
             return self.markers.get_row(i)
-        raise KeyError('key did not match any sample or marker ID')
+        raise KeyError('Key did not match any sample or marker ID')
 
     def __delitem__(self, key):
         if key in self.samples.ids():
@@ -936,7 +936,7 @@ class Alignment:
         elif key in self.markers.ids():
             i = self.markers.row_names_to_ids([key])
             return self.markers.remove_rows(i)
-        raise KeyError('key did not match any sample or marker ID')
+        raise KeyError('Key did not match any sample or marker ID')
 
     def __iter__(self):
         yield from self.iter_sites()
