@@ -404,27 +404,6 @@ impl BaseAlignment {
         }
     }
 
-    /// Removes sites at the specified column positions inplace.
-    fn remove_sites(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        ids.sort_unstable();
-        ids.reverse();
-        for sequence in self.sequences.iter_mut() {
-            let mut sequence_chars: Vec<char> = sequence.chars().collect();
-            for i in ids.iter().map(|x| *x as usize) {
-                if i >= sequence_chars.len() {
-                    return Err(exceptions::ValueError::py_err("site index out of range"))
-                }
-                sequence_chars.remove(i);
-            }
-            let sequence_str: String = sequence_chars.into_iter().collect();
-            *sequence = sequence_str;
-        }
-        Ok(())
-    }
-
     /// Keep samples at the given index positions, and remove
     /// non-matching samples inplace.
     fn retain_samples(&mut self, ids: Vec<i32>) -> PyResult<()> {
