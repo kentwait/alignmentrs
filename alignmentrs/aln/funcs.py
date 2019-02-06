@@ -99,7 +99,7 @@ def mark_sites_with_chars(aln, target_list, size=1,
         filter_array[position_list] = 0
 
         # Add new marker
-        aln.markers.append_samples(
+        aln.markers.append_rows(
             ['{}_marker'.format(target)],
             ['notes="{} if site has "{}", else {}"'.format(
                 t_c*size, target, f_c*size)],
