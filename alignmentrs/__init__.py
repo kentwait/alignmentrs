@@ -1,5 +1,4 @@
-from libalignmentrs.record import Record
-from libalignmentrs.alignment import BaseAlignment
+from libalignmentrs.alignment import BaseAlignment, Record
 from libalignmentrs.fasta import fasta_file_to_basealignments
 import libalignmentrs as librs
 
