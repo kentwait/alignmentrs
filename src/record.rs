@@ -3,6 +3,29 @@ use pyo3::{PyObjectProtocol, exceptions};
 
 use std::fs::File;
 use std::io::{BufReader, BufRead};
+use regex::Regex;
+
+
+lazy_static! {
+    static ref WS: Regex = Regex::new(r"\s+").unwrap();
+}
+
+#[pyclass(subclass)]
+#[derive(Clone)]
+/// Record(id, description, sequence)
+/// 
+/// Record represents a single sequence sample.
+pub struct Record {
+    #[prop(get,set)]
+    pub id: String,
+
+    #[prop(get,set)]
+    pub description: String,
+    
+    #[prop(get,set)]
+    pub sequence: String,
+
+}
 
 #[pymethods]
 impl Record {

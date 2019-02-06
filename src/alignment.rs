@@ -3,7 +3,7 @@ use pyo3::{PyObjectProtocol, exceptions};
 
 use std::fs::File;
 use std::io::{BufReader, BufRead};
-use regex::Regex;
+use crate::record::Record;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -771,10 +771,6 @@ impl BaseAlignment {
     }
 }
 
-lazy_static! {
-    static ref WS: Regex = Regex::new(r"\s+").unwrap();
-}
-
 #[pyfunction]
 /// fasta_file_to_basealignments(data_str)
 /// 
@@ -875,25 +871,6 @@ fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignmen
         }
     }
     Ok(BaseAlignment {ids, descriptions, sequences})
-}
-
-// Record
-
-#[pyclass(subclass)]
-#[derive(Clone)]
-/// Record(id, description, sequence)
-/// 
-/// Record represents a single sequence sample.
-pub struct Record {
-    #[prop(get,set)]
-    pub id: String,
-
-    #[prop(get,set)]
-    pub description: String,
-    
-    #[prop(get,set)]
-    pub sequence: String,
-
 }
 
 // Register python functions to PyO3
