@@ -3,6 +3,8 @@ use pyo3::{PyObjectProtocol, exceptions};
 
 use std::fs::File;
 use std::io::{BufReader, BufRead};
+use regex::Regex;
+
 use crate::record::Record;
 
 #[pyclass(subclass)]
@@ -689,7 +691,9 @@ impl BaseAlignment {
             for aln in aln_list.iter() {
                 let aln_len = aln.sequences.len();
                 if aln_len != sequence_len {
-                    return Err(exceptions::ValueError::py_err(format!("cannot concatenate alignments with unequal number of samples: {} != {}", sequence_len, aln_len)))
+                    return Err(exceptions::ValueError::py_err(
+                        format!("cannot concatenate alignments with \
+                                 unequal number of samples: {} != {}", sequence_len, aln_len)))
                 }
                 sequences[i].push_str(&aln.sequences[i]);
             }
@@ -785,6 +789,10 @@ impl BaseAlignment {
             _ => self.sequences[0].chars().count(),
         }
     }
+}
+
+lazy_static! {
+    static ref WS: Regex = Regex::new(r"\s+").unwrap();
 }
 
 #[pyfunction]
