@@ -256,35 +256,39 @@ class Alignment:
 
         Returns
         -------
-        BaseAlignment
-            Creates a new sample BaseAlignment object containing the
-            specified sample/s.
-            This subset is a deep copy of the original sample BaseAlignment
-            object and will not be affect by changes made in the original.
+        Alignment
+            Creates a new Alignment object containing the specified sample/s
+            and markers are not included. This subset is a deep copy of the
+            original slignment and will not be affect by changes made in the
+            original.
 
         """
         # Call get_sample/s method for sample BaseAlignment depending on the
         # type of i
+        sample_aln = None
         if isinstance(i, int):
-            return self.samples.get_rows([i])
+            sample_aln = self.samples.get_rows([i])
         elif isinstance(i, str):
             if match_prefix:
-                return self.samples.get_rows_by_prefix([i])
+                sample_aln = self.samples.get_rows_by_prefix([i])
             elif match_suffix:
-                return self.samples.get_rows_by_suffixx([i])
+                sample_aln = self.samples.get_rows_by_suffixx([i])
             else:
-                return self.samples.get_rows_by_name([i])
+                sample_aln = self.samples.get_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            return self.samples.get_rows(i)
+            sample_aln = self.samples.get_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
-                return self.samples.get_rows_by_prefix(i)
+                sample_aln = self.samples.get_rows_by_prefix(i)
             elif match_suffix:
-                return self.samples.get_rows_by_suffixx(i)
+                sample_aln = self.samples.get_rows_by_suffixx(i)
             else:
-                return self.samples.get_rows_by_name(i)
+                sample_aln = self.samples.get_rows_by_name(i)
         else:
             raise TypeError('i must be an int, str, list of int, or list of str.')
+        if sample_aln is None:
+            raise ValueError('Value of `sample_aln` cannot be None.')
+        return self.__class__(self.name, sample_aln, None)
 
     def get_markers(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the markers
