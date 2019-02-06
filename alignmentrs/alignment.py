@@ -137,13 +137,13 @@ class Alignment:
         elif isinstance(sample_ids, int):
             sample_ids = [sample_ids]
         elif isinstance(sample_ids, str):
-            sample_ids = aln.samples.sample_names_to_ids([sample_ids])
+            sample_ids = aln.samples.row_names_to_ids([sample_ids])
         elif (isinstance(sample_ids, list) and
               sum((isinstance(j, int) for j in sample_ids))):
             pass
         elif (isinstance(sample_ids, list) and
               sum((isinstance(j, str) for j in sample_ids))):
-            sample_ids = aln.samples.sample_names_to_ids(sample_ids)
+            sample_ids = aln.samples.row_names_to_ids(sample_ids)
         else:
             raise ValueError('sample_ids must be an int, str, list of int, '
                              'or list of str.')
@@ -156,13 +156,13 @@ class Alignment:
         elif isinstance(marker_ids, int):
             marker_ids = [marker_ids]
         elif isinstance(marker_ids, str):
-            marker_ids = aln.samples.sample_names_to_ids([marker_ids])
+            marker_ids = aln.samples.row_names_to_ids([marker_ids])
         elif (isinstance(marker_ids, list) and
               sum((isinstance(j, int) for j in marker_ids))):
             pass
         elif (isinstance(marker_ids, list) and
               sum((isinstance(j, str) for j in marker_ids))):
-            marker_ids = aln.samples.sample_names_to_ids(marker_ids)
+            marker_ids = aln.samples.row_names_to_ids(marker_ids)
         else:
             raise ValueError('marker_ids must be an int, str, list of int, '
                              'or list of str.')
@@ -192,15 +192,16 @@ class Alignment:
         sequences : str
 
         """
+        # 
         if isinstance(i, int) and isinstance(sequences, str):
             self.samples.set_sequences([i], [sequences])
         elif isinstance(i, str) and isinstance(sequences, str):
-            ids = self.samples.sample_names_to_ids([i])
+            ids = self.samples.row_names_to_ids([i])
             self.samples.set_sequences([ids], [sequences])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
             self.samples.set_sequences(i, sequences)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
-            ids = self.samples.sample_names_to_ids(i)
+            ids = self.samples.row_names_to_ids(i)
             self.samples.set_sequences(ids, sequences)
         else:
             raise ValueError('i must be an int, str, list of int, or list of str.')
@@ -755,19 +756,19 @@ class Alignment:
 
     def __getitem__(self, key):
         if key in self.samples.ids():
-            i = self.samples.sample_names_to_ids([key])[0]
+            i = self.samples.row_names_to_ids([key])[0]
             return self.samples.get_row(i)
         elif key in self.markers.ids():
-            i = self.markers.sample_names_to_ids([key])[0]
+            i = self.markers.row_names_to_ids([key])[0]
             return self.markers.get_row(i)
         raise KeyError('key did not match any sample or marker ID')
 
     def __delitem__(self, key):
         if key in self.samples.ids():
-            i = self.samples.sample_names_to_ids([key])
+            i = self.samples.row_names_to_ids([key])
             return self.samples.remove_rows(i)
         elif key in self.markers.ids():
-            i = self.markers.sample_names_to_ids([key])
+            i = self.markers.row_names_to_ids([key])
             return self.markers.remove_rows(i)
         raise KeyError('key did not match any sample or marker ID')
 

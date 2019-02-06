@@ -86,7 +86,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_names_to_ids(names) {
+        let ids = match self.row_names_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -102,7 +102,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_prefix_to_ids(names) {
+        let ids = match self.row_prefix_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -118,7 +118,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_suffix_to_ids(names) {
+        let ids = match self.row_suffix_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -299,7 +299,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_names_to_ids(names) {
+        let ids = match self.row_names_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -407,7 +407,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_names_to_ids(names) {
+        let ids = match self.row_names_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -422,7 +422,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_prefix_to_ids(names) {
+        let ids = match self.row_prefix_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -437,7 +437,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_suffix_to_ids(names) {
+        let ids = match self.row_suffix_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -453,7 +453,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_names_to_ids(names) {
+        let ids = match self.row_names_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -475,7 +475,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_prefix_to_ids(names) {
+        let ids = match self.row_prefix_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -497,7 +497,7 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_suffix_to_ids(names) {
+        let ids = match self.row_suffix_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
@@ -557,7 +557,7 @@ impl BaseAlignment {
     }
 
     /// Converts a list of sample names to its corresponding sample indices.
-    fn sample_names_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
+    fn row_names_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -577,7 +577,7 @@ impl BaseAlignment {
 
     /// Matches a list of sample prefixes to sample names and returns
     /// the indices of matching samples.
-    fn sample_prefix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
+    fn row_prefix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -596,7 +596,7 @@ impl BaseAlignment {
 
     /// Matches a list of sample suffixes to sample names and returns
     /// the indices of matching samples.
-    fn sample_suffix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
+    fn row_suffix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
