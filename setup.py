@@ -22,9 +22,7 @@ setuptools.setup(
     rust_extensions=[
         RustExtension('libalignmentrs.alignment',
                       'Cargo.toml', binding=Binding.PyO3),
-        RustExtension('libalignmentrs.sample',
-                      'Cargo.toml', binding=Binding.PyO3),
-        RustExtension('libalignmentrs.marker',
+        RustExtension('libalignmentrs.record',
                       'Cargo.toml', binding=Binding.PyO3),
     ],
     packages=['alignmentrs'],
