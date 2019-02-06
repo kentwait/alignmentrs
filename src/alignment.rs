@@ -44,7 +44,7 @@ impl BaseAlignment {
 
     /// Returns the sample id, description, and sequence at the given index as
     /// as a Sample object.
-    fn get_sample(&self, i: usize) -> PyResult<Sample> {
+    fn get_sample(&self, i: usize) -> PyResult<Sample> {  // TODO: Change this to Record to generalize Sample and Marker records
         if self._nsamples() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         } else if self._nsamples() <= i {
@@ -359,6 +359,49 @@ impl BaseAlignment {
         Ok(())
     }
 
+    /// Keep samples at the given index positions, and remove
+    /// non-matching samples inplace.
+    /// This is the opposite of `remove_samples(ids)`.
+    fn retain_samples(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        if self._nsamples() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.ids.len() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        match self.remove_samples(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
+    }
+
+    /// Keep samples at the specified column positions and remove
+    /// other sites inplace.
+    /// This is the opposite of `remove_sites(ids)`.
+    fn retain_sites(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        if self._nsamples() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.sequences[0].chars().count() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        match self.remove_sites(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
+    }
+
+    // The following are extensions of remove_samples and retain_samples
+    // that uses sample IDs instead of row indices to reference samples.
+    // These are convenience functions that simply do a lookup on the
+    // ids vector to get the row ids to use with the remove_sample method.
+
     /// Removes samples matching the given sample ID's inplace.
     fn remove_samples_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
         if self._nsamples() == 0 {
@@ -401,24 +444,6 @@ impl BaseAlignment {
         match self.remove_samples(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
-        }
-    }
-
-    /// Keep samples at the given index positions, and remove
-    /// non-matching samples inplace.
-    fn retain_samples(&mut self, ids: Vec<i32>) -> PyResult<()> {
-        if self._nsamples() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let mut remove_ids: Vec<i32> = Vec::new();
-        for i in 0..self.ids.len() {
-            if !ids.contains(&(i as i32)) {
-                remove_ids.push(i as i32);
-            }
-        }
-        match self.remove_samples(remove_ids) {
-            Err(x) => Err(x),
-            Ok(x) => Ok(x)
         }
     }
 
@@ -483,24 +508,6 @@ impl BaseAlignment {
             }
         }
         match self.remove_samples(remove_ids) {
-            Err(x) => Err(x),
-            Ok(x) => Ok(x)
-        }
-    }
-
-    /// Keep samples at the specified column positions and remove
-    /// other sites inplace.
-    fn retain_sites(&mut self, ids: Vec<i32>) -> PyResult<()> {
-        if self._nsamples() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let mut remove_ids: Vec<i32> = Vec::new();
-        for i in 0..self.sequences[0].chars().count() {
-            if !ids.contains(&(i as i32)) {
-                remove_ids.push(i as i32);
-            }
-        }
-        match self.remove_sites(remove_ids) {
             Err(x) => Err(x),
             Ok(x) => Ok(x)
         }
