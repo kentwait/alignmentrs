@@ -2,7 +2,9 @@
 
 #[macro_use]
 extern crate pyo3;
-// extern crate numpy;
+#[macro_use]
+extern crate lazy_static;
+extern crate regex;
 
 pub mod alignment;
 pub mod record;
