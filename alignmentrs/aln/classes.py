@@ -1,7 +1,7 @@
 import numpy as np
 import blockrs
 from libalignmentrs.alignment import BaseAlignment
-from alignmentrs.util import fasta_file_to_lists
+from libalignmentrs.fasta import fasta_file_to_basealignments
 
 
 __all__ = ['Alignment']
@@ -670,15 +670,10 @@ class Alignment:
             descriptions, and sequences in the FASTA file.
 
         """
-        d = fasta_file_to_lists(path, marker_kw=marker_kw)
-        sample_aln = BaseAlignment(d['sample']['ids'],
-                                   d['sample']['descriptions'],
-                                   d['sample']['sequences'])
-        marker_aln = BaseAlignment(d['marker']['ids'],
-                                   d['marker']['descriptions'],
-                                   d['marker']['sequences'])
+        if marker_kw is None:
+            marker_kw = ''
         # Create alignments
-        return cls(name, sample_aln, marker_aln)
+        return cls(name, *fasta_file_to_basealignments(path, marker_kw))
 
     # Format converters
 

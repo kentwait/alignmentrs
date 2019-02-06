@@ -1,5 +1,4 @@
-from libalignmentrs.alignment import BaseAlignment
-from alignmentrs.util import fasta_file_to_lists
+from libalignmentrs.fasta import fasta_file_to_basealignments
 from alignmentrs.aln import Alignment
 
 
@@ -23,18 +22,10 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
     Alignment
 
     """
-    d = fasta_file_to_lists(path, marker_kw=marker_kw)
-    sample_aln = BaseAlignment(d['sample']['ids'],
-                               d['sample']['descriptions'],
-                               d['sample']['sequences'])
-    if len(d['marker']['ids']) > 0:
-        marker_aln = BaseAlignment(d['marker']['ids'],
-                                   d['marker']['descriptions'],
-                                   d['marker']['sequences'])
-    else:
-        marker_aln = None
     # Create alignments
-    return Alignment(name, sample_aln, marker_aln)
+    if marker_kw is None:
+        marker_kw = ''
+    return Alignment(name, *fasta_file_to_basealignments(path, marker_kw))
 
 def split_concatenated_alignment(aln, catblocks=None,
                                  description_decoder=None):
