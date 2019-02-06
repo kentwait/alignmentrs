@@ -1,5 +1,6 @@
-from libalignmentrs.alignment import BaseAlignment
 import os
+
+from libalignmentrs.alignment import BaseAlignment
 import numpy as np
 import blockrs
 
