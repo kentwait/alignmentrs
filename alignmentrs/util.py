@@ -1,6 +1,7 @@
 import os
 
-from libalignmentrs.alignment import BaseAlignment
+
+__all__ = ['fasta_file_to_lists']
 
 
 def fasta_file_to_lists(path, marker_kw=None):
@@ -77,4 +78,3 @@ def fasta_file_to_lists(path, marker_kw=None):
             'sequences': marker_seqs,
         }
     }
-
