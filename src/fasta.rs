@@ -1,45 +1,99 @@
+use pyo3::prelude::*;
+use pyo3::exceptions;
+
+use std::fs::File;
+use std::io::{BufReader, BufRead};
 use regex::Regex;
-use std::io::{BufReader, Read};
+use crate::alignment::BaseAlignment;
 
 lazy_static! {
-    static ref FASTA_REGEX: Regex = Regex::new(r"\x3E(?P<id>\S+)\s(?P<description>[^\n]+)\n(?P<sequence>[A-Za-z0-9\n]+)").unwrap();
+    static ref WS: Regex = Regex::new(r"\s+").unwrap();
 }
 
 #[pyfunction]
-/// fasta_to_lists(data_str)
+/// fasta_file_to_basealignments(data_str)
 /// 
-/// Reads FASTA file and creates lists of ids, descriptions, and sequences.
-fn fasta_to_lists(path: &str) -> PyResult<(Vec<String>, Vec<String>, Vec<String>)> {
+/// Reads FASTA file and creates marker and sequence BaseAlignments.
+fn fasta_file_to_basealignments(path: &str, marker_kw: &str) -> 
+        PyResult<(BaseAlignment, BaseAlignment)> {
     // Open the path in read-only mode, returns `io::Result<File>`
-    let mut fasta_str = String::new();
     let f = match File::open(path) {
-        Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while trying to open file {:?}: {:?}", path, error))),
-        _ => ()
+        Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while trying to open file {:?}: {:?}", path, x))),
+        Ok(x) => x
     };
-    let mut br = BufReader::new(f);
-    match br.read_to_string(&mut data) {
-        Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while reading file {:?} to string: {:?}", path, error))),
-        _ => ()
-    };
+    let f = BufReader::new(f);
 
     // Declare variables
-    let mut ids: Vec<String> = Vec::new();
-    let mut descriptions: Vec<String> = Vec::new();
-    let mut sequences: Vec<String> = Vec::new();
+    let mut s_ids: Vec<String> = Vec::new();
+    let mut s_descriptions: Vec<String> = Vec::new();
+    let mut s_sequences: Vec<String> = Vec::new();
+
+    let mut m_ids: Vec<String> = Vec::new();
+    let mut m_descriptions: Vec<String> = Vec::new();
+    let mut m_sequences: Vec<String> = Vec::new();
+
+    let mut id = String::new();
+    let mut description = String::new();
+    let mut sequence = String::new();
 
     // Match regexp
-    for caps in BLOCK_STR_REGEX.captures_iter(fasta_str) {
-        ids.push(caps["id"]);
-        descriptions.push(caps["description"]);
-        sequences.push(caps["sequence"]);
+    for line in f.lines() {
+        let line = match line {
+            Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while reading file {:?}: {:?}", path, x))),
+            Ok(x) => x.trim().to_string()
+        };
+        if line.starts_with(">") {
+            let matches: Vec<&str> = WS.splitn(line.trim_start_matches(">"), 1).collect();
+            id = matches[0].to_string();
+            description = match matches.len() {
+                l if l == 2 => matches[1].to_string(),
+                _ => String::new(),
+            };
+            if sequence.len() > 0 {
+                if marker_kw != "" && id.contains(marker_kw) {
+                    m_ids.push(id.clone());
+                    m_descriptions.push(description.clone());
+                    m_sequences.push(sequence.clone());
+                } else {
+                    s_ids.push(id.clone());
+                    s_descriptions.push(description.clone());
+                    s_sequences.push(sequence.clone());
+                }
+                sequence.clear();
+            }
+        } else {
+            sequence.push_str(&line);
+        }
     }
-    Ok((ids, descriptions, sequences))
+    if sequence.len() > 0 {
+        if marker_kw != "" && id.contains(marker_kw) {
+            m_ids.push(id);
+            m_descriptions.push(description);
+            m_sequences.push(sequence.clone());
+        } else {
+            s_ids.push(id);
+            s_descriptions.push(description);
+            s_sequences.push(sequence.clone());
+        }
+        sequence.clear();
+    }
+    let sample_aln = BaseAlignment {
+        ids: s_ids,
+        descriptions: s_descriptions,
+        sequences: s_sequences,
+    };
+    let marker_aln = BaseAlignment {
+        ids: m_ids,
+        descriptions: m_descriptions,
+        sequences: m_sequences,
+    };
+    Ok((sample_aln, marker_aln))
 }
 
 // Register python functions to PyO3
 #[pymodinit]
-fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_function!(fasta_to_lists))?;
+fn fasta(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_function!(fasta_file_to_basealignments))?;
 
     Ok(())
 }
