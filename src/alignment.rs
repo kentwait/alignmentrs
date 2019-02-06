@@ -902,7 +902,6 @@ fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<BaseAlignment>()?;
     m.add_function(wrap_function!(fasta_file_to_basealignments))?;
     m.add_function(wrap_function!(concat_basealignments))?;
-    m.add_function(wrap_function!(fasta_file_to_records))?;
 
     Ok(())
 }
