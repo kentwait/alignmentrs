@@ -43,6 +43,8 @@ def mark_sites_with_chars(aln, target_list, size=1,
     target_list : list of str
         List of target characters (ie. 'N' for ambiguous characters
         or '-' for gaps). Each target generates a marker track.
+        If a target is itself a list, then each site will be tested
+        if it is one of the members of the list.
     size : int, optional
         Sie of the size in terms of number of alignment columns.
         For single characters such as nucleotides, size = 1.
