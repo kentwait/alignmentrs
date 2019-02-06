@@ -714,6 +714,14 @@ impl PyObjectProtocol for BaseAlignment {
         }
         Ok(fasta_strings.join("\n"))
     }
+
+    // Determines the "truthyness" of the object
+    fn __bool__(&self) -> PyResult<bool> {
+        if self._nrows() == 0 {
+            return Ok(false)
+        }
+        Ok(true)
+    }
 }
 
 impl BaseAlignment {
