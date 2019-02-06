@@ -28,7 +28,6 @@ impl BaseAlignment {
     /// and sequences.
     fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
         if (ids.len() != descriptions.len()) ||
-           (descriptions.len() != sequences.len()) ||
            (ids.len() != sequences.len()) {
             return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
         }
