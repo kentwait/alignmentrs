@@ -28,10 +28,12 @@ impl BaseAlignment {
     #[new]
     /// Creates a new BaseAlignment object from a list of ids, descriptions,
     /// and sequences.
-    fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>,
+               sequences: Vec<&str>) -> PyResult<()> {
         if (ids.len() != descriptions.len()) ||
            (ids.len() != sequences.len()) {
-            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "id, description, and sequence lists must have the same length"))
         }
         obj.init(|_| {
             BaseAlignment { 
@@ -45,7 +47,8 @@ impl BaseAlignment {
 
     /// Returns the sample id, description, and sequence at the given index as
     /// as a Sample object.
-    fn get_row(&self, i: usize) -> PyResult<Record> {  // TODO: Change this to Record to generalize Sample and Marker records
+    fn get_row(&self, i: usize) -> PyResult<Record> {
+        // TODO: Change this to Record to generalize Sample and Marker records
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         } else if self._nrows() <= i {
@@ -233,7 +236,8 @@ impl BaseAlignment {
     /// Sets many sample IDs simulateneously using a list of indices.
     fn set_ids(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err("index and id lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "index and id lists must have the same length"))
         }
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -260,7 +264,8 @@ impl BaseAlignment {
     /// Sets many sample descriptions simulateneously using a list of indices.
     fn set_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err("index and description lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "index and description lists must have the same length"))
         }
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -289,7 +294,8 @@ impl BaseAlignment {
     /// Sets many sample sequences simulateneously using a list of indices.
     fn set_sequences(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err("index and sequence lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "index and sequence lists must have the same length"))
         }
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -316,7 +322,9 @@ impl BaseAlignment {
             Err(x) => return Err(x)
         };
         if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err(format!("number of matched rows is not equal to the length of the given sequence list: {} != {}", ids.len(), values.len())))
+            return Err(exceptions::ValueError::py_err(
+                format!("number of matched rows is not equal to the length \
+                         of the given sequence list: {} != {}", ids.len(), values.len())))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
             if self._nrows() <= i {
@@ -532,19 +540,23 @@ impl BaseAlignment {
     // TODO: Insert/append ONE sample using Record object
 
     /// Inserts one or more samples at the specified position.
-    fn insert_rows(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn insert_rows(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>,
+                   sequences: Vec<&str>) -> PyResult<()> {
         let i = i as usize;
         if self._nrows() <= i {
             return Err(exceptions::IndexError::py_err("sample index out of range"))
         }
         if (ids.len() != descriptions.len()) ||
            (ids.len() != sequences.len()) {
-            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "id, description, and sequence lists must have the same length"))
         }
         for offset in 0..sequences.len() {
             let seq_len = sequences[offset].chars().count();
             if self._nrows() > 0 && self._ncols() != seq_len {
-                return Err(exceptions::ValueError::py_err(format!("sequence length does not match the alignment length: {} != {}", seq_len, self._ncols())))
+                return Err(exceptions::ValueError::py_err(
+                    format!("sequence length does not match the alignment length: {} != {}",
+                    seq_len, self._ncols())))
             }
             self.ids.insert(i + offset, ids[offset].to_string());
             self.descriptions.insert(i + offset, descriptions[offset].to_string());
@@ -554,15 +566,19 @@ impl BaseAlignment {
     }
 
     /// Appends one or more samples at the end of the list.
-    fn append_rows(&mut self, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn append_rows(&mut self, ids: Vec<&str>, descriptions: Vec<&str>,
+                   sequences: Vec<&str>) -> PyResult<()> {
         if (ids.len() != descriptions.len()) ||
            (ids.len() != sequences.len()) {
-            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "id, description, and sequence lists must have the same length"))
         }
         for offset in 0..sequences.len() {
             let seq_len = sequences[offset].chars().count();
             if self._nrows() > 0 && self._ncols() != seq_len {
-                return Err(exceptions::ValueError::py_err(format!("sequence length does not match the alignment length: {} != {}", seq_len, self._ncols())))
+                return Err(exceptions::ValueError::py_err(
+                    format!("sequence length does not match the alignment length: {} != {}",
+                            seq_len, self._ncols())))
             }
             self.ids.push(ids[offset].to_string());
             self.descriptions.push(descriptions[offset].to_string());
@@ -865,7 +881,9 @@ fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignmen
         for aln in aln_list.iter() {
             let aln_len = aln.sequences.len();
             if aln_len != sequence_len {
-                return Err(exceptions::ValueError::py_err(format!("cannot concatenate alignments with unequal number of samples: {} != {}", sequence_len, aln_len)))
+                return Err(exceptions::ValueError::py_err(
+                    format!("cannot concatenate alignments with unequal number of samples: {} != {}", 
+                            sequence_len, aln_len)))
             }
             sequences[i].push_str(&aln.sequences[i]);
         }
