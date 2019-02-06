@@ -43,12 +43,6 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
             Ok(x) => x.trim().to_string()
         };
         if line.starts_with(">") {
-            let matches: Vec<&str> = WS.splitn(line.trim_start_matches(">"), 1).collect();
-            id = matches[0].to_string();
-            description = match matches.len() {
-                l if l == 2 => matches[1].to_string(),
-                _ => String::new(),
-            };
             if sequence.len() > 0 {
                 if marker_kw != "" && id.contains(marker_kw) {
                     m_ids.push(id.clone());
@@ -61,6 +55,12 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
                 }
                 sequence.clear();
             }
+            let matches: Vec<&str> = WS.splitn(line.trim_start_matches(">"), 2).collect();
+            id = matches[0].to_string();
+            description = match matches.len() {
+                l if l == 2 => matches[1].to_string(),
+                _ => String::new(),
+            };
         } else {
             sequence.push_str(&line);
         }
