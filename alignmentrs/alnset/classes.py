@@ -3,7 +3,7 @@ import random
 
 from blockrs import CatBlock
 from libalignmentrs.alignment import concat_basealignments
-from alignmentrs.alignment import Alignment
+from alignmentrs.aln.classes import Alignment
 
 
 __all__ = ['AlignmentSet']

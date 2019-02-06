@@ -1,13 +1,13 @@
-import setuptools
+from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-setuptools.setup(
+setup(
     name='alignmentrs',
     author='Kent Kawashima',
-    version='0.6.2',
+    version='0.7.0',
     author_email='kentkawashima@gmail.com',
     description='Quickly read and manipulate multiple sequence alignments in Python',
     long_description=long_description,
@@ -25,7 +25,7 @@ setuptools.setup(
         RustExtension('libalignmentrs.record',
                       'Cargo.toml', binding=Binding.PyO3),
     ],
-    packages=['alignmentrs'],
+    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     package_data={
         'alignmentrs': ['lib/libalignmentrs/alignment.cpython-37m-darwin.so',
                         'lib/libalignmentrs/record.cpython-37m-darwin.so']},
