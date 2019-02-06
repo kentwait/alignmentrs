@@ -180,6 +180,20 @@ impl BaseAlignment {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
+        match ids.iter().max() {
+            Some(x) if *x as usize > self._nrows() => {
+                return Err(exceptions::IndexError::py_err(
+                    "row position cannot be larger than the number of rows"))
+            },
+            _ => ()
+        }
+        match sites.iter().max() {
+            Some(x) if *x as usize > self._ncols() => {
+                return Err(exceptions::IndexError::py_err(
+                    "site position cannot be larger than the number of sites"))
+            },
+            _ => ()
+        }
         let mut new_ids: Vec<String> = Vec::new();
         let mut new_descriptions: Vec<String> = Vec::new();
         let mut new_sequences: Vec<String> = Vec::new();
@@ -187,14 +201,13 @@ impl BaseAlignment {
             if self._nrows() <= i {
                 return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
-            let mut new_sequence: Vec<String> = Vec::new();
-            for i in sites.iter().map(|x| *x as usize) {
-                let seq: Vec<char> = self.sequences[i].chars().collect();
-                new_sequence.push(seq[i].to_string());
-            }
+            let new_sequence: String = self.sequences[i].chars().enumerate()
+                                        .filter(|(i, _)| sites.contains(&(*i as i32)))
+                                        .map(|(_, x)| x )
+                                        .collect();
             new_ids.push(self.ids[i].to_string());
             new_descriptions.push(self.descriptions[i].to_string());
-            new_sequences.push(new_sequence.join(""))
+            new_sequences.push(new_sequence)
         }
         Ok(BaseAlignment {
             ids: new_ids,

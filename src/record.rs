@@ -48,7 +48,7 @@ impl PyObjectProtocol for Record {
         let desc:String = match self.description.chars().count() {
             x if x > 20 => {
                 let mut desc:String = self.description.char_indices()
-                                        .filter(|(i, _)| *i < 17 as usize)
+                                        .filter(|(i, _)| *i < 17)
                                         .map(|(_, c)| c)
                                         .collect();
                 desc.push_str("...");
