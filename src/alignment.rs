@@ -30,7 +30,7 @@ impl BaseAlignment {
         if (ids.len() != descriptions.len()) ||
            (descriptions.len() != sequences.len()) ||
            (ids.len() != sequences.len()) {
-            return Err(exceptions::ValueError::py_err("lists must have the same length"))
+            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
         }
         obj.init(|_| {
             BaseAlignment { 
@@ -208,43 +208,12 @@ impl BaseAlignment {
 
     /// Sets the ID of an existing sample.
     fn set_id(&mut self, i: i32, value: &str) -> PyResult<()> {
-        let i = i as usize;
-        if self._nsamples() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if self._nsamples() <= i {
-            return Err(exceptions::IndexError::py_err("sample index out of range"))
+        let ids: Vec<i32> = vec![i];
+        let values: Vec<&str> = vec![value];
+        match self.set_ids(ids, values) {
+            Err(x) => Err(x),
+            _ => Ok(()),
         }
-        self.ids[i] = value.to_string();
-        Ok(())
-    }
-
-    /// Sets the description of an existing sample.
-    fn set_description(&mut self, i: i32, description: &str) -> PyResult<()> {
-        let i = i as usize;
-        if self._nsamples() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if self._nsamples() <= i {
-            return Err(exceptions::IndexError::py_err("sample index out of range"))
-        }
-        self.descriptions[i] = description.to_string();
-        Ok(())
-    }
-
-    /// Sets the sequence of an existing sample
-    fn set_sequence(&mut self, i: i32, seqeunce: &str) -> PyResult<()> {
-        let i = i as usize;
-        if self._nsamples() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if self._nsamples() <= i {
-            return Err(exceptions::IndexError::py_err("sample index out of range"))
-        }
-        let seq_count = seqeunce.chars().count();
-        let aln_len = self.sequences[i].chars().count();
-        if seq_count != aln_len {
-            return Err(exceptions::ValueError::py_err(format!("sequence length ({}) does not match the alignment length ({})", seq_count, aln_len)))
-        }
-        self.sequences[i] = seqeunce.to_string();
-        Ok(())
     }
 
     /// Sets many sample IDs simulateneously using a list of indices.
@@ -261,6 +230,16 @@ impl BaseAlignment {
         Ok(())
     }
 
+    /// Sets the description of an existing sample.
+    fn set_description(&mut self, i: i32, description: &str) -> PyResult<()> {
+        let ids: Vec<i32> = vec![i];
+        let values: Vec<&str> = vec![description];
+        match self.set_descriptions(ids, values) {
+            Err(x) => Err(x),
+            _ => Ok(()),
+        }
+    }    
+
     /// Sets many sample descriptions simulateneously using a list of indices.
     fn set_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if self._nsamples() == 0 {
@@ -276,6 +255,16 @@ impl BaseAlignment {
     }
 
     // Sequence setters
+
+    /// Sets the sequence of an existing sample
+    fn set_sequence(&mut self, i: i32, seqeunce: &str) -> PyResult<()> {
+        let ids: Vec<i32> = vec![i];
+        let values: Vec<&str> = vec![seqeunce];
+        match self.set_sequences(ids, values) {
+            Err(x) => Err(x),
+            _ => Ok(()),
+        }
+    }
 
     /// Sets many sample sequences simulateneously using a list of indices.
     fn set_sequences(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
