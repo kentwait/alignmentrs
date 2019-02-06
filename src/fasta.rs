@@ -18,7 +18,7 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
         PyResult<(BaseAlignment, BaseAlignment)> {
     // Open the path in read-only mode, returns `io::Result<File>`
     let f = match File::open(path) {
-        Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while trying to open file {:?}: {:?}", path, x))),
+        Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while trying to open file {:?}: {:?}", path, x.kind()))),
         Ok(x) => x
     };
     let f = BufReader::new(f);
@@ -39,7 +39,7 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
     // Match regexp
     for line in f.lines() {
         let line = match line {
-            Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while reading file {:?}: {:?}", path, x))),
+            Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while reading file {:?}: {:?}", path, x.kind()))),
             Ok(x) => x.trim().to_string()
         };
         if line.starts_with(">") {
