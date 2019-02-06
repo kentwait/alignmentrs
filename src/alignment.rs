@@ -17,7 +17,7 @@ pub struct BaseAlignment {
     pub descriptions: Vec<String>,
     
     #[prop(get)]
-    pub sequences: Vec<String>,
+    pub sequences: Vec<String>,  // TODO: Try a Vec<Vec<char>> instead.
 
 }
 
@@ -316,8 +316,11 @@ impl BaseAlignment {
     }
 
     // Deleters
+    // remove_samples and remove_sites are the main methods for deleting
+    // contents of BaseAlignment
 
     /// Removes samples at the given index positions inplace.
+    /// Index positions are specified by a list of integer ids.
     fn remove_samples(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
         if self._nsamples() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
