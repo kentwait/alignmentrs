@@ -81,21 +81,33 @@ def mark_sites_with_chars(aln, target_list, size=1,
     position_list = []
     changer = lambda x: x.upper() if ignore_case else x
     t_c, f_c = ('0', '1') if inverse else ('1', '0')
-    for i, target in enumerate(target_list):
+    for target in target_list:
         # Create an initial filter array of 1
         filter_array = np.ones(int(aln.nsites/size))
 
         # Determine sites with char in within the site
-        position_list = [
-            i
-            # Loop over sample sites by size steps,
-            # Sites is a list of size-char strings
-            for i, sites in enumerate(aln.iter_sample_sites(size=size))
-            # Loop over each unique variant of strings
-            for variant in set(sites)
-            # If target is found, include the current position i
-            if changer(target) in changer(variant)
-        ]
+        if isinstance(target, list):
+            position_list = [
+                i
+                # Loop over sample sites by size steps,
+                # Sites is a list of size-char strings
+                for i, sites in enumerate(aln.iter_sample_sites(size=size))
+                # Loop over each unique variant of strings
+                for variant in set(sites)
+                # If target is found, include the current position i
+                if changer(variant) in [changer(t) for t in target]
+            ]
+        else:
+            position_list = [
+                i
+                # Loop over sample sites by size steps,
+                # Sites is a list of size-char strings
+                for i, sites in enumerate(aln.iter_sample_sites(size=size))
+                # Loop over each unique variant of strings
+                for variant in set(sites)
+                # If target is found, include the current position i
+                if changer(target) in changer(variant)
+            ]
         filter_array[position_list] = 0
 
         # Add new marker
