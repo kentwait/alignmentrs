@@ -284,7 +284,7 @@ class AlignmentSet:
                 raise KeyError('alignment "{}" already exists'.format(key))
             sequence_d[key] = Alignment.from_fasta(fname, name=key,
                                                    marker_kw=marker_kw)
-        return cls(name, sequence_d.values())
+        return cls(name, list(sequence_d.values()))
 
     @classmethod
     def from_fasta_dir(cls, dirpath, name, marker_kw=None,
@@ -309,7 +309,7 @@ class AlignmentSet:
         filename_to_key_encoder : function or None, optional
             If specified, the function receives the filename as input
             and outputs a key to identify a unique alignment.
-            THis can be used to make sure that the same alignment
+            This can be used to make sure that the same alignment
             stored as files with different filenames are not
             included multiple times.
 
