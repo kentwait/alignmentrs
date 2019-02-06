@@ -638,24 +638,19 @@ impl BaseAlignment {
                 sequences: new_sequences,
             })
         }
+        // Create a matrix representation of the current values
+        let old_sequence_matrix: Vec<Vec<char>> = self.sequences.iter()
+                                    .map(|x| x.chars().collect()).collect();
+
         let length = self.sequences[0].chars().count();
-        let mut new_ids: Vec<String> = Vec::new();
+        let mut new_ids: Vec<String> = vec![String::new(); length];
         let new_descriptions: Vec<String> = vec![String::new(); length];
-        let mut new_sequences_matrix: Vec<Vec<char>> = vec![
-            vec!['#'; self.sequences.len()]; length];
+        let mut new_sequences: Vec<String> = vec![String::new(); length];
         // Transpose values
-        for (i, seq) in self.sequences.iter().enumerate() {
-            let sequence_vec: Vec<char> = seq.chars().collect();
-            for j in 0..length {
-                new_sequences_matrix[j][i] = sequence_vec[i];
-            }
-        }
-        // Finalize
-        let mut new_sequences: Vec<String> = Vec::new();
-        for j in 0..length {
-            new_ids.push(format!("{}", j));
-            let seq: String = new_sequences_matrix[j].iter().collect();;
-            new_sequences.push(seq);
+        for i in 0..length {
+            new_ids[i] = format!("{}", i);
+            new_sequences[i] = old_sequence_matrix.iter()
+                                .map(|x| x[i]).collect();
         }
         Ok(BaseAlignment {
             ids: new_ids,
