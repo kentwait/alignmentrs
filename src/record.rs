@@ -6,6 +6,24 @@ use pyo3::{PyObjectProtocol, exceptions};
 /// Sample(id, description, sequence_str)
 /// 
 /// Sample represents a single biological sequence.
+pub struct Record {
+
+    #[prop(get, set)]
+    pub id: String,
+
+    #[prop(get, set)]
+    pub description: String,
+    
+    #[prop(get)]
+    pub sequence: String,
+
+}
+
+#[pyclass]
+// #[derive(Copy, Clone)]
+/// Sample(id, description, sequence_str)
+/// 
+/// Sample represents a single biological sequence.
 pub struct Sample {
 
     #[prop(get, set)]

@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 
-use crate::sample::Sample;
+use crate::record::Record;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -43,13 +43,13 @@ impl BaseAlignment {
 
     /// Returns the sample id, description, and sequence at the given index as
     /// as a Sample object.
-    fn get_row(&self, i: usize) -> PyResult<Sample> {  // TODO: Change this to Record to generalize Sample and Marker records
+    fn get_row(&self, i: usize) -> PyResult<Record> {  // TODO: Change this to Record to generalize Sample and Marker records
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         } else if self._nrows() <= i {
             return Err(exceptions::IndexError::py_err("sample index out of range"))
         }
-        Ok(Sample {
+        Ok(Record {
             id: self.ids[i].to_string(),
             description: self.descriptions[i].to_string(),
             sequence: self.sequences[i].to_string(),
@@ -130,7 +130,7 @@ impl BaseAlignment {
 
     /// Returns the given site as a Sample object. Uses the given site number
     /// as the sample id of Sample.
-    fn get_site(&self, i: usize) -> PyResult<Sample> {
+    fn get_site(&self, i: usize) -> PyResult<Record> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -142,7 +142,7 @@ impl BaseAlignment {
             let seq: Vec<char> = s.chars().collect();
             site_sequence.push(seq[i].to_string())
         }
-        Ok(Sample {
+        Ok(Record {
             id: format!("{}", i),
             description: String::new(),
             sequence: site_sequence.join(""),
