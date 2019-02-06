@@ -43,7 +43,7 @@ impl BaseAlignment {
 
     /// Returns the sample id, description, and sequence at the given index as
     /// as a Sample object.
-    fn get_sample(&self, i: usize) -> PyResult<Sample> {  // TODO: Change this to Record to generalize Sample and Marker records
+    fn get_row(&self, i: usize) -> PyResult<Sample> {  // TODO: Change this to Record to generalize Sample and Marker records
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         } else if self._nrows() <= i {
@@ -58,7 +58,7 @@ impl BaseAlignment {
 
     /// Returns a new BaseAlignment object containing the specified
     /// sample sequences by index.
-    fn get_samples(&self, ids: Vec<i32>) -> PyResult<BaseAlignment> {
+    fn get_rows(&self, ids: Vec<i32>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -82,7 +82,7 @@ impl BaseAlignment {
 
     /// Returns a new BaseAlignment object containing the specified
     /// sample sequences by ID.
-    fn get_samples_by_name(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+    fn get_rows_by_name(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -90,7 +90,7 @@ impl BaseAlignment {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.get_samples(ids) {
+        match self.get_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
@@ -98,7 +98,7 @@ impl BaseAlignment {
 
     /// Returns a new BaseAlignment object containing the specified
     /// sample sequences match the given list of prefixes.
-    fn get_samples_by_prefix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+    fn get_rows_by_prefix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -106,7 +106,7 @@ impl BaseAlignment {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.get_samples(ids) {
+        match self.get_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
@@ -114,7 +114,7 @@ impl BaseAlignment {
 
     /// Returns a new BaseAlignment object containing the specified
     /// sample sequences match the given list of suffixes.
-    fn get_samples_by_suffix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+    fn get_rows_by_suffix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -122,7 +122,7 @@ impl BaseAlignment {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.get_samples(ids) {
+        match self.get_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
@@ -316,12 +316,12 @@ impl BaseAlignment {
     }
 
     // Deleters
-    // remove_samples and remove_sites are the main methods for deleting
+    // remove_rows and remove_sites are the main methods for deleting
     // contents of BaseAlignment
 
     /// Removes samples at the given index positions inplace.
     /// Index positions are specified by a list of integer ids.
-    fn remove_samples(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
+    fn remove_rows(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -361,8 +361,8 @@ impl BaseAlignment {
 
     /// Keep samples at the given index positions, and remove
     /// non-matching samples inplace.
-    /// This is the opposite of `remove_samples(ids)`.
-    fn retain_samples(&mut self, ids: Vec<i32>) -> PyResult<()> {
+    /// This is the opposite of `remove_rows(ids)`.
+    fn retain_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -372,7 +372,7 @@ impl BaseAlignment {
                 remove_ids.push(i as i32);
             }
         }
-        match self.remove_samples(remove_ids) {
+        match self.remove_rows(remove_ids) {
             Err(x) => Err(x),
             Ok(x) => Ok(x)
         }
@@ -397,13 +397,13 @@ impl BaseAlignment {
         }
     }
 
-    // The following are extensions of remove_samples and retain_samples
+    // The following are extensions of remove_rows and retain_rows
     // that uses sample IDs instead of row indices to reference samples.
     // These are convenience functions that simply do a lookup on the
-    // ids vector to get the row ids to use with the remove_sample method.
+    // ids vector to get the row ids to use with the remove_row method.
 
     /// Removes samples matching the given sample ID's inplace.
-    fn remove_samples_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn remove_rows_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -411,14 +411,14 @@ impl BaseAlignment {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.remove_samples(ids) {
+        match self.remove_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
     }
 
     /// Removes samples matching at least one of the given prefixes inplace.
-    fn remove_samples_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn remove_rows_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -426,14 +426,14 @@ impl BaseAlignment {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.remove_samples(ids) {
+        match self.remove_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
     }
 
     /// Removes samples matching at least one of the given suffixes inplace.
-    fn remove_samples_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn remove_rows_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -441,7 +441,7 @@ impl BaseAlignment {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.remove_samples(ids) {
+        match self.remove_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
@@ -449,7 +449,7 @@ impl BaseAlignment {
 
     /// Keep samples matching the given sample ID's and remove
     /// non-matching samples inplace.
-    fn retain_samples_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn retain_rows_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -463,7 +463,7 @@ impl BaseAlignment {
                 remove_ids.push(i as i32);
             }
         }
-        match self.remove_samples(remove_ids) {
+        match self.remove_rows(remove_ids) {
             Err(x) => Err(x),
             Ok(x) => Ok(x)
         }
@@ -471,7 +471,7 @@ impl BaseAlignment {
 
     /// Keep samples matching at least one of the given prefixes and remove
     /// non-matching samples inplace.
-    fn retain_samples_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn retain_rows_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -485,7 +485,7 @@ impl BaseAlignment {
                 remove_ids.push(i as i32);
             }
         }
-        match self.remove_samples(remove_ids) {
+        match self.remove_rows(remove_ids) {
             Err(x) => Err(x),
             Ok(x) => Ok(x)
         }
@@ -493,7 +493,7 @@ impl BaseAlignment {
 
     /// Keep samples matching at least one of the given suffixes and remove
     /// non-matching samples inplace.
-    fn retain_samples_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn retain_rows_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -507,7 +507,7 @@ impl BaseAlignment {
                 remove_ids.push(i as i32);
             }
         }
-        match self.remove_samples(remove_ids) {
+        match self.remove_rows(remove_ids) {
             Err(x) => Err(x),
             Ok(x) => Ok(x)
         }
@@ -517,7 +517,7 @@ impl BaseAlignment {
     // TODO: Insert/append ONE sample using Record object
 
     /// Inserts one or more samples at the specified position.
-    fn insert_samples(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn insert_rows(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
         let i = i as usize;
         if self._nrows() <= i {
             return Err(exceptions::IndexError::py_err("sample index out of range"))
@@ -539,7 +539,7 @@ impl BaseAlignment {
     }
 
     /// Appends one or more samples at the end of the list.
-    fn append_samples(&mut self, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn append_rows(&mut self, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
         if (ids.len() != descriptions.len()) ||
            (ids.len() != sequences.len()) {
             return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
