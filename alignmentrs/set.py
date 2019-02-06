@@ -386,4 +386,4 @@ def fasta_directory_to_alignmentset(dirpath, name, marker_kw=None,
 
     """
     return AlignmentSet.from_fasta_dir(
-        dirpath, name, marker_kw, suffix,filename_to_key_encoder)
+        dirpath, name, marker_kw, suffix, filename_to_key_encoder)

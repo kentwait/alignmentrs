@@ -30,8 +30,7 @@ setuptools.setup(
     packages=['alignmentrs'],
     package_data={
         'alignmentrs': ['lib/libalignmentrs/alignment.cpython-37m-darwin.so',
-                        'lib/libalignmentrs/marker.cpython-37m-darwin.so',
-                        'lib/libalignmentrs/sample.cpython-37m-darwin.so']},
+                        'lib/libalignmentrs/record.cpython-37m-darwin.so']},
     install_requires=['blockrs', 'numpy'],
     zip_safe=False,  # Rust extensions are not zip safe, like C-extensions.
 )

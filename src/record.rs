@@ -1,11 +1,12 @@
 use pyo3::prelude::*;
-use pyo3::{PyObjectProtocol, exceptions};
+use pyo3::{PyObjectProtocol};
+
 
 #[pyclass]
 // #[derive(Copy, Clone)]
-/// Sample(id, description, sequence_str)
+/// Record(id, description, sequence_str)
 /// 
-/// Sample represents a single biological sequence.
+/// Record represents a single biological sequence.
 pub struct Record {
 
     #[prop(get, set)]
@@ -19,33 +20,15 @@ pub struct Record {
 
 }
 
-#[pyclass]
-// #[derive(Copy, Clone)]
-/// Sample(id, description, sequence_str)
-/// 
-/// Sample represents a single biological sequence.
-pub struct Sample {
-
-    #[prop(get, set)]
-    pub id: String,
-
-    #[prop(get, set)]
-    pub description: String,
-    
-    #[prop(get)]
-    pub sequence: String,
-
-}
-
 #[pymethods]
-impl Sample {
+impl Record {
     #[new]
-    /// Creates a new Sample object from sequence_id, sequence_description
+    /// Creates a new Record object from sequence_id, sequence_description
     /// and sequence_str.
     fn __new__(obj: &PyRawObject, id: &str, description: &str, sequence_str: &str) -> PyResult<()> {
         let sequence_str = String::from(sequence_str);
         obj.init(|_| {
-            Sample {
+            Record {
                 id: id.to_string(),
                 description: description.to_string(),
                 sequence: sequence_str.to_string(),
@@ -60,9 +43,20 @@ impl Sample {
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
 #[pyproto]
-impl PyObjectProtocol for Sample {
+impl PyObjectProtocol for Record {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("Sample(id={id}, description={desc}, len={seq_len})", id=self.id, desc=self.description, seq_len=self.sequence.len()))
+        let desc:String = match self.description.chars().count() {
+            x if x > 20 => {
+                let mut desc:String = self.description.char_indices()
+                                        .filter(|(i, _)| *i > 17 as usize)
+                                        .map(|(_, c)| c)
+                                        .collect();
+                desc.push_str("...");
+                desc
+            },
+            _ => self.description.clone()
+        };
+        Ok(format!("Record(id=\"{id}\", len={seq_len}, description=\"{desc}\")", id=self.id, seq_len=self.sequence.len(), desc=desc))
     }
 
     fn __str__(&self) -> PyResult<String> {
@@ -80,10 +74,10 @@ impl PyObjectProtocol for Sample {
 
 // Register python functions to PyO3
 #[pymodinit]
-fn sample(_py: Python, m: &PyModule) -> PyResult<()> {
+fn record(_py: Python, m: &PyModule) -> PyResult<()> {
 
     // Add Block class
-    m.add_class::<Sample>()?;
+    m.add_class::<Record>()?;
 
     Ok(())
 }
