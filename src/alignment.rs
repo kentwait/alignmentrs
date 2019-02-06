@@ -679,6 +679,14 @@ impl BaseAlignment {
         Ok(BaseAlignment {ids, descriptions, sequences})
     }
 
+    /// Creates a deep copy of itself.
+    fn copy(&self) -> PyResult<BaseAlignment> {
+        let ids: Vec<String> = self.ids.clone();
+        let descriptions: Vec<String> = self.descriptions.clone();
+        let sequences: Vec<String> = self.sequences.clone();
+        Ok(BaseAlignment { ids, descriptions, sequences })
+    }
+
     fn is_row_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
         if self._nrows() != other._nrows() {
             return Ok(false)

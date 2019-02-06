@@ -30,7 +30,7 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
 
 
 def mark_sites_with_chars(aln, target_list, size=1,
-                          ignore_case=True, inverse=False):
+                          ignore_case=True, inverse=False, copy=False):
     """Adds markers to the alignment indicating which sites
     matche/contain the target character or string.
 
@@ -54,6 +54,9 @@ def mark_sites_with_chars(aln, target_list, size=1,
         When `inverse` is True, matching sites are marked with 0 while
         non-matching sites are marked with 1. (the default is False,
         which marks matching site 1, otherwise 0)
+    copy : bool, optional
+        Returns a new copy instead of adding new markers inplace.
+        (default is False, operation is done inplace)
 
     Raises
     ------
@@ -63,11 +66,14 @@ def mark_sites_with_chars(aln, target_list, size=1,
 
     Returns
     -------
-    int
-        Number of markers appended to the marker alignment.
+    Alignment or None
+        If copy is True, returns a new alignment, otherwise no
+        value is returned (None).
 
     """
-
+    aln = aln.__class__(
+        aln.name, aln.samples.copy(), aln.markers.copy()) if copy else \
+        aln
     if aln.nsites % size != 0:
         raise  ValueError('Alignment cannot be completely divided into '
                           'chucks of size {}'.format(size))
@@ -99,12 +105,13 @@ def mark_sites_with_chars(aln, target_list, size=1,
                 t_c*size, target, f_c*size)],
             [''.join([t_c*size if i else f_c*size for i in filter_array])]
         )
-    return i
+    if copy:
+        return aln
 
 
 def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
                                     match_prefix=False, match_suffix=False,
-                                    description_encoder=None):
+                                    description_encoder=None, copy=False):
     """Removes sites that failed to pass all of the markers in a given
     list of markers.
 
@@ -135,13 +142,20 @@ def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
         If not specified, but site tracking is enabled, block data are
         updated but the string representation in the description is not
         updated. (default is None)
+    copy : bool, optional
+        Returns a new copy instead of performing dropping inplace.
+        (default is False, operation is done inplace)
 
     Returns
     -------
-    int
-        Number of alingment columns removed
+    Alignment or None
+        If copy is True, returns a new alignment, otherwise no
+        value is returned (None).
 
     """
+    aln = aln.__class__(
+        aln.name, aln.samples.copy(), aln.markers.copy()) if copy else \
+        aln
     # Get marker alignments and turn into a numpy array
     marker_matrix = np.array(
         [list(map(int, m))
@@ -157,7 +171,8 @@ def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
     # Edit alignment inplace
     aln.remove_sites(remove_list, description_encoder)
 
-    return len(remove_list)
+    if copy:
+        return aln
 
 
 # def split_concatenated_alignment(aln, catblocks=None,

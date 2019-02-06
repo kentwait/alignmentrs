@@ -367,7 +367,7 @@ class Alignment:
 
     # Setter/Replacer
 
-    def replace_samples(self, i, sequences):
+    def replace_samples(self, i, sequences, copy=False):
         """Replaces the sequence for a given row in the alignment matrix.
 
         Parameters
@@ -379,32 +379,47 @@ class Alignment:
             str or list of new sequences. If `i` is an int or str,
             must be a str. If `i` is a list, must be a list and
             length must match the length of `i`.
+        copy : bool, optional
+            Returns a new copy instead of performing the
+            replacement inplace. (default is False, operation is done
+            inplace)
 
         Raises
         ------
         TypeError
             Given parameter has the wrong parameter type.
 
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
+
         """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self
         # Calls specific set_sequence setter depending on the
         # type if i
         if isinstance(i, int) and isinstance(sequences, str):
-            self.samples.set_sequences([i], [sequences])
+            aln.samples.set_sequences([i], [sequences])
         elif isinstance(i, str) and isinstance(sequences, str):
-            ids = self.samples.row_names_to_ids([i])
-            self.samples.set_sequences([ids], [sequences])
+            ids = aln.samples.row_names_to_ids([i])
+            aln.samples.set_sequences([ids], [sequences])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            self.samples.set_sequences(i, sequences)
+            aln.samples.set_sequences(i, sequences)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
-            ids = self.samples.row_names_to_ids(i)
-            self.samples.set_sequences(ids, sequences)
+            ids = aln.samples.row_names_to_ids(i)
+            aln.samples.set_sequences(ids, sequences)
         else:
             raise TypeError('i must be an int, str, list of int, or list of str.')
+        if copy:
+            return aln
 
     # Inserters/Appenders
     # TODO: add insert/append ONE sample and insert/append marker/s
 
-    def insert_samples_from_lists(self, i, ids, descriptions, samples):
+    def insert_samples_from_lists(self, i, ids, descriptions, samples, copy=False):
         """Inserts new sequences in the alignment matrix at the specified
         row position inplace.
 
@@ -423,13 +438,25 @@ class Alignment:
             List of new sample sequences to be appended to the
             existing list of sequences. Length and order must correspond to
             the given list of ids.
+        copy : bool, optional
+            Returns a new copy instead of inserting inplace.
+            (default is False, operation is done inplace)
 
         Raises
         ------
         TypeError
             Given parameter has the wrong parameter type.
 
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
+
         """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self
         # Calls specific set_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
@@ -441,9 +468,11 @@ class Alignment:
         if not(isinstance(samples, list) and
                sum((isinstance(j, str) for j in samples))):
             raise TypeError('samples must be a list of str.')
-        self.samples.insert_rows(i, ids, descriptions, samples)
+        aln.samples.insert_rows(i, ids, descriptions, samples)
+        if copy:
+            return aln
 
-    def append_sample_from_lists(self, ids, descriptions, samples):
+    def append_sample_from_lists(self, ids, descriptions, samples, copy=False):
         """Inserts new sequences after the last row of the alignment matrix
         inplace. This increases the total number of samples.
 
@@ -460,13 +489,25 @@ class Alignment:
             List of new sample sequences to be appended to the
             existing list of sequences. Length and order must correspond to
             the given list of ids.
+        copy : bool, optional
+            Returns a new copy instead of appending the samples inplace.
+            (default is False, operation is done inplace)
 
         Raises
         ------
         TypeError
             Given parameter has the wrong parameter type.
 
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
+
         """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self
         # Calls specific set_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
@@ -478,11 +519,14 @@ class Alignment:
         if not(isinstance(samples, list) and
                sum((isinstance(j, str) for j in samples))):
             raise TypeError('samples must be a list of str.')
-        self.samples.append_rows(ids, descriptions, samples)
+        aln.samples.append_rows(ids, descriptions, samples)
+        if copy:
+            return aln
 
     # Deleters
 
-    def remove_samples(self, i, match_prefix=False, match_suffix=False):
+    def remove_samples(self, i, match_prefix=False, match_suffix=False,
+                       copy=False):
         """Removes sample sequences based on the given index.
 
         This is the functional opposite of the `retain_samples` method.
@@ -498,35 +542,49 @@ class Alignment:
             Whether to interpret `i` as a suffix to match against
             the list of sample names. This parameter is considered
             only if match_prefix is False. (default is False)
+        copy : bool, optional
+            Returns a new copy instead of removing samples inplace.
+            (default is False, operation is done inplace)
 
         Raises
         ------
         TypeError
             Given parameter has the wrong parameter type.
 
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
+
         """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self
         if isinstance(i, int):
-            self.samples.remove_rows([i])
+            aln.samples.remove_rows([i])
         elif isinstance(i, str):
             if match_prefix:
-                self.samples.remove_rows_by_prefix([i])
+                aln.samples.remove_rows_by_prefix([i])
             elif match_suffix:
-                self.samples.remove_rows_by_suffix([i])
+                aln.samples.remove_rows_by_suffix([i])
             else:
-                self.samples.remove_rows_by_name([i])
+                aln.samples.remove_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            self.samples.remove_rows(i)
+            aln.samples.remove_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
-                self.samples.remove_rows_by_prefix(i)
+                aln.samples.remove_rows_by_prefix(i)
             elif match_suffix:
-                self.samples.remove_rows_by_suffix(i)
+                aln.samples.remove_rows_by_suffix(i)
             else:
-                self.samples.remove_rows_by_name(i)        
+                aln.samples.remove_rows_by_name(i)
         else:
             raise TypeError('i must be an int, str, list of int, or list of str.')
+        if copy:
+            return aln
 
-    def retain_samples(self, i, match_prefix=False, match_suffix=False):
+    def retain_samples(self, i, match_prefix=False, match_suffix=False, copy=False):
         """Keeps sample sequences based on the given index.
 
         This is the functional opposite of the `remove_samples` method.
@@ -542,35 +600,50 @@ class Alignment:
             Whether to interpret `i` as a suffix to match against
             the list of sample names. This parameter is considered
             only if match_prefix is False. (default is False)
+        copy : bool, optional
+            Returns a new copy instead of performing the
+            operation inplace. (default is False, operation is done
+            inplace)
 
         Raises
         ------
         TypeError
             Given parameter has the wrong parameter type.
 
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
+
         """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self
         if isinstance(i, int):
-            self.samples.retain_rows([i])
+            aln.samples.retain_rows([i])
         if isinstance(i, str):
             if match_prefix:
-                self.samples.retain_rows_by_prefix([i])
+                aln.samples.retain_rows_by_prefix([i])
             elif match_suffix:
-                self.samples.retain_rows_by_suffix([i])
+                aln.samples.retain_rows_by_suffix([i])
             else:
-                self.samples.retain_rows_by_name([i])
+                aln.samples.retain_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            self.samples.retain_rows(i)
+            aln.samples.retain_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
-                self.samples.retain_rows_by_prefix(i)
+                aln.samples.retain_rows_by_prefix(i)
             elif match_suffix:
-                self.samples.retain_rows_by_suffix(i)
+                aln.samples.retain_rows_by_suffix(i)
             else:
-                self.samples.retain_rows_by_name(i)
+                aln.samples.retain_rows_by_name(i)
         else:
             raise TypeError('i must be an int, str, list of int, or list of str.')
+        if copy:
+            return aln
 
-    def remove_sites(self, i, description_encoder=None):
+    def remove_sites(self, i, description_encoder=None, copy=False):
         """Removes sites based on the given list of column numbers.
 
         This is the functional opposite of the `retain_sites` method.
@@ -585,31 +658,45 @@ class Alignment:
             If not specified, but site tracking is enabled, block data are
             updated but the string representation in the description is not
             updated. (default is None)
+        copy : bool, optional
+            Returns a new copy instead of removing sites inplace.
+            (default is False, operation is done inplace)
+
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
 
         """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self
         # Check type of i, and convert if necessary
         if isinstance(i, int):
             i = [i]
         # Perform removal inplace
-        self.samples.remove_sites(i)
-        if not self.markers:
-            self.markers.remove_sites(i)
-            assert self.samples.nsites == self.markers.nsites, \
+        aln.samples.remove_sites(i)
+        if aln.markers:
+            aln.markers.remove_sites(i)
+            assert aln.samples.nsites == aln.markers.nsites, \
                 "Sample and marker nsites are not equal."
         # Update blocks if exists
-        if self.blocklists:
-            self.blocklists = [
+        if aln.blocklists:
+            aln.blocklists = [
                 blockrs.remove_sites_from_blocks(blist, i)
-                for seq, blist in zip(self.samples.sequences, self.blocklists)]
+                for seq, blist in zip(aln.samples.sequences, aln.blocklists)]
         # Update block data in description if description encoder is specified
         if description_encoder:
-            self.samples.set_descriptions(
-                list(range(self.samples.nrows)),
+            aln.samples.set_descriptions(
+                list(range(aln.samples.nrows)),
                 [description_encoder(sid, blist)
-                 for sid, blist in zip(self.samples.ids, self.blocklists)]
+                 for sid, blist in zip(aln.samples.ids, aln.blocklists)]
             )
+        if copy:
+            return aln
 
-    def retain_sites(self, i, description_encoder=None):
+    def retain_sites(self, i, description_encoder=None, copy=False):
         """Keeps sites based on the given list of column numbers.
 
         This is the functional opposite of the `remove_sites` method.
@@ -624,30 +711,44 @@ class Alignment:
             If not specified, but site tracking is enabled, block data are
             updated but the string representation in the description is not
             updated. (default is None)
+        copy : bool, optional
+            Returns a new copy instead of performing the operation inplace.
+            (default is False, operation is done inplace)
+
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
 
         """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self
         # Check type of i, and convert if necessary
         if isinstance(i, int):
             i = [i]
         # Perform removal inplace
-        self.samples.retain_sites(i)
-        if not (self.markers is None or self.markers.nrows == 0):
-            self.markers.retain_sites(i)
-            assert self.samples.nsites == self.markers.nsites, \
+        aln.samples.retain_sites(i)
+        if aln.markers:
+            aln.markers.retain_sites(i)
+            assert aln.samples.nsites == aln.markers.nsites, \
                 "Sample and marker nsites are not equal."
         # Update blocks if exists
-        if self.blocklists:
-            j = [pos for pos in range(self.samples.nsites) if pos not in i]
-            self.blocklists = [
+        if aln.blocklists:
+            j = [pos for pos in range(aln.samples.nsites) if pos not in i]
+            aln.blocklists = [
                 blockrs.remove_sites_from_blocks(blist, j)
-                for seq, blist in zip(self.samples.sequences, self.blocklists)]
+                for seq, blist in zip(aln.samples.sequences, aln.blocklists)]
         # Update block data in description if description encoder is specified
         if description_encoder:
-            self.samples.set_descriptions(
-                list(range(self.samples.nrows)),
+            aln.samples.set_descriptions(
+                list(range(aln.samples.nrows)),
                 [description_encoder(sid, blist)
-                 for sid, blist in zip(self.samples.ids, self.blocklists)]
+                 for sid, blist in zip(aln.samples.ids, aln.blocklists)]
             )
+        if copy:
+            return aln
 
     @classmethod
     def from_fasta(cls, path, name, marker_kw=None):
