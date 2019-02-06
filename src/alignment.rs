@@ -47,8 +47,8 @@ impl BaseAlignment {
     fn get_sample(&self, i: usize) -> PyResult<Sample> {
         if self._nsamples() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
+        } else if self._nsamples() <= i {
+            return Err(exceptions::IndexError::py_err("sample index out of range"))
         }
         Ok(Sample {
             id: self.ids[i].to_string(),
@@ -67,8 +67,8 @@ impl BaseAlignment {
         let mut new_descriptions: Vec<String> = Vec::new();
         let mut new_sequences: Vec<String> = Vec::new();
         for i in ids.iter().map(|x| *x as usize) {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nsamples() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             } 
             new_ids.push(self.ids[i].to_string());
             new_descriptions.push(self.descriptions[i].to_string());
@@ -136,7 +136,7 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         if i >= self.sequences[0].chars().count() {
-            return Err(exceptions::ValueError::py_err("site index out of range"))
+            return Err(exceptions::IndexError::py_err("site index out of range"))
         }
         let mut site_sequence: Vec<String> = Vec::new();
         for s in self.sequences.iter() {
@@ -185,8 +185,8 @@ impl BaseAlignment {
         let mut new_descriptions: Vec<String> = Vec::new();
         let mut new_sequences: Vec<String> = Vec::new();
         for i in ids.iter().map(|x| *x as usize) {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nsamples() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             let mut new_sequence: Vec<String> = Vec::new();
             for i in sites.iter().map(|x| *x as usize) {
@@ -211,8 +211,8 @@ impl BaseAlignment {
         let i = i as usize;
         if self._nsamples() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
+        } else if self._nsamples() <= i {
+            return Err(exceptions::IndexError::py_err("sample index out of range"))
         }
         self.ids[i] = value.to_string();
         Ok(())
@@ -223,8 +223,8 @@ impl BaseAlignment {
         let i = i as usize;
         if self._nsamples() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
+        } else if self._nsamples() <= i {
+            return Err(exceptions::IndexError::py_err("sample index out of range"))
         }
         self.descriptions[i] = description.to_string();
         Ok(())
@@ -235,8 +235,8 @@ impl BaseAlignment {
         let i = i as usize;
         if self._nsamples() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
+        } else if self._nsamples() <= i {
+            return Err(exceptions::IndexError::py_err("sample index out of range"))
         }
         let seq_count = seqeunce.chars().count();
         let aln_len = self.sequences[i].chars().count();
@@ -253,8 +253,8 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nsamples() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             self.ids[i] = values[c].to_string();
         }
@@ -267,8 +267,8 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nsamples() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             self.descriptions[i] = values[c].to_string();
         }
@@ -283,8 +283,8 @@ impl BaseAlignment {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nsamples() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             if values[c].chars().count() != self.sequences[i].chars().count() {
                 return Err(exceptions::ValueError::py_err("sequence length is not the same"))
@@ -304,8 +304,8 @@ impl BaseAlignment {
             Err(x) => return Err(x)
         };
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nsamples() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             if values[c].chars().count() != self.sequences[i].chars().count() {
                 return Err(exceptions::ValueError::py_err("sequence length is not the same"))
@@ -325,8 +325,8 @@ impl BaseAlignment {
         ids.sort_unstable();
         ids.reverse();
         for i in ids.iter().map(|x| *x as usize) {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nsamples() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             self.ids.remove(i);
             self.descriptions.remove(i);
@@ -685,6 +685,9 @@ impl PyObjectProtocol for BaseAlignment {
     }
 
     fn __str__(&self) -> PyResult<String> {
+        if self._nsamples() == 0 {
+            return Ok(String::new())
+        }
         let mut fasta_strings: Vec<String> = Vec::new();
         for i in 0..self._nsamples() {
             if self.descriptions[i].chars().count() > 0 {
