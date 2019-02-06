@@ -293,9 +293,6 @@ impl BaseAlignment {
 
     /// Sets many sample sequences simulateneously using a list of sample IDs.
     fn set_sequences_by_name(&mut self, names: Vec<&str>, values: Vec<&str>) -> PyResult<()> {
-        if names.len() != values.len() {
-            return Err(exceptions::ValueError::py_err("name and sequence lists must have the same length"))
-        }
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -303,6 +300,9 @@ impl BaseAlignment {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
+        if ids.len() != values.len() {
+            return Err(exceptions::ValueError::py_err(format!("number of matched rows is not equal to the length of the given sequence list: {} != {}", ids.len(), values.len())))
+        }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
             if self._nrows() <= i {
                 return Err(exceptions::IndexError::py_err("sample index out of range"))
