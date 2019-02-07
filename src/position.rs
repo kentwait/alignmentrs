@@ -275,7 +275,11 @@ impl LSpace {
         Ok(
             self.blocks.iter()
                 .map(|[id, start, stop]| {
-                    Block { id: format!("{}", id), start: *start, stop: *stop }
+                    let id = match *id {
+                        1 => "s",
+                        _ => "g"
+                    }.to_string();
+                    Block { id, start: *start, stop: *stop }
                 }).collect()
         )
     }
