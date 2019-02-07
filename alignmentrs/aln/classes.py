@@ -1,7 +1,7 @@
 import numpy as np
 import blockrs
-from libalignmentrs.alignment import BaseAlignment
-from libalignmentrs.fasta import fasta_file_to_basealignments
+from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
+from libalignmentrs.position import LSpace
 
 
 __all__ = ['Alignment']
@@ -32,7 +32,7 @@ class Alignment:
 
     """
 
-    def __init__(self, name, sample_alignment, marker_alignment):
+    def __init__(self, name, sample_alignment, marker_alignment, **kwargs):
         """Creates a new Alignment object from sample and marker alignments.
 
         Parameters
@@ -68,7 +68,10 @@ class Alignment:
         self.samples = sample_alignment
         self.markers = marker_alignment if marker_alignment else \
                        BaseAlignment([], [], [])
-        self.blocklists = []
+        if '_linspace' in kwargs.keys():
+            self._linspace: LSpace = kwargs['_linspace']
+        else:
+            self._linspace: LSpace = LSpace(1, 0, self.samples.nsites)
 
     # Properties to retrieve the number of rows in the alignment.
     # Because the alignment object distinguishes between samples and markers,
@@ -233,7 +236,8 @@ class Alignment:
         sample_aln = aln.samples.subset(sample_ids, sites)
         marker_aln = aln.samples.subset(marker_ids, sites) if aln.markers else \
                      None
-        return cls(aln.name, sample_aln, marker_aln)
+        return cls(aln.name, sample_aln, marker_aln,
+                   _linspace=aln._linspace.copy().retain(sites))
 
     def get_samples(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the samples
@@ -290,7 +294,8 @@ class Alignment:
             raise TypeError('i must be an int, str, list of int, or list of str.')
         if sample_aln is None:
             raise ValueError('Value of `sample_aln` cannot be None.')
-        return self.__class__(self.name, sample_aln, None)
+        return self.__class__(self.name, sample_aln, None,
+                              _linspace=self._linspace.copy())
 
     def get_markers(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the markers
@@ -397,7 +402,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Calls specific set_sequence setter depending on the
         # type if i
@@ -455,7 +461,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Calls specific set_sequence setter depending on the
         # type if i
@@ -506,7 +513,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Calls specific set_sequence setter depending on the
         # type if i
@@ -559,7 +567,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         if isinstance(i, int):
             aln.samples.remove_rows([i])
@@ -618,7 +627,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         if isinstance(i, int):
             aln.samples.retain_rows([i])
@@ -670,7 +680,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Check type of i, and convert if necessary
         if isinstance(i, int):
@@ -724,7 +735,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Check type of i, and convert if necessary
         if isinstance(i, int):
