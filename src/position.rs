@@ -125,20 +125,36 @@ impl LSpace {
         let mut coords = coords;
         coords.sort_unstable();
         coords.reverse();
-        for (i, pos) in coords.iter().enumerate() {
+        let mut offset = 0;
+        for pos in coords.iter() {
             let pos = *pos;
-            for j in (0..(self.blocks.len() - i)).rev() {
-                if pos >= self.blocks[j][1] && pos < self.blocks[j][2] {
+            let length = self.blocks.len() - offset;
+            for j in (0..length).rev() {
+                if pos > self.blocks[j][1] && pos < self.blocks[j][2] - 1 {
                     // Remove block currently at j and get values
-                    let [id, start, stop] = self.blocks.remove(j);
+                    let [id, start, stop] = self.blocks[j];
                     // Split this block at pos
                     // 10,11,12,13,14,15 : remove at index 2 (3rd pos)
                     // [_,10,16]
                     // 10,11,   13,14,15
                     // [_,10,12], [13:16]
                     // Insert two new blocks at j and j+1
-                    self.blocks.insert(j, [id, start, pos]);
+                    self.blocks[j] = [id, start, pos];
                     self.blocks.insert(j+1, [id, pos+1, stop]);
+                    offset += 1;
+                } else if pos == self.blocks[j][1] {
+                    if self.blocks[j][1] == self.blocks[j][2] - 1 {
+                        let _ = self.blocks.remove(j);
+                        // no offset increment
+                    } else {
+                        let [id, _, stop] = self.blocks[j];
+                        self.blocks[j] = [id, pos+1, stop];
+                        // no offset increment
+                    }
+                } else if pos == self.blocks[j][2] - 1 {
+                    let [id, start, _] = self.blocks[j];
+                    self.blocks[j] = [id, start, pos];
+                    // no offset increment
                 }
             }
         }
