@@ -322,6 +322,12 @@ impl LSpace {
         }
         Ok(strings.join(","))
     }
+
+    /// Returns a deep copy of the current linear space.
+    fn copy(&self) -> PyResult<LSpace> {
+        let blocks = self.blocks.clone();
+        Ok(LSpace{ blocks })
+    }
 }
 
 #[pyproto]
