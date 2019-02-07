@@ -135,7 +135,7 @@ fn fasta_file_to_records(path: &str) ->
 
 // Register python functions to PyO3
 #[pymodinit]
-fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
+fn record(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Record>()?;
     m.add_function(wrap_function!(fasta_file_to_records))?;
 
