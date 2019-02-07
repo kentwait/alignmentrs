@@ -1,12 +1,12 @@
 #![feature(specialization)]
 
-#[macro_use]
-extern crate pyo3;
-// extern crate numpy;
+#[macro_use] extern crate pyo3;
+#[macro_use] extern crate lazy_static;
+extern crate regex;
 
 pub mod alignment;
-pub mod sample;
-pub mod marker;
+pub mod record;
+pub mod fasta;
 
 // #[cfg(test)]
 // mod tests {

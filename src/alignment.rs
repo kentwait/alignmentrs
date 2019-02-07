@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 
-use crate::sample::Sample;
+use crate::record::Record;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -17,7 +17,7 @@ pub struct BaseAlignment {
     pub descriptions: Vec<String>,
     
     #[prop(get)]
-    pub sequences: Vec<String>,
+    pub sequences: Vec<String>,  // TODO: Try a Vec<Vec<char>> instead.
 
 }
 
@@ -27,6 +27,10 @@ impl BaseAlignment {
     /// Creates a new BaseAlignment object from a list of ids, descriptions,
     /// and sequences.
     fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+        if (ids.len() != descriptions.len()) ||
+           (ids.len() != sequences.len()) {
+            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
+        }
         obj.init(|_| {
             BaseAlignment { 
                 ids: ids.iter().map(|s| s.to_string()).collect(), 
@@ -39,13 +43,13 @@ impl BaseAlignment {
 
     /// Returns the sample id, description, and sequence at the given index as
     /// as a Sample object.
-    fn get_sample(&self, i: usize) -> PyResult<Sample> {
-        if self.sequences.len() == 0 {
+    fn get_row(&self, i: usize) -> PyResult<Record> {  // TODO: Change this to Record to generalize Sample and Marker records
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
+        } else if self._nrows() <= i {
+            return Err(exceptions::IndexError::py_err("sample index out of range"))
         }
-        Ok(Sample {
+        Ok(Record {
             id: self.ids[i].to_string(),
             description: self.descriptions[i].to_string(),
             sequence: self.sequences[i].to_string(),
@@ -54,22 +58,21 @@ impl BaseAlignment {
 
     /// Returns a new BaseAlignment object containing the specified
     /// sample sequences by index.
-    fn get_samples(&self, ids: Vec<i32>) -> PyResult<BaseAlignment> {
-        if self.sequences.len() == 0 {
+    fn get_rows(&self, ids: Vec<i32>) -> PyResult<BaseAlignment> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut new_ids: Vec<String> = Vec::new();
         let mut new_descriptions: Vec<String> = Vec::new();
         let mut new_sequences: Vec<String> = Vec::new();
         for i in ids.iter().map(|x| *x as usize) {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nrows() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             } 
             new_ids.push(self.ids[i].to_string());
             new_descriptions.push(self.descriptions[i].to_string());
             new_sequences.push(self.sequences[i].to_string());
         }
-
         Ok(BaseAlignment {
             ids: new_ids,
             descriptions: new_descriptions,
@@ -79,15 +82,15 @@ impl BaseAlignment {
 
     /// Returns a new BaseAlignment object containing the specified
     /// sample sequences by ID.
-    fn get_samples_by_name(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
-        if self.sequences.len() == 0 {
+    fn get_rows_by_name(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_names_to_ids(names) {
+        let ids = match self.row_names_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.get_samples(ids) {
+        match self.get_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
@@ -95,15 +98,15 @@ impl BaseAlignment {
 
     /// Returns a new BaseAlignment object containing the specified
     /// sample sequences match the given list of prefixes.
-    fn get_samples_by_prefix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
-        if self.sequences.len() == 0 {
+    fn get_rows_by_prefix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_prefix_to_ids(names) {
+        let ids = match self.row_prefix_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.get_samples(ids) {
+        match self.get_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
@@ -111,15 +114,15 @@ impl BaseAlignment {
 
     /// Returns a new BaseAlignment object containing the specified
     /// sample sequences match the given list of suffixes.
-    fn get_samples_by_suffix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
-        if self.sequences.len() == 0 {
+    fn get_rows_by_suffix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_suffix_to_ids(names) {
+        let ids = match self.row_suffix_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        match self.get_samples(ids) {
+        match self.get_rows(ids) {
             Ok(x) => Ok(x),
             Err(x) => Err(x)
         }
@@ -127,19 +130,19 @@ impl BaseAlignment {
 
     /// Returns the given site as a Sample object. Uses the given site number
     /// as the sample id of Sample.
-    fn get_site(&self, i: usize) -> PyResult<Sample> {
-        if self.sequences.len() == 0 {
+    fn get_site(&self, i: usize) -> PyResult<Record> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         if i >= self.sequences[0].chars().count() {
-            return Err(exceptions::ValueError::py_err("site index out of range"))
+            return Err(exceptions::IndexError::py_err("site index out of range"))
         }
         let mut site_sequence: Vec<String> = Vec::new();
         for s in self.sequences.iter() {
             let seq: Vec<char> = s.chars().collect();
             site_sequence.push(seq[i].to_string())
         }
-        Ok(Sample {
+        Ok(Record {
             id: format!("{}", i),
             description: String::new(),
             sequence: site_sequence.join(""),
@@ -149,7 +152,7 @@ impl BaseAlignment {
     /// Returns a new BaseAlignment object containing only the specified
     /// sites.
     fn get_sites(&self, sites: Vec<i32>) -> PyResult<BaseAlignment> {
-        if self.sequences.len() == 0 {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut new_sequences: Vec<String> = Vec::new();
@@ -174,24 +177,37 @@ impl BaseAlignment {
     /// Returns the subset of samples and sites of the alignment as a new
     /// BaseAlignment.
     fn subset(&self, ids: Vec<i32>, sites: Vec<i32>) -> PyResult<BaseAlignment> {
-        if self.sequences.len() == 0 {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        match ids.iter().max() {
+            Some(x) if *x as usize >= self._nrows() => {
+                return Err(exceptions::IndexError::py_err(
+                    "row position cannot be larger than the number of rows"))
+            },
+            _ => ()
+        }
+        match sites.iter().max() {
+            Some(x) if *x as usize >= self._ncols() => {
+                return Err(exceptions::IndexError::py_err(
+                    "site position cannot be larger than the number of sites"))
+            },
+            _ => ()
         }
         let mut new_ids: Vec<String> = Vec::new();
         let mut new_descriptions: Vec<String> = Vec::new();
         let mut new_sequences: Vec<String> = Vec::new();
         for i in ids.iter().map(|x| *x as usize) {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nrows() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
-            let mut new_sequence: Vec<String> = Vec::new();
-            for i in sites.iter().map(|x| *x as usize) {
-                let seq: Vec<char> = self.sequences[i].chars().collect();
-                new_sequence.push(seq[i].to_string());
-            }
+            let new_sequence: String = self.sequences[i].chars().enumerate()
+                                        .filter(|(i, _)| sites.contains(&(*i as i32)))
+                                        .map(|(_, x)| x )
+                                        .collect();
             new_ids.push(self.ids[i].to_string());
             new_descriptions.push(self.descriptions[i].to_string());
-            new_sequences.push(new_sequence.join(""))
+            new_sequences.push(new_sequence)
         }
         Ok(BaseAlignment {
             ids: new_ids,
@@ -204,67 +220,52 @@ impl BaseAlignment {
 
     /// Sets the ID of an existing sample.
     fn set_id(&mut self, i: i32, value: &str) -> PyResult<()> {
-        let i = i as usize;
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
+        let ids: Vec<i32> = vec![i];
+        let values: Vec<&str> = vec![value];
+        match self.set_ids(ids, values) {
+            Err(x) => Err(x),
+            _ => Ok(()),
         }
-        self.ids[i] = value.to_string();
-        Ok(())
-    }
-
-    /// Sets the description of an existing sample.
-    fn set_description(&mut self, i: i32, description: &str) -> PyResult<()> {
-        let i = i as usize;
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
-        }
-        self.descriptions[i] = description.to_string();
-        Ok(())
-    }
-
-    /// Sets the sequence of an existing sample
-    fn set_sequence(&mut self, i: i32, seqeunce: &str) -> PyResult<()> {
-        let i = i as usize;
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        } else if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
-        }
-        let seq_count = seqeunce.chars().count();
-        let aln_len = self.sequences[i].chars().count();
-        if seq_count != aln_len {
-            return Err(exceptions::ValueError::py_err(format!("sequence length ({}) does not match the alignment length ({})", seq_count, aln_len)))
-        }
-        self.sequences[i] = seqeunce.to_string();
-        Ok(())
     }
 
     /// Sets many sample IDs simulateneously using a list of indices.
     fn set_ids(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
+        if ids.len() != values.len() {
+            return Err(exceptions::ValueError::py_err("index and id lists must have the same length"))
+        }
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nrows() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             self.ids[i] = values[c].to_string();
         }
         Ok(())
     }
 
+    /// Sets the description of an existing sample.
+    fn set_description(&mut self, i: i32, description: &str) -> PyResult<()> {
+        let ids: Vec<i32> = vec![i];
+        let values: Vec<&str> = vec![description];
+        match self.set_descriptions(ids, values) {
+            Err(x) => Err(x),
+            _ => Ok(()),
+        }
+    }    
+
     /// Sets many sample descriptions simulateneously using a list of indices.
     fn set_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
+        if ids.len() != values.len() {
+            return Err(exceptions::ValueError::py_err("index and description lists must have the same length"))
+        }
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nrows() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             self.descriptions[i] = values[c].to_string();
         }
@@ -273,14 +274,27 @@ impl BaseAlignment {
 
     // Sequence setters
 
+    /// Sets the sequence of an existing sample
+    fn set_sequence(&mut self, i: i32, seqeunce: &str) -> PyResult<()> {
+        let ids: Vec<i32> = vec![i];
+        let values: Vec<&str> = vec![seqeunce];
+        match self.set_sequences(ids, values) {
+            Err(x) => Err(x),
+            _ => Ok(()),
+        }
+    }
+
     /// Sets many sample sequences simulateneously using a list of indices.
     fn set_sequences(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
+        if ids.len() != values.len() {
+            return Err(exceptions::ValueError::py_err("index and sequence lists must have the same length"))
+        }
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nrows() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             if values[c].chars().count() != self.sequences[i].chars().count() {
                 return Err(exceptions::ValueError::py_err("sequence length is not the same"))
@@ -292,16 +306,19 @@ impl BaseAlignment {
 
     /// Sets many sample sequences simulateneously using a list of sample IDs.
     fn set_sequences_by_name(&mut self, names: Vec<&str>, values: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
-        let ids = match self.sample_names_to_ids(names) {
+        let ids = match self.row_names_to_ids(names) {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
+        if ids.len() != values.len() {
+            return Err(exceptions::ValueError::py_err(format!("number of matched rows is not equal to the length of the given sequence list: {} != {}", ids.len(), values.len())))
+        }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nrows() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             if values[c].chars().count() != self.sequences[i].chars().count() {
                 return Err(exceptions::ValueError::py_err("sequence length is not the same"))
@@ -312,17 +329,20 @@ impl BaseAlignment {
     }
 
     // Deleters
+    // remove_rows and remove_sites are the main methods for deleting
+    // contents of BaseAlignment
 
     /// Removes samples at the given index positions inplace.
-    fn remove_samples(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
+    /// Index positions are specified by a list of integer ids.
+    fn remove_rows(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         ids.sort_unstable();
         ids.reverse();
         for i in ids.iter().map(|x| *x as usize) {
-            if i >= self.ids.len() {
-                return Err(exceptions::ValueError::py_err("sample index out of range"))
+            if self._nrows() <= i {
+                return Err(exceptions::IndexError::py_err("sample index out of range"))
             }
             self.ids.remove(i);
             self.descriptions.remove(i);
@@ -331,54 +351,9 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// Removes samples matching the given sample ID's inplace.
-    fn remove_samples_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let ids = match self.sample_names_to_ids(names) {
-            Ok(x) => x,
-            Err(x) => return Err(x)
-        };
-        match self.remove_samples(ids) {
-            Ok(x) => Ok(x),
-            Err(x) => Err(x)
-        }
-    }
-
-    /// Removes samples matching at least one of the given prefixes inplace.
-    fn remove_samples_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let ids = match self.sample_prefix_to_ids(names) {
-            Ok(x) => x,
-            Err(x) => return Err(x)
-        };
-        match self.remove_samples(ids) {
-            Ok(x) => Ok(x),
-            Err(x) => Err(x)
-        }
-    }
-
-    /// Removes samples matching at least one of the given suffixes inplace.
-    fn remove_samples_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let ids = match self.sample_suffix_to_ids(names) {
-            Ok(x) => x,
-            Err(x) => return Err(x)
-        };
-        match self.remove_samples(ids) {
-            Ok(x) => Ok(x),
-            Err(x) => Err(x)
-        }
-    }
-
     /// Removes sites at the specified column positions inplace.
     fn remove_sites(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         ids.sort_unstable();
@@ -387,7 +362,7 @@ impl BaseAlignment {
             let mut sequence_chars: Vec<char> = sequence.chars().collect();
             for i in ids.iter().map(|x| *x as usize) {
                 if i >= sequence_chars.len() {
-                    return Err(exceptions::ValueError::py_err("site index out of range"))
+                    return Err(exceptions::IndexError::py_err("site index out of range"))
                 }
                 sequence_chars.remove(i);
             }
@@ -399,8 +374,9 @@ impl BaseAlignment {
 
     /// Keep samples at the given index positions, and remove
     /// non-matching samples inplace.
-    fn retain_samples(&mut self, ids: Vec<i32>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
+    /// This is the opposite of `remove_rows(ids)`.
+    fn retain_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut remove_ids: Vec<i32> = Vec::new();
@@ -409,73 +385,7 @@ impl BaseAlignment {
                 remove_ids.push(i as i32);
             }
         }
-        match self.remove_samples(remove_ids) {
-            Err(x) => Err(x),
-            Ok(x) => Ok(x)
-        }
-    }
-
-    /// Keep samples matching the given sample ID's and remove
-    /// non-matching samples inplace.
-    fn retain_samples_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let ids = match self.sample_names_to_ids(names) {
-            Ok(x) => x,
-            Err(x) => return Err(x)
-        };
-        let mut remove_ids: Vec<i32> = Vec::new();
-        for i in 0..self.ids.len() {
-            if !ids.contains(&(i as i32)) {
-                remove_ids.push(i as i32);
-            }
-        }
-        match self.remove_samples(remove_ids) {
-            Err(x) => Err(x),
-            Ok(x) => Ok(x)
-        }
-    }
-
-    /// Keep samples matching at least one of the given prefixes and remove
-    /// non-matching samples inplace.
-    fn retain_samples_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let ids = match self.sample_prefix_to_ids(names) {
-            Ok(x) => x,
-            Err(x) => return Err(x)
-        };
-        let mut remove_ids: Vec<i32> = Vec::new();
-        for i in 0..self.ids.len() {
-            if !ids.contains(&(i as i32)) {
-                remove_ids.push(i as i32);
-            }
-        }
-        match self.remove_samples(remove_ids) {
-            Err(x) => Err(x),
-            Ok(x) => Ok(x)
-        }
-    }
-
-    /// Keep samples matching at least one of the given suffixes and remove
-    /// non-matching samples inplace.
-    fn retain_samples_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let ids = match self.sample_suffix_to_ids(names) {
-            Ok(x) => x,
-            Err(x) => return Err(x)
-        };
-        let mut remove_ids: Vec<i32> = Vec::new();
-        for i in 0..self.ids.len() {
-            if !ids.contains(&(i as i32)) {
-                remove_ids.push(i as i32);
-            }
-        }
-        match self.remove_samples(remove_ids) {
+        match self.remove_rows(remove_ids) {
             Err(x) => Err(x),
             Ok(x) => Ok(x)
         }
@@ -483,8 +393,9 @@ impl BaseAlignment {
 
     /// Keep samples at the specified column positions and remove
     /// other sites inplace.
+    /// This is the opposite of `remove_sites(ids)`.
     fn retain_sites(&mut self, ids: Vec<i32>) -> PyResult<()> {
-        if self.sequences.len() == 0 {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut remove_ids: Vec<i32> = Vec::new();
@@ -499,25 +410,158 @@ impl BaseAlignment {
         }
     }
 
+    // The following are extensions of remove_rows and retain_rows
+    // that uses sample IDs instead of row indices to reference samples.
+    // These are convenience functions that simply do a lookup on the
+    // ids vector to get the row ids to use with the remove_row method.
+
+    /// Removes samples matching the given sample ID's inplace.
+    fn remove_rows_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
+        if self._nrows() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.row_names_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        match self.remove_rows(ids) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x)
+        }
+    }
+
+    /// Removes samples matching at least one of the given prefixes inplace.
+    fn remove_rows_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
+        if self._nrows() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.row_prefix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        match self.remove_rows(ids) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x)
+        }
+    }
+
+    /// Removes samples matching at least one of the given suffixes inplace.
+    fn remove_rows_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
+        if self._nrows() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.row_suffix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        match self.remove_rows(ids) {
+            Ok(x) => Ok(x),
+            Err(x) => Err(x)
+        }
+    }
+
+    /// Keep samples matching the given sample ID's and remove
+    /// non-matching samples inplace.
+    fn retain_rows_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
+        if self._nrows() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.row_names_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.ids.len() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        match self.remove_rows(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
+    }
+
+    /// Keep samples matching at least one of the given prefixes and remove
+    /// non-matching samples inplace.
+    fn retain_rows_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
+        if self._nrows() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.row_prefix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.ids.len() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        match self.remove_rows(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
+    }
+
+    /// Keep samples matching at least one of the given suffixes and remove
+    /// non-matching samples inplace.
+    fn retain_rows_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
+        if self._nrows() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        let ids = match self.row_suffix_to_ids(names) {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        let mut remove_ids: Vec<i32> = Vec::new();
+        for i in 0..self.ids.len() {
+            if !ids.contains(&(i as i32)) {
+                remove_ids.push(i as i32);
+            }
+        }
+        match self.remove_rows(remove_ids) {
+            Err(x) => Err(x),
+            Ok(x) => Ok(x)
+        }
+    }
+
     // TODO: Insert and append sites
+    // TODO: Insert/append ONE sample using Record object
 
     /// Inserts one or more samples at the specified position.
-    fn insert_samples(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn insert_rows(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
         let i = i as usize;
-        if i >= self.ids.len() {
-            return Err(exceptions::ValueError::py_err("sample index out of range"))
+        if self._nrows() <= i {
+            return Err(exceptions::IndexError::py_err("sample index out of range"))
+        }
+        if (ids.len() != descriptions.len()) ||
+           (ids.len() != sequences.len()) {
+            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
         }
         for offset in 0..sequences.len() {
+            let seq_len = sequences[offset].chars().count();
+            if self._nrows() > 0 && self._ncols() != seq_len {
+                return Err(exceptions::ValueError::py_err(format!("sequence length does not match the alignment length: {} != {}", seq_len, self._ncols())))
+            }
             self.ids.insert(i + offset, ids[offset].to_string());
             self.descriptions.insert(i + offset, descriptions[offset].to_string());
-            self.sequences.insert(i + offset, sequences[offset].to_string());
+            self.sequences.insert(i + offset, sequences[offset].chars().count().to_string());
         }
         Ok(())
     }
 
     /// Appends one or more samples at the end of the list.
-    fn append_samples(&mut self, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn append_rows(&mut self, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+        if (ids.len() != descriptions.len()) ||
+           (ids.len() != sequences.len()) {
+            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
+        }
         for offset in 0..sequences.len() {
+            let seq_len = sequences[offset].chars().count();
+            if self._nrows() > 0 && self._ncols() != seq_len {
+                return Err(exceptions::ValueError::py_err(format!("sequence length does not match the alignment length: {} != {}", seq_len, self._ncols())))
+            }
             self.ids.push(ids[offset].to_string());
             self.descriptions.push(descriptions[offset].to_string());
             self.sequences.push(sequences[offset].to_string());
@@ -526,8 +570,8 @@ impl BaseAlignment {
     }
 
     /// Converts a list of sample names to its corresponding sample indices.
-    fn sample_names_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
-        if self.sequences.len() == 0 {
+    fn row_names_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut ids: Vec<i32> = Vec::new();
@@ -546,8 +590,8 @@ impl BaseAlignment {
 
     /// Matches a list of sample prefixes to sample names and returns
     /// the indices of matching samples.
-    fn sample_prefix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
-        if self.sequences.len() == 0 {
+    fn row_prefix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut ids: Vec<i32> = Vec::new();
@@ -565,8 +609,8 @@ impl BaseAlignment {
 
     /// Matches a list of sample suffixes to sample names and returns
     /// the indices of matching samples.
-    fn sample_suffix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
-        if self.sequences.len() == 0 {
+    fn row_suffix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
+        if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
         let mut ids: Vec<i32> = Vec::new();
@@ -584,7 +628,7 @@ impl BaseAlignment {
 
     /// Transposes the alignment making columns rows and rows columns.
     fn transpose(&self) -> PyResult<BaseAlignment> {
-        if self.sequences.len() == 0 {
+        if self._nrows() == 0 {
             let new_ids: Vec<String> = Vec::new();
             let new_descriptions: Vec<String> = Vec::new();
             let new_sequences: Vec<String> = Vec::new();
@@ -594,19 +638,19 @@ impl BaseAlignment {
                 sequences: new_sequences,
             })
         }
+        // Create a matrix representation of the current values
+        let old_sequence_matrix: Vec<Vec<char>> = self.sequences.iter()
+                                    .map(|x| x.chars().collect()).collect();
+
         let length = self.sequences[0].chars().count();
-        let mut new_ids: Vec<String> = Vec::new();
+        let mut new_ids: Vec<String> = vec![String::new(); length];
         let new_descriptions: Vec<String> = vec![String::new(); length];
-        let mut new_sequences: Vec<String> = Vec::new();
-        
+        let mut new_sequences: Vec<String> = vec![String::new(); length];
+        // Transpose values
         for i in 0..length {
-            let mut column = String::new();
-            for seq in self.sequences.iter() {
-                let sequence_vec: Vec<char> = seq.chars().collect();
-                column.push(sequence_vec[i]);
-            }
-            new_ids.push(format!("{}", i));
-            new_sequences.push(column);
+            new_ids[i] = format!("{}", i);
+            new_sequences[i] = old_sequence_matrix.iter()
+                                .map(|x| x[i]).collect();
         }
         Ok(BaseAlignment {
             ids: new_ids,
@@ -620,7 +664,7 @@ impl BaseAlignment {
     fn concat(&self, aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignment> {
         let ids = self.ids.clone();
         let descriptions = self.descriptions.clone();
-        let sequence_len = self.sequences.len();
+        let sequence_len = self._nrows();
         let mut sequences: Vec<String> = vec![String::new(); sequence_len];
         for i in 0..sequence_len {
             sequences[i].push_str(&self.sequences[i]);
@@ -635,29 +679,49 @@ impl BaseAlignment {
         Ok(BaseAlignment {ids, descriptions, sequences})
     }
 
+    /// Creates a deep copy of itself.
+    fn copy(&self) -> PyResult<BaseAlignment> {
+        let ids: Vec<String> = self.ids.clone();
+        let descriptions: Vec<String> = self.descriptions.clone();
+        let sequences: Vec<String> = self.sequences.clone();
+        Ok(BaseAlignment { ids, descriptions, sequences })
+    }
+
+    fn is_row_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
+        if self._nrows() != other._nrows() {
+            return Ok(false)
+        } else if self.ids != other.ids {
+            return Ok(false)
+        }
+        Ok(true)
+    }
+
+    fn is_col_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
+        if self._ncols() != other._ncols() {
+            return Ok(false)
+        }
+        Ok(true)
+    }
+
     // Properties
     #[getter]
-    fn nsamples(&self) -> PyResult<i32> {
-        Ok(self.ids.len() as i32)
+    fn nrows(&self) -> PyResult<i32> {
+        Ok(self._nrows() as i32)
+    }
+
+    #[getter]
+    fn ncols(&self) -> PyResult<i32> {
+        Ok(self._ncols() as i32)
     }
 
     #[getter]
     fn nsites(&self) -> PyResult<i32> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        Ok(self.sequences[0].chars().count() as i32)
+        Ok(self._ncols() as i32)
     }
 
     #[getter]
     fn shape(&self) -> PyResult<(i32, i32)> {
-        if self.sequences.len() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        Ok((
-            self.ids.len() as i32,
-            self.sequences[0].chars().count() as i32,
-        ))
+        Ok((self._nrows() as i32, self._ncols() as i32))
     }
 }
 
@@ -665,12 +729,15 @@ impl BaseAlignment {
 #[pyproto]
 impl PyObjectProtocol for BaseAlignment {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("BaseAlignment(nsamples={nsamples}, nsites={nsites})", nsamples=self.ids.len(), nsites=self.sequences[0].len()))
+        Ok(format!("BaseAlignment(nsamples={nsamples}, nsites={nsites})", nsamples=self._nrows(), nsites=self._ncols()))
     }
 
     fn __str__(&self) -> PyResult<String> {
+        if self._nrows() == 0 {
+            return Ok(String::new())
+        }
         let mut fasta_strings: Vec<String> = Vec::new();
-        for i in 0..self.sequences.len() {
+        for i in 0..self._nrows() {
             if self.descriptions[i].chars().count() > 0 {
                 fasta_strings.push(format!(">{} {}\n{}", self.ids[i], self.descriptions[i], self.sequences[i]));
             } else {
@@ -678,6 +745,27 @@ impl PyObjectProtocol for BaseAlignment {
             }
         }
         Ok(fasta_strings.join("\n"))
+    }
+
+    // Determines the "truthyness" of the object
+    fn __bool__(&self) -> PyResult<bool> {
+        if self._nrows() == 0 {
+            return Ok(false)
+        }
+        Ok(true)
+    }
+}
+
+impl BaseAlignment {
+    fn _nrows(&self) -> usize {
+        self.ids.len()
+    }
+
+    fn _ncols(&self) -> usize {
+        match self.ids.len() {
+            x if x == 0 => 0,
+            _ => self.sequences[0].chars().count(),
+        }
     }
 }
 

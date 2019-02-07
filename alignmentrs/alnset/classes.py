@@ -1,45 +1,116 @@
-from alignmentrs.alignment import Alignment
-from libalignmentrs.alignment import concat_basealignments
-from blockrs import CatBlock
-import random
 import os
-import blockrs
+import random
+
+from blockrs import CatBlock
+from libalignmentrs.alignment import concat_basealignments
+from alignmentrs.aln.classes import Alignment
+
+
+__all__ = ['AlignmentSet']
 
 
 class AlignmentSet:
-    def __init__(self, name, aln_list):
+    """A container to group Alignments that share the same samples/markers.
+
+    Attributes
+    ----------
+    name : str
+        Name of alignment set.
+    metadata : dict
+        Metadata about the alignment set.
+
+    """
+
+    def __init__(self, name, aln_list, metadata=None):
+        """Creates a new AlignmentSet from a list of Alignment objects.
+
+        Parameters
+        ----------
+        name : str
+            Name of alignment set.
+        aln_list : list of Alignment
+            List of Alignments to group together. Alignments must have thet
+            same number of samples and markers, and share the same sample
+            and marker names.
+
+        Raises
+        ------
+        ValueError
+            Alignments in `aln_list` do not have the same number of
+            samples/markers, or so not share the same sample/marker names.
+
+        """
+        # Check
+        for i in range(1, len(aln_list)):
+            if aln_list[0].samples and aln_list[i].samples:
+                pass
+            elif aln_list[0].markers and aln_list[i].markers:
+                pass
+            elif aln_list[0].samples.is_row_similar(aln_list[i].samples):
+                pass
+            elif aln_list[0].markers.is_row_similar(aln_list[i].markers):
+                pass
+            else:
+                raise ValueError(
+                    'Cannot create an AlignmentSet from a alignment with '
+                    'different number of samples/markers, or different '
+                    'sample/marker names.')
         self.name = name
         self._alignments = {aln.name: aln for aln in aln_list}
+        self.metadata = metadata if metadata else dict()
 
     @property
     def nalns(self):
-        """Returns the number of alignments in the set"""
+        """int: Returns the number of alignments in the set"""
         return len(self)
 
     @property
     def alignment_names(self):
-        """Returns list of alignment names"""
+        """list of str: Returns list of alignment names"""
         return list(self._alignments.keys())
 
     @property
     def alignments(self):
-        """Returns list of alignment objects"""
+        """list of Alignment: Returns list of alignment objects"""
         return list(self._alignments.values())
 
-    def resample(self, k, name='resampled_alignment_set',
+    def resample(self, name, k, copy_metadata=True,
                  with_replacement=False):
         """Returns a new AlignmentSet resampling from the current
         set of alignments.
 
         Parameters
         ----------
+        name : str
+            Name of resampled alignment set.
         k : int
-            Number of alignments
-        name : str, optional
-            Name of resampled superalignment. (default is 'resampled_alignment_set')
+            Number of alignments to sample.
+        copy_metadata : bool, optional
+            Copies existing metadata to the resampled set if True.
         with_replacement : bool, optional
-            If True, resampled alignments may not be unique.
-            If False, resampled alignments are guaranteed to be unique.
+            Whether to resample with or without replacement.
+            If True, resampled alignments may be picked more than once.
+            Otherwise, resampled alignments are guaranteed to be unique.
+            (default is False)
+
+        Returns
+        -------
+        AlignmentSet
+            Creates a new AlignmentSet grouping. Note that the alignments
+            are not deep copies as AlignmentSet a grouping construct only.
+
+        Notes
+        -----
+        The resampled alignment set will have an additional metadata entry
+        with the key "resampling", if it is not present already.
+        This entry will have a dictionary containing the following
+        resampling information:
+        - number of original items as `nalns`
+        - number of sampled alignments as `k`
+        - with/without replacement as `with_replacement`
+
+        If resampling already exists, it will be overwritten by the new
+        values.
 
         """
         if with_replacement:
@@ -47,16 +118,24 @@ class AlignmentSet:
         else:
             keys = random.sample(self.alignment_names, k)
         aln_list = [aln for k, aln in self._alignments.items() if k in keys]
-        return self.__class__(name, aln_list)
+        if copy_metadata:
+            new_metadata = {k: v for k, v in self.metadata.items()}
+        else:
+            new_metadata = dict()
+        new_metadata['resampling'] = {
+            'nalns': len(self._alignments),
+            'k': k,
+            'with_replacement': with_replacement,
+        }
+        return self.__class__(name, aln_list, metadata=new_metadata)
 
-    def concatenate(self, name='concatenated_alignment', keys=None,
-                    description_encoder=None):
+    def concatenate(self, name, keys=None, description_encoder=None):
         """Returns an concatenated alignment from the alignment set.
 
         Parameters
         ----------
-        name : str, optional
-            Name of new alignment. (default is 'concatenated_alignment')
+        name : str
+            Name of new alignment.
         keys : list or None, optional
             List of alignment names to concatenate. The order of the list
             determines the order of concatenation.
@@ -105,7 +184,7 @@ class AlignmentSet:
         return Alignment(name, sample_alignment, marker_alignment)
 
     def to_fasta_files(self, path_mapping, include_markers=True):
-        """Saves specific alignments as FASTA-formatted text files
+        """Saves specified alignments as FASTA-formatted text files
         based on a dictionary of alignment names and their corresponding
         save paths.
 
@@ -177,22 +256,24 @@ class AlignmentSet:
         Parameters
         ----------
         paths : list
-            List of FASTA file paths
+            List of FASTA file paths.
         name : str
-            Name of the alignment set
+            Name of the alignment set.
         marker_kw : str or None, optional
             Classifies the sample as a marker if the string is
             found in the sample's ID. (default is None)
         filename_to_key_encoder : function or None, optional
             If specified, the function receives the filename as input
             and outputs a key to identify a unique alignment.
-            THis can be used to make sure that the same alignment
+            This can be used to make sure that the same alignment
             stored as files with different filenames are not
             included multiple times.
 
         Returns
         -------
         AlignmentSet
+            New AlignmentSet object with each FASTA file as a member Alignment
+            object.
 
         """
         sequence_d = {}
@@ -203,7 +284,7 @@ class AlignmentSet:
                 raise KeyError('alignment "{}" already exists'.format(key))
             sequence_d[key] = Alignment.from_fasta(fname, name=key,
                                                    marker_kw=marker_kw)
-        return cls(name, sequence_d.values())
+        return cls(name, list(sequence_d.values()))
 
     @classmethod
     def from_fasta_dir(cls, dirpath, name, marker_kw=None,
@@ -216,7 +297,7 @@ class AlignmentSet:
         dirpath : str
             Path containing FASTA files to be read.
         name : str
-            Name of alignment set
+            Name of alignment set.
         marker_kw : str or None, optional
             Classifies the sample as a marker if the string is
             found in the sample's ID. (default is None)
@@ -228,13 +309,15 @@ class AlignmentSet:
         filename_to_key_encoder : function or None, optional
             If specified, the function receives the filename as input
             and outputs a key to identify a unique alignment.
-            THis can be used to make sure that the same alignment
+            This can be used to make sure that the same alignment
             stored as files with different filenames are not
             included multiple times.
 
         Returns
         -------
         AlignmentSet
+            New AlignmentSet object with each FASTA file as a member Alignment
+            object.
 
         """
         # Check if dirpath exists
@@ -268,39 +351,3 @@ class AlignmentSet:
 
     def __len__(self):
         return len(self._alignments)
-
-
-def fasta_directory_to_alignmentset(dirpath, name, marker_kw=None,
-                                    suffix='.aln',
-                                    filename_to_key_encoder=None):
-    """Reads a directory containing FASTA files and stores data as a
-    set of alignment objects inside an AlignmentSet.
-
-    Parameters
-    ----------
-    dirpath : str
-        Path containing FASTA files to be read.
-    name : str
-        Name of alignment set
-    marker_kw : str or None, optional
-        Classifies the sample as a marker if the string is
-        found in the sample's ID. (default is None)
-    suffix : str, optional
-        Used to determine whether a file is a FASTA file (default is '.aln')
-    marker_kw : str or None, optional
-        Classifies the sample as a marker if the string is
-        found in the sample's ID. (default is None)
-    filename_to_key_encoder : function or None, optional
-        If specified, the function receives the filename as input
-        and outputs a key to identify a unique alignment.
-        THis can be used to make sure that the same alignment
-        stored as files with different filenames are not
-        included multiple times.
-
-    Returns
-    -------
-    AlignmentSet
-
-    """
-    return AlignmentSet.from_fasta_dir(dirpath, name, marker_kw, suffix,
-                                       filename_to_key_encoder)
