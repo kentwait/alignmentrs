@@ -204,7 +204,7 @@ impl LSpace {
     /// Returns the value at the start of the linear space.
     fn start(&self) -> PyResult<i32> {
         match self.blocks.first() {
-            Some([_, _, x]) => Ok(*x),
+            Some([_, x, _]) => Ok(*x),
             None => return Err(exceptions::ValueError::py_err("cannot get minimum position: block list is empty"))
         }
     }
