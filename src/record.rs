@@ -6,10 +6,6 @@ use std::io::{BufReader, BufRead};
 use regex::Regex;
 
 
-lazy_static! {
-    static ref WS: Regex = Regex::new(r"\s+").unwrap();
-}
-
 #[pyclass(subclass)]
 #[derive(Clone)]
 /// Record(id, description, sequence)
@@ -78,6 +74,10 @@ impl PyObjectProtocol for Record {
                 id=self.id,
                 seq_len=self.sequence.len()))        
     }
+}
+
+lazy_static! {
+    static ref WS: Regex = Regex::new(r"\s+").unwrap();
 }
 
 #[pyfunction]
