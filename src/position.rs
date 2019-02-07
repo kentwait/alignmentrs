@@ -160,7 +160,7 @@ impl LSpace {
 
     /// Inserts into the linear space at the given position.
     fn insert(&mut self, pos: i32, state: i32, length: i32) -> PyResult<()> {
-        for i in (0..self.blocks.len()).rev() {
+        for i in 0..self.blocks.len() {
             let [id, start, stop] = self.blocks[i];
             if start >= pos && stop < pos {
                 if id == state {
@@ -170,6 +170,12 @@ impl LSpace {
                     // Create new state
                     self.blocks.insert(i + 1, [id, stop, stop + length]);
                 }
+                // Adjust
+                for j in i..self.blocks.len() {
+                    let [id, start, stop] = self.blocks[j];
+                    self.blocks[j] = [id, start+length, stop+length];
+                }
+                break;
             }
         }
         Ok(())
