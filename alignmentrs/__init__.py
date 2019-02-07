@@ -1,5 +1,6 @@
 from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
 from libalignmentrs.record import Record, fasta_file_to_records
+from libalignmentrs.position import Block, LSpace
 import libalignmentrs as librs
 
 from alignmentrs import aln, alnset
@@ -11,7 +12,7 @@ __author__ = 'Kent Kawashima'
 __version__ = '0.8.3'
 __all__ = [
     # From dynamic library
-    'BaseAlignment', 'Record', 'librs',
+    'BaseAlignment', 'Record', 'Block', 'LSpace', 'librs',
     # Modules
     'aln', 'alnset',
     # Classes
