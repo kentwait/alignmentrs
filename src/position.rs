@@ -598,26 +598,28 @@ impl CoordSpace {
 
     /// Returns the linear space as a list of blocks.
     fn to_blocks(&self) -> PyResult<Vec<Block>> {
-        if data.len() == 0 {
+        if self.coords.len() == 0 {
             return Ok(Vec::new())
         }
         // Declare variables
         let mut blocks: Vec<Block> = Vec::new();
-        let mut last_start: i32 = data[0];
+        let mut last_start: i32 = self.coords[0];
+        let mut last_id: String = match self.coords[0] {
+            x if x > 0 => "s".to_string(),
+            x if x == -1 => "g".to_string(),
+            x => return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x))),
+        };
         let mut negative_length: i32 = 0;
 
-        for i in 1..data.len() {
-            let c_id = ids[i];
-            let c_pos = data[i];
-            let p_pos = data[i-1];
-            // Scenarios:
-            // 1a) current and last ids are the same, current +1 of previous
-            // 1b) current and last ids are the same, current NOT +1 of previous
-            // 2a) current and last ids NOT the same, current +1 of previous
-            // 2b) current and last ids NOT the same, current NOT +1 of previous
-            //
-            // 2a and 2b are the same scenario, because change in ID should always
-            // generate a new block
+        for i in 1..self.coords.len() {
+            let c_id: String = match self.coords[0] {
+                x if x > 0 => "s".to_string(),
+                x if x == -1 => "g".to_string(),
+                x => return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x))),
+            };
+            let c_pos = self.coords[i];
+            let p_pos = self.coords[i-1];
+
             if c_pos == -1 && p_pos == -1 {
                 negative_length += 1;
             } else if c_pos == -1 && p_pos > 0 {
@@ -634,31 +636,21 @@ impl CoordSpace {
                 last_id = c_id;
                 last_start = c_pos;
                 negative_length = 0;
-            }
-            
-            else if c_pos == p_pos + 1 {
-                // pass
-            } else if c_pos > p_pos + 1 {
-                // Create new block and push
-                blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
-                // Assgin current id as last_id and current pos as last_start
-                last_id = c_id;
-                last_start = c_pos;
             } else {
-                // Return an error
-                return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", c_pos)))
-            }
-            } else {
-                // Create new block and push
-                blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
-                // Assign current id as last_id and current pos as last_start
-                last_id = c_id;
-                last_start = c_pos;
+                if c_pos > p_pos + 1 {
+                    // Create new block and push
+                    blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
+                    // Assgin current id as last_id and current pos as last_start
+                    last_id = c_id;
+                    last_start = c_pos;
+                } else {
+                    // Return an error
+                    return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", c_pos)))
+                }
             }
         }
-        blocks.push(Block{ id: last_id, start: last_start, stop: data.last().unwrap() + 1});
+        blocks.push(Block{ id: last_id, start: last_start, stop: self.coords.last().unwrap() + 1});
         Ok(blocks)
-        Ok(())
     }
 
 
