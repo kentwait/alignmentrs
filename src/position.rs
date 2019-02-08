@@ -549,15 +549,51 @@ impl CoordSpace {
     #[staticmethod]
     /// Returns a linear space created using the given list of blocks.
     fn from_blocks(blocks: Vec<&Block>) -> PyResult<CoordSpace> {
-        if let Ok((data, ids)) = blocks_to_arrays(blocks) {
+        if blocks.len() == 0 {
+            let coords: Vec<i32> = Vec::new();
+            return Ok(CoordSpace{ coords })
+        }
+        match blocks_to_arrays(blocks) {
+            Ok((data, ids)) => {
+                let mut new_data: Vec<i32> = Vec::new();
+                for i in 0..data.len() {
+                    let x = data[i];
+                    let id = &ids[i];
+                    if id == "s" {
+                        new_data.push(x);
+                    } else {
+                        new_data.push(-1);
+                    }
+                }
+                Ok(CoordSpace { coords: new_data })
+            },
+            Err(x) => return Err(x)
+        }
+        
+    }
 
+    #[staticmethod]
+    fn from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<CoordSpace> {
+        if data.len() != ids.len() {
+            return Err(exceptions::ValueError::py_err("lengths of data and ids do not match"))
         }
-        let mut data: Vec<i32> = Vec::new();
-        for Block{ id, start, stop} in blocks.iter() {
-            let new_coords: Vec<i32> = (*start..*stop).collect();
-            data.append(&mut new_coords);
+        if data.len() == 0 {
+            let coords: Vec<i32> = Vec::new();
+            return Ok(CoordSpace{ coords })
         }
-        Ok(CoordSpace { coords: data })
+        let mut coords: Vec<i32> = Vec::new();
+        for i in 0..data.len() {
+            let x = data[i];
+            let id = &ids[i];
+            if id == "s" {
+                coords.push(x);
+            } else if id == "g" {
+                coords.push(-1);
+            } else {
+                return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x)))
+            }
+        }
+        Ok(CoordSpace{ coords })
     }
 
     /// Returns the linear space as a list of blocks.
