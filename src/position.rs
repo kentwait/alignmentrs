@@ -713,9 +713,10 @@ impl CoordSpace {
 
     /// Returns a deep copy of the current linear space.
     fn copy(&self) -> PyResult<CoordSpace> {
-        let blocks = self.blocks.clone();
-        Ok(CoordSpace{ blocks })
+        let coords = self.coords.clone();
+        Ok(CoordSpace{ coords })
     }
+
 }
 
 #[pyproto]
