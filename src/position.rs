@@ -653,10 +653,20 @@ impl CoordSpace {
         Ok(blocks)
     }
 
-
     /// Returns the linear space as a list of integer coordinates.
-    fn to_array(&self) -> PyResult<Vec<i32>> {
-        Ok(self.coords)
+    fn to_arrays(&self) -> PyResult<(Vec<i32>, Vec<String>)> {
+        let coords = self.coords.clone();
+        let mut ids: Vec<String> = Vec::new();
+        for coord in self.coords.iter() {
+            if *coord > 0 {
+                ids.push("s".to_string());
+            } else if *coord == -1 {
+                ids.push("g".to_string())
+            } else {
+                return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", coord)))
+            }
+        }
+        Ok((coords, ids))
     }
 
     // Formatting methods
