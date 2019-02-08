@@ -278,6 +278,29 @@ impl BlockSpace {
 
     #[staticmethod]
     /// Returns a linear space created using the given list of blocks.
+    fn from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<BlockSpace> {
+        match arrays_to_blocks(data, ids) {
+            Ok(x) => {
+                let mut blocks: Vec<[i32; 3]> = Vec::new();
+                for Block{ id, start, stop } in x.iter() {
+                    let start = *start;
+                    let stop = *stop;
+                    if id == "s" {
+                        blocks.push([1, start, stop]);
+                    } else if id == "g" {
+                        blocks.push([0, start, stop]);
+                    } else {
+                        return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", id)))
+                    }
+                }
+                Ok(BlockSpace{ blocks })
+            },
+            Err(x) => Err(x),
+        }
+    }
+
+    #[staticmethod]
+    /// Returns a linear space created using the given list of blocks.
     fn from_blocks(blocks: Vec<&Block>) -> PyResult<BlockSpace> {
         let mut data: Vec<[i32; 3]> = Vec::new();
         for Block{ id, start, stop} in blocks.iter() {
