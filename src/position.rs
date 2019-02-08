@@ -754,9 +754,6 @@ impl PyObjectProtocol for CoordSpace {
     }
 }
 
-impl CoordSpace {
-
-}
 
 #[pyfunction]
 /// blocks_to_arrays(block_list)
@@ -807,20 +804,20 @@ pub fn arrays_to_blocks(data: Vec<i32>, ids: Vec<String>) -> PyResult<Vec<Block>
         if c_id == last_id {
             if c_pos != p_pos + 1 {
                 // Create new block and push
-                blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
+                blocks.push(Block{ id: last_id.to_string(), start: last_start, stop: p_pos + 1});
                 // Assgin current id as last_id and current pos as last_start
                 last_id = c_id;
                 last_start = c_pos;
             }
         } else {
             // Create new block and push
-            blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
+            blocks.push(Block{ id: last_id.to_string(), start: last_start, stop: p_pos + 1});
             // Assign current id as last_id and current pos as last_start
             last_id = c_id;
             last_start = c_pos;
         }
     }
-    blocks.push(Block{ id: last_id, start: last_start, stop: data.last().unwrap() + 1});
+    blocks.push(Block{ id: last_id.to_string(), start: last_start, stop: data.last().unwrap() + 1});
     Ok(blocks)
 }
 
