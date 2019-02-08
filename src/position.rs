@@ -327,11 +327,28 @@ impl BlockSpace {
         )
     }
 
-    // TODO: from_array
-
     /// Returns the linear space as a list of integer coordinates.
-    fn to_array(&self) -> PyResult<Vec<i32>> {
-        Ok(self._to_array())
+    fn to_arrays(&self) -> PyResult<(Vec<i32>, Vec<String>)> {
+        let mut data: Vec<i32> = Vec::new();
+        let mut ids: Vec<String> = Vec::new();
+        for [id, start, stop] in self.blocks.iter() {
+            let (id, start, stop) = (*id, *start, *stop);
+            if id == 1 {
+                let mut data_array: Vec<i32> = (start..stop).map(|x| x).collect();
+                let mut id_array: Vec<String> = vec!["s".to_string(); data_array.len()];
+                data.append(&mut data_array);
+                ids.append(&mut id_array);
+            } else if id == 0 {
+                let mut data_array: Vec<i32> = (start..stop).map(|_| -1).collect();
+                let mut id_array: Vec<String> = vec!["g".to_string(); data_array.len()];
+                data.append(&mut data_array);
+                ids.append(&mut id_array);
+            } else {
+                return Err(exceptions::ValueError::py_err(format!("unexpected id value: {}", id)))
+            }
+
+        }
+        Ok((data, ids))
     }
 
     // Formatting methods
