@@ -495,7 +495,7 @@ impl CoordSpace {
             return self.append(start, length)
         }
         // Split list into two and combine
-        let new_coords: Vec<i32> = (start..start+length).collect();
+        let mut new_coords: Vec<i32> = (start..start+length).collect();
         let (left, right) = self.coords.split_at(pos as usize);
         let mut left: Vec<i32> = left.iter().map(|x| *x ).collect();
         let mut right: Vec<i32> = right.iter().map(|x| *x ).collect();
@@ -507,7 +507,7 @@ impl CoordSpace {
 
     /// Appends to the end of the linear space.
     fn append(&mut self, start: i32, length: i32) -> PyResult<()> {
-        let new_coords: Vec<i32> = (start..start+length).collect();
+        let mut new_coords: Vec<i32> = (start..start+length).collect();
         self.coords.append(&mut new_coords);
         Ok(())
     }
@@ -728,8 +728,8 @@ pub fn blocks_to_arrays(blocks: Vec<&Block>) -> PyResult<(Vec<i32>, Vec<String>)
     let mut data: Vec<i32> = Vec::new();
     let mut ids: Vec<String> = Vec::new();
     for Block{ id, start, stop} in blocks.iter() {
-        let new_coords: Vec<i32> = (*start..*stop).collect();
-        let new_ids: Vec<String> = vec![format!("{}", id); new_coords.len()];
+        let mut new_coords: Vec<i32> = (*start..*stop).collect();
+        let mut new_ids: Vec<String> = vec![format!("{}", id); new_coords.len()];
         data.append(&mut new_coords);
         ids.append(&mut new_ids);
     }
@@ -750,11 +750,11 @@ pub fn arrays_to_blocks(data: Vec<i32>, ids: Vec<String>) -> PyResult<Vec<Block>
     }
     // Declare variables
     let mut blocks: Vec<Block> = Vec::new();
-    let mut last_id: String = ids[0];
+    let mut last_id: &str = &ids[0];
     let mut last_start: i32 = data[0];
 
     for i in 1..data.len() {
-        let c_id = ids[i];
+        let c_id = &ids[i];
         let c_pos = data[i];
         let p_pos = data[i-1];
         // Scenarios:
