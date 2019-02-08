@@ -435,22 +435,6 @@ impl PyObjectProtocol for BlockSpace {
     }
 }
 
-impl BlockSpace {
-    fn _to_array(&self) -> Vec<i32> {
-        let mut coords: Vec<i32> = Vec::new();
-        for [id, start, stop] in self.blocks.iter() {
-            let (id, start, stop) = (*id, *start, *stop);
-            if id == 1 {
-                let mut array: Vec<i32> = (start..stop).map(|x| x).collect();
-                coords.append(&mut array);
-            } else if id == 0 {
-                let mut array: Vec<i32> = (start..stop).map(|_| -1).collect();
-                coords.append(&mut array);
-            }
-        }
-        coords
-    }
-}
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -460,7 +444,7 @@ impl BlockSpace {
 /// list of integer coordinates.
 pub struct CoordSpace {
 
-    coords: Vec<i32>,
+    coords: Vec<i32>
 
 }
 
@@ -488,6 +472,7 @@ impl CoordSpace {
         self.coords = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
         Ok(())
     }
+
 
     /// Retains points in linear space specified by a
     /// list of coordinates to keep.
