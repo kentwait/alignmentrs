@@ -495,8 +495,11 @@ impl CoordSpace {
             if *max >= self.coords.len() as i32 {
                 return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
             }
-            let coords: Vec<i32> = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
-            Ok(CoordSpace{ coords })
+            let mut new_coords: Vec<i32> = Vec::new();
+            for i in coords.iter() {
+                new_coords.push(self.coords[*i as usize]);
+            }
+            Ok(CoordSpace{ coords: new_coords })
         } else {
             Ok(CoordSpace { coords: self.coords.clone()})
         }
@@ -662,7 +665,7 @@ impl CoordSpace {
         let mut blocks: Vec<Block> = Vec::new();
         let mut last_start: i32 = self.coords[0];
         let mut last_id: String = match self.coords[0] {
-            x if x > 0 => "s".to_string(),
+            x if x >= 0 => "s".to_string(),
             x if x == -1 => "g".to_string(),
             x => return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x))),
         };
@@ -670,7 +673,7 @@ impl CoordSpace {
 
         for i in 1..self.coords.len() {
             let c_id: String = match self.coords[0] {
-                x if x > 0 => "s".to_string(),
+                x if x >= 0 => "s".to_string(),
                 x if x == -1 => "g".to_string(),
                 x => return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x))),
             };
@@ -679,30 +682,30 @@ impl CoordSpace {
 
             if c_pos == -1 && p_pos == -1 {
                 negative_length += 1;
-            } else if c_pos == -1 && p_pos > 0 {
+            } else if c_pos < -1 || p_pos < -1 {
+                // Return an error
+                return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", c_pos)))
+            } else if c_pos == -1 && p_pos >= 0 {
                 // Create new block and push
                 blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
                 // Assign current id as last_id and current pos as last_start
                 last_id = c_id;
                 last_start = c_pos;
                 negative_length = 0;
-            } else if c_pos > 0 && p_pos == -1 {
+            } else if c_pos >= 0 && p_pos == -1 {
                 // Create new block and push
                 blocks.push(Block{ id: last_id, start: 0, stop: negative_length});
                 // Assign current id as last_id and current pos as last_start
                 last_id = c_id;
                 last_start = c_pos;
                 negative_length = 0;
-            } else {
-                if c_pos > p_pos + 1 {
+            } else if c_pos >= 0 && p_pos >= 0 {
+                if c_pos != p_pos + 1 {
                     // Create new block and push
                     blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
                     // Assgin current id as last_id and current pos as last_start
                     last_id = c_id;
                     last_start = c_pos;
-                } else {
-                    // Return an error
-                    return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", c_pos)))
                 }
             }
         }
@@ -715,7 +718,7 @@ impl CoordSpace {
         let coords = self.coords.clone();
         let mut ids: Vec<String> = Vec::new();
         for coord in self.coords.iter() {
-            if *coord > 0 {
+            if *coord >= 0 {
                 ids.push("s".to_string());
             } else if *coord == -1 {
                 ids.push("g".to_string())
@@ -796,16 +799,20 @@ impl PyObjectProtocol for CoordSpace {
     
     fn __str__(&self) -> PyResult<String> {
         let mut strings: Vec<String> = Vec::new();
-        if let Ok(blocks) = self.to_blocks() {
-            for block in blocks {
-                if let Ok(s) = block.__str__() {
-                    strings.push(s);
-                } else {
-                    return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
+        match self.to_blocks() {
+            Ok(blocks) => {
+                for block in blocks {
+                    if let Ok(s) = block.__str__() {
+                        strings.push(s);
+                    } else {
+                        return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
+                    }
                 }
+            },
+            Err(_) => {
+                return Err(exceptions::ValueError::py_err(format!("cannot generate blocks")))
             }
-        } else {
-            return Err(exceptions::ValueError::py_err("cannot generate blocks"))
+            
         }
         Ok(strings.join(","))
     }
