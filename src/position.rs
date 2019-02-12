@@ -278,6 +278,29 @@ impl BlockSpace {
 
     #[staticmethod]
     /// Returns a linear space created using the given list of blocks.
+    fn from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<BlockSpace> {
+        match arrays_to_blocks(data, ids) {
+            Ok(x) => {
+                let mut blocks: Vec<[i32; 3]> = Vec::new();
+                for Block{ id, start, stop } in x.iter() {
+                    let start = *start;
+                    let stop = *stop;
+                    if id == "s" {
+                        blocks.push([1, start, stop]);
+                    } else if id == "g" {
+                        blocks.push([0, start, stop]);
+                    } else {
+                        return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", id)))
+                    }
+                }
+                Ok(BlockSpace{ blocks })
+            },
+            Err(x) => Err(x),
+        }
+    }
+
+    #[staticmethod]
+    /// Returns a linear space created using the given list of blocks.
     fn from_blocks(blocks: Vec<&Block>) -> PyResult<BlockSpace> {
         let mut data: Vec<[i32; 3]> = Vec::new();
         for Block{ id, start, stop} in blocks.iter() {
@@ -304,11 +327,28 @@ impl BlockSpace {
         )
     }
 
-    // TODO: from_array
-
     /// Returns the linear space as a list of integer coordinates.
-    fn to_array(&self) -> PyResult<Vec<i32>> {
-        Ok(self._to_array())
+    fn to_arrays(&self) -> PyResult<(Vec<i32>, Vec<String>)> {
+        let mut data: Vec<i32> = Vec::new();
+        let mut ids: Vec<String> = Vec::new();
+        for [id, start, stop] in self.blocks.iter() {
+            let (id, start, stop) = (*id, *start, *stop);
+            if id == 1 {
+                let mut data_array: Vec<i32> = (start..stop).map(|x| x).collect();
+                let mut id_array: Vec<String> = vec!["s".to_string(); data_array.len()];
+                data.append(&mut data_array);
+                ids.append(&mut id_array);
+            } else if id == 0 {
+                let mut data_array: Vec<i32> = (start..stop).map(|_| -1).collect();
+                let mut id_array: Vec<String> = vec!["g".to_string(); data_array.len()];
+                data.append(&mut data_array);
+                ids.append(&mut id_array);
+            } else {
+                return Err(exceptions::ValueError::py_err(format!("unexpected id value: {}", id)))
+            }
+
+        }
+        Ok((data, ids))
     }
 
     // Formatting methods
@@ -395,22 +435,6 @@ impl PyObjectProtocol for BlockSpace {
     }
 }
 
-impl BlockSpace {
-    fn _to_array(&self) -> Vec<i32> {
-        let mut coords: Vec<i32> = Vec::new();
-        for [id, start, stop] in self.blocks.iter() {
-            let (id, start, stop) = (*id, *start, *stop);
-            if id == 1 {
-                let mut array: Vec<i32> = (start..stop).map(|x| x).collect();
-                coords.append(&mut array);
-            } else if id == 0 {
-                let mut array: Vec<i32> = (start..stop).map(|_| -1).collect();
-                coords.append(&mut array);
-            }
-        }
-        coords
-    }
-}
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -420,7 +444,7 @@ impl BlockSpace {
 /// list of integer coordinates.
 pub struct CoordSpace {
 
-    coords: Vec<i32>,
+    coords: Vec<i32>
 
 }
 
@@ -449,6 +473,7 @@ impl CoordSpace {
         Ok(())
     }
 
+
     /// Retains points in linear space specified by a
     /// list of coordinates to keep.
     fn retain(&mut self, coords: Vec<i32>) -> PyResult<()> {
@@ -470,7 +495,7 @@ impl CoordSpace {
             return self.append(start, length)
         }
         // Split list into two and combine
-        let new_coords: Vec<i32> = (start..start+length).collect();
+        let mut new_coords: Vec<i32> = (start..start+length).collect();
         let (left, right) = self.coords.split_at(pos as usize);
         let mut left: Vec<i32> = left.iter().map(|x| *x ).collect();
         let mut right: Vec<i32> = right.iter().map(|x| *x ).collect();
@@ -482,7 +507,7 @@ impl CoordSpace {
 
     /// Appends to the end of the linear space.
     fn append(&mut self, start: i32, length: i32) -> PyResult<()> {
-        let new_coords: Vec<i32> = (start..start+length).collect();
+        let mut new_coords: Vec<i32> = (start..start+length).collect();
         self.coords.append(&mut new_coords);
         Ok(())
     }
@@ -524,39 +549,77 @@ impl CoordSpace {
     #[staticmethod]
     /// Returns a linear space created using the given list of blocks.
     fn from_blocks(blocks: Vec<&Block>) -> PyResult<CoordSpace> {
-        if let Ok((data, ids)) = blocks_to_arrays(blocks) {
+        if blocks.len() == 0 {
+            let coords: Vec<i32> = Vec::new();
+            return Ok(CoordSpace{ coords })
+        }
+        match blocks_to_arrays(blocks) {
+            Ok((data, ids)) => {
+                let mut new_data: Vec<i32> = Vec::new();
+                for i in 0..data.len() {
+                    let x = data[i];
+                    let id = &ids[i];
+                    if id == "s" {
+                        new_data.push(x);
+                    } else {
+                        new_data.push(-1);
+                    }
+                }
+                Ok(CoordSpace { coords: new_data })
+            },
+            Err(x) => return Err(x)
+        }
+        
+    }
 
+    #[staticmethod]
+    fn from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<CoordSpace> {
+        if data.len() != ids.len() {
+            return Err(exceptions::ValueError::py_err("lengths of data and ids do not match"))
         }
-        let mut data: Vec<i32> = Vec::new();
-        for Block{ id, start, stop} in blocks.iter() {
-            let new_coords: Vec<i32> = (*start..*stop).collect();
-            data.append(&mut new_coords);
+        if data.len() == 0 {
+            let coords: Vec<i32> = Vec::new();
+            return Ok(CoordSpace{ coords })
         }
-        Ok(CoordSpace { coords: data })
+        let mut coords: Vec<i32> = Vec::new();
+        for i in 0..data.len() {
+            let x = data[i];
+            let id = &ids[i];
+            if id == "s" {
+                coords.push(x);
+            } else if id == "g" {
+                coords.push(-1);
+            } else {
+                return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x)))
+            }
+        }
+        Ok(CoordSpace{ coords })
     }
 
     /// Returns the linear space as a list of blocks.
     fn to_blocks(&self) -> PyResult<Vec<Block>> {
-        if data.len() == 0 {
+        if self.coords.len() == 0 {
             return Ok(Vec::new())
         }
         // Declare variables
         let mut blocks: Vec<Block> = Vec::new();
-        let mut last_start: i32 = data[0];
+        let mut last_start: i32 = self.coords[0];
+        let mut last_id: String = match self.coords[0] {
+            x if x > 0 => "s".to_string(),
+            x if x == -1 => "g".to_string(),
+            x => return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x))),
+        };
         let mut negative_length: i32 = 0;
 
-        for i in 1..data.len() {
-            let c_id = ids[i];
-            let c_pos = data[i];
-            let p_pos = data[i-1];
-            // Scenarios:
-            // 1a) current and last ids are the same, current +1 of previous
-            // 1b) current and last ids are the same, current NOT +1 of previous
-            // 2a) current and last ids NOT the same, current +1 of previous
-            // 2b) current and last ids NOT the same, current NOT +1 of previous
-            //
-            // 2a and 2b are the same scenario, because change in ID should always
-            // generate a new block
+        for i in 1..self.coords.len() {
+            let c_id: String = match self.coords[0] {
+                x if x > 0 => "s".to_string(),
+                x if x == -1 => "g".to_string(),
+                x => return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x))),
+            };
+            let c_pos = self.coords[i];
+            let p_pos = self.coords[i-1];
+
             if c_pos == -1 && p_pos == -1 {
                 negative_length += 1;
             } else if c_pos == -1 && p_pos > 0 {
@@ -573,37 +636,37 @@ impl CoordSpace {
                 last_id = c_id;
                 last_start = c_pos;
                 negative_length = 0;
-            }
-            
-            else if c_pos == p_pos + 1 {
-                // pass
-            } else if c_pos > p_pos + 1 {
-                // Create new block and push
-                blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
-                // Assgin current id as last_id and current pos as last_start
-                last_id = c_id;
-                last_start = c_pos;
             } else {
-                // Return an error
-                return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", c_pos)))
-            }
-            } else {
-                // Create new block and push
-                blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
-                // Assign current id as last_id and current pos as last_start
-                last_id = c_id;
-                last_start = c_pos;
+                if c_pos > p_pos + 1 {
+                    // Create new block and push
+                    blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
+                    // Assgin current id as last_id and current pos as last_start
+                    last_id = c_id;
+                    last_start = c_pos;
+                } else {
+                    // Return an error
+                    return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", c_pos)))
+                }
             }
         }
-        blocks.push(Block{ id: last_id, start: last_start, stop: data.last().unwrap() + 1});
+        blocks.push(Block{ id: last_id, start: last_start, stop: self.coords.last().unwrap() + 1});
         Ok(blocks)
-        Ok(())
     }
 
-
     /// Returns the linear space as a list of integer coordinates.
-    fn to_array(&self) -> PyResult<Vec<i32>> {
-        Ok(self.coords)
+    fn to_arrays(&self) -> PyResult<(Vec<i32>, Vec<String>)> {
+        let coords = self.coords.clone();
+        let mut ids: Vec<String> = Vec::new();
+        for coord in self.coords.iter() {
+            if *coord > 0 {
+                ids.push("s".to_string());
+            } else if *coord == -1 {
+                ids.push("g".to_string())
+            } else {
+                return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", coord)))
+            }
+        }
+        Ok((coords, ids))
     }
 
     // Formatting methods
@@ -650,9 +713,10 @@ impl CoordSpace {
 
     /// Returns a deep copy of the current linear space.
     fn copy(&self) -> PyResult<CoordSpace> {
-        let blocks = self.blocks.clone();
-        Ok(CoordSpace{ blocks })
+        let coords = self.coords.clone();
+        Ok(CoordSpace{ coords })
     }
+
 }
 
 #[pyproto]
@@ -690,9 +754,6 @@ impl PyObjectProtocol for CoordSpace {
     }
 }
 
-impl CoordSpace {
-
-}
 
 #[pyfunction]
 /// blocks_to_arrays(block_list)
@@ -703,8 +764,8 @@ pub fn blocks_to_arrays(blocks: Vec<&Block>) -> PyResult<(Vec<i32>, Vec<String>)
     let mut data: Vec<i32> = Vec::new();
     let mut ids: Vec<String> = Vec::new();
     for Block{ id, start, stop} in blocks.iter() {
-        let new_coords: Vec<i32> = (*start..*stop).collect();
-        let new_ids: Vec<String> = vec![format!("{}", id); new_coords.len()];
+        let mut new_coords: Vec<i32> = (*start..*stop).collect();
+        let mut new_ids: Vec<String> = vec![format!("{}", id); new_coords.len()];
         data.append(&mut new_coords);
         ids.append(&mut new_ids);
     }
@@ -725,11 +786,11 @@ pub fn arrays_to_blocks(data: Vec<i32>, ids: Vec<String>) -> PyResult<Vec<Block>
     }
     // Declare variables
     let mut blocks: Vec<Block> = Vec::new();
-    let mut last_id: String = ids[0];
+    let mut last_id: &str = &ids[0];
     let mut last_start: i32 = data[0];
 
     for i in 1..data.len() {
-        let c_id = ids[i];
+        let c_id = &ids[i];
         let c_pos = data[i];
         let p_pos = data[i-1];
         // Scenarios:
@@ -743,20 +804,20 @@ pub fn arrays_to_blocks(data: Vec<i32>, ids: Vec<String>) -> PyResult<Vec<Block>
         if c_id == last_id {
             if c_pos != p_pos + 1 {
                 // Create new block and push
-                blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
+                blocks.push(Block{ id: last_id.to_string(), start: last_start, stop: p_pos + 1});
                 // Assgin current id as last_id and current pos as last_start
                 last_id = c_id;
                 last_start = c_pos;
             }
         } else {
             // Create new block and push
-            blocks.push(Block{ id: last_id, start: last_start, stop: p_pos + 1});
+            blocks.push(Block{ id: last_id.to_string(), start: last_start, stop: p_pos + 1});
             // Assign current id as last_id and current pos as last_start
             last_id = c_id;
             last_start = c_pos;
         }
     }
-    blocks.push(Block{ id: last_id, start: last_start, stop: data.last().unwrap() + 1});
+    blocks.push(Block{ id: last_id.to_string(), start: last_start, stop: data.last().unwrap() + 1});
     Ok(blocks)
 }
 
