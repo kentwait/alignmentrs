@@ -5,6 +5,24 @@ class TestAlignment:
     
     # basic test for expected outputs
     def setup(self):
+        # Create an alignment for testing
+        self.temp_filename = 'temp.aln'
+        with open(self.temp_filename, 'w') as fp:
+            print('>marker_0 |91 sp|\n', file=fp)
+            print('CCCCCCCCCCCCCCCCCCCCCCCCCC\n', file=fp)
+            print('>Dmel_528_2597 |10 sp|\n', file=fp)
+            print('ATGAAGAGCAAGGTGGGGGGGGGGGG\n', file=fp)
+            print('>Dmel_RG2 |47 sp|\n', file=fp)
+            print('ATGAAGAGCAAGGTGGACCCCCCCCC\n', file=fp)
+            print('>Dmel_RG4N |15 sp|\n', file=fp)
+            print('ATGAAGAGCAAGGTGGAAAAAAAAAA\n', file=fp)
+        # initiates alignment object for tests
+        self.aln_file = Alignment.from_fasta(self.temp_file.name, 'test_align', marker_kw='marker')
+
+    def teardown(self):
+        if os.path.exists(self.temp_filename):
+            os.remove(self.temp_filename)
+        
         # initiates alignment object for tests
         self.aln_file = Alignment.from_fasta('test_alignment_b.txt', 'test_align', 'marker')
         
