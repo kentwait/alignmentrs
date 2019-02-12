@@ -826,6 +826,7 @@ pub fn arrays_to_blocks(data: Vec<i32>, ids: Vec<String>) -> PyResult<Vec<Block>
 #[pymodinit]
 fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Block>()?;
+    m.add_class::<BlockSpace>()?;
     m.add_class::<CoordSpace>()?;
 
     Ok(())
