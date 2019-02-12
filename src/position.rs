@@ -36,6 +36,8 @@ impl Block {
         })
     }
 
+    /// in_block(i)
+    /// 
     /// Returns True if a given position is inside the block.
     /// Otherwise, returns False.
     fn in_block(&self, i: i32) -> PyResult<bool> {
@@ -45,6 +47,8 @@ impl Block {
         Ok(false)
     }
 
+    /// to_array()
+    ///
     /// Converts the block into a list of positions.
     fn to_array(&self) -> PyResult<Vec<i32>> {
         Ok(self._to_array())
@@ -52,11 +56,15 @@ impl Block {
 
     // Formatting methods
 
+    /// to_compressed_str()
+    ///
     /// Converts block into a compressed string representation.
     fn to_compressed_str(&self) -> PyResult<String> {
         self.__str__()
     }
 
+    /// to_extended_str()
+    ///
     /// Converts block into an extended (human-readable) string
     /// representation.
     fn to_extended_str(&self) -> PyResult<String> {
@@ -67,6 +75,8 @@ impl Block {
     // fn to_cigar_str(&self) -> PyResult<String> {
     // }
 
+    /// to_array_str()
+    /// 
     /// Converts block into comma-separated list of positions.
     fn to_array_str(&self) -> PyResult<String> {
         let v: Vec<String> = self._to_array().iter()
@@ -489,6 +499,8 @@ impl CoordSpace {
         })
     }
 
+    /// extract(coordinates)
+    /// 
     /// Extracts coordinates by relative positions as a new CoordSpace.
     fn extract(&self, coords: Vec<i32>) -> PyResult<CoordSpace> {
         if let Some(max) = coords.iter().max() {
@@ -505,6 +517,8 @@ impl CoordSpace {
         }
     }
 
+    /// remove(coordinates)
+    /// 
     /// Removes points in linear space given based on a list of relative
     /// coordinates.
     fn remove(&mut self, coords: Vec<i32>) -> PyResult<()> {
@@ -520,6 +534,8 @@ impl CoordSpace {
         
     }
 
+    /// retain(coordinates)
+    /// 
     /// Retains points in linear space specified by a
     /// list of coordinates to keep.
     fn retain(&mut self, coords: Vec<i32>) -> PyResult<()> {
@@ -568,11 +584,15 @@ impl CoordSpace {
 
     // start, stop, full_len
 
+    /// start()
+    /// 
     /// Returns the value at the start of the linear space.
     fn start(&self) -> PyResult<i32> {
         Ok(self.coords[0])
     }
 
+    /// stop()
+    /// 
     /// Returns the end value of the linear space.
     /// This value is not part of the space.
     fn stop(&self) -> PyResult<i32> {
@@ -583,11 +603,15 @@ impl CoordSpace {
         }
     }
 
+    /// len_all()
+    /// 
     /// Returns the total length of the linear space.
     fn len_all(&self) -> PyResult<i32> {
         Ok(self.coords.len() as i32)
     }
 
+    /// len_seq()
+    /// 
     /// Returns the total length of the linear space where the
     /// state is equal to 1.
     fn len_seq(&self) -> PyResult<i32> {
@@ -595,6 +619,8 @@ impl CoordSpace {
         Ok(length as i32)
     }
 
+    /// len_gap()
+    /// 
     /// Returns the total length of the linear space where the
     /// state is equal to 0.
     fn len_gap(&self) -> PyResult<i32> {
@@ -605,6 +631,8 @@ impl CoordSpace {
     // Format conversion
 
     #[staticmethod]
+    /// from_blocks(blocks)
+    /// 
     /// Returns a linear space created using the given list of blocks.
     fn from_blocks(blocks: Vec<&Block>) -> PyResult<CoordSpace> {
         if blocks.len() == 0 {
@@ -633,6 +661,10 @@ impl CoordSpace {
     }
 
     #[staticmethod]
+    /// from_arrays(coordinates, ids)
+    /// 
+    /// Returns a linear space created using the corresponding lists of
+    /// coordinates and ids.
     fn from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<CoordSpace> {
         if data.len() != ids.len() {
             return Err(exceptions::ValueError::py_err("lengths of data and ids do not match"))
@@ -656,6 +688,8 @@ impl CoordSpace {
         Ok(CoordSpace{ coords })
     }
 
+    /// to_blocks()
+    /// 
     /// Returns the linear space as a list of blocks.
     fn to_blocks(&self) -> PyResult<Vec<Block>> {
         if self.coords.len() == 0 {
@@ -713,6 +747,8 @@ impl CoordSpace {
         Ok(blocks)
     }
 
+    /// to_arrays()
+    /// 
     /// Returns the linear space as a list of integer coordinates.
     fn to_arrays(&self) -> PyResult<(Vec<i32>, Vec<String>)> {
         let coords = self.coords.clone();
@@ -731,11 +767,15 @@ impl CoordSpace {
 
     // Formatting methods
 
+    /// to_compressed_str()
+    /// 
     /// Converts block into a compressed string representation.
     fn to_compressed_str(&self) -> PyResult<String> {
         self.__str__()
     }
 
+    /// to_extended_str()
+    /// 
     /// Converts block into an extended (human-readable) string
     /// representation.
     fn to_extended_str(&self) -> PyResult<String> {
@@ -754,6 +794,8 @@ impl CoordSpace {
         Ok(strings.join(","))
     }
 
+    /// to_array_str()
+    /// 
     /// Converts block into comma-separated list of positions.
     fn to_array_str(&self) -> PyResult<String> {
         let mut strings: Vec<String> = Vec::new();
@@ -771,6 +813,8 @@ impl CoordSpace {
         Ok(strings.join(","))
     }
 
+    /// copy()
+    /// 
     /// Returns a deep copy of the current linear space.
     fn copy(&self) -> PyResult<CoordSpace> {
         let coords = self.coords.clone();
