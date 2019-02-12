@@ -522,7 +522,11 @@ impl CoordSpace {
     /// Returns the end value of the linear space.
     /// This value is not part of the space.
     fn stop(&self) -> PyResult<i32> {
-        Ok(self.coords[self.coords.len()])
+        if self.coords.len() > 0 {
+            Ok(self.coords[self.coords.len() - 1])
+        } else {
+            Ok(0)
+        }
     }
 
     /// Returns the total length of the linear space.
