@@ -491,56 +491,45 @@ impl CoordSpace {
 
     /// Extracts coordinates by relative positions as a new CoordSpace.
     fn extract(&self, coords: Vec<i32>) -> PyResult<CoordSpace> {
-        let max = match coords.iter().max() {
-            Some(x) => {
-                if max >= self.coords.len() {
-                    return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
-                }
-                x
-            },
-            None => {
-                return Ok(CoordSpace { coords: self.coords.clone()})
+        if let Some(max) = coords.iter().max() {
+            if *max >= self.coords.len() as i32 {
+                return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
             }
-        };
-        let coords: Vec<i32> = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
-        Ok(CoordSpace{ coords })
+            let coords: Vec<i32> = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
+            Ok(CoordSpace{ coords })
+        } else {
+            Ok(CoordSpace { coords: self.coords.clone()})
+        }
     }
 
     /// Removes points in linear space given based on a list of relative
     /// coordinates.
     fn remove(&mut self, coords: Vec<i32>) -> PyResult<()> {
-        let max = match coords.iter().max() {
-            Some(x) => {
-                if max >= self.coords.len() {
-                    return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
-                }
-                x
-            },
-            None => {
-                return Ok(())
+        if let Some(max) = coords.iter().max() {
+            if *max >= self.coords.len() as i32 {
+                return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
             }
-        };
-        self.coords = self.coords.iter().enumerate().filter(|(i, _)| !coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
-        Ok(())
+            self.coords = self.coords.iter().enumerate().filter(|(i, _)| !coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
+            Ok(())
+        } else {
+            Ok(())
+        }
+        
     }
 
     /// Retains points in linear space specified by a
     /// list of coordinates to keep.
     fn retain(&mut self, coords: Vec<i32>) -> PyResult<()> {
-        let max = match coords.iter().max() {
-            Some(x) => {
-                if max >= self.coords.len() {
-                    return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
-                }
-                x
-            },
-            None => {
-                self.coords = Vec::new();
-                return Ok(())
+        if let Some(max) = coords.iter().max() {
+            if *max >= self.coords.len() as i32 {
+                return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
             }
-        };
-        self.coords = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
-        Ok(())
+            self.coords = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
+            Ok(())
+        } else {
+            self.coords = Vec::new();
+            Ok(())
+        }        
     }
 
     // /// Inserts into the linear space at the given position.
