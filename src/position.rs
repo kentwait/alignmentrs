@@ -100,27 +100,30 @@ impl PyObjectProtocol for Block {
     }
     
     fn __str__(&self) -> PyResult<String> {
-        Ok(format!("{}{}{}", self.start, self.id, self.stop))
+        match self.to_compressed_str() {
+            Ok(res) => Ok(res),
+            Err(x) => Err(x)
+        }
     }
 }
 
 
 #[pyclass(subclass)]
 #[derive(Clone)]
-/// CoordSpace(init_state, start, stop)
+/// PointSpace(init_state, start, stop)
 /// 
-/// CoordSpace represents a discrete linear space stored as a 
+/// PointSpace represents a discrete linear space stored as a 
 /// list of integer coordinates.
-pub struct CoordSpace {
+pub struct PointSpace {
 
     coords: Vec<i32>
 
 }
 
 #[pymethods]
-impl CoordSpace {
+impl PointSpace {
     #[new]
-    /// Creates a new CoordSpace object from an init_state, and start and stop
+    /// Creates a new PointSpace object from an init_state, and start and stop
     /// coordinates.
     fn __new__(obj: &PyRawObject, start: i32, stop: i32) -> PyResult<()> {
         if start > stop {
@@ -129,7 +132,7 @@ impl CoordSpace {
                         start, stop)))
         }
         obj.init(|_| {
-            CoordSpace { 
+            PointSpace { 
                 coords: (start..stop).collect(),
             }
         })
@@ -137,8 +140,8 @@ impl CoordSpace {
 
     /// extract(coordinates)
     /// 
-    /// Extracts coordinates by relative positions as a new CoordSpace.
-    fn extract(&self, coords: Vec<i32>) -> PyResult<CoordSpace> {
+    /// Extracts coordinates by relative positions as a new PointSpace.
+    fn extract(&self, coords: Vec<i32>) -> PyResult<PointSpace> {
         if let Some(max) = coords.iter().max() {
             if *max >= self.coords.len() as i32 {
                 return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
@@ -147,9 +150,9 @@ impl CoordSpace {
             for i in coords.iter() {
                 new_coords.push(self.coords[*i as usize]);
             }
-            Ok(CoordSpace{ coords: new_coords })
+            Ok(PointSpace{ coords: new_coords })
         } else {
-            Ok(CoordSpace { coords: self.coords.clone()})
+            Ok(PointSpace { coords: self.coords.clone()})
         }
     }
 
@@ -270,10 +273,10 @@ impl CoordSpace {
     /// from_blocks(blocks)
     /// 
     /// Returns a linear space created using the given list of blocks.
-    fn from_blocks(blocks: Vec<&Block>) -> PyResult<CoordSpace> {
+    fn from_blocks(blocks: Vec<&Block>) -> PyResult<PointSpace> {
         if blocks.len() == 0 {
             let coords: Vec<i32> = Vec::new();
-            return Ok(CoordSpace{ coords })
+            return Ok(PointSpace{ coords })
         }
         match blocks_to_arrays(blocks) {
             Ok((data, ids)) => {
@@ -289,7 +292,7 @@ impl CoordSpace {
                         return Err(exceptions::ValueError::py_err(format!("unsupported ID: {}. Use \"s\" for sequence or \"g\" for gap.", id)))
                     }
                 }
-                Ok(CoordSpace { coords: new_data })
+                Ok(PointSpace { coords: new_data })
             },
             Err(x) => return Err(x)
         }
@@ -301,13 +304,13 @@ impl CoordSpace {
     /// 
     /// Returns a linear space created using the corresponding lists of
     /// coordinates and ids.
-    fn from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<CoordSpace> {
+    fn from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<PointSpace> {
         if data.len() != ids.len() {
             return Err(exceptions::ValueError::py_err("lengths of data and ids do not match"))
         }
         if data.len() == 0 {
             let coords: Vec<i32> = Vec::new();
-            return Ok(CoordSpace{ coords })
+            return Ok(PointSpace{ coords })
         }
         let mut coords: Vec<i32> = Vec::new();
         for i in 0..data.len() {
@@ -321,7 +324,7 @@ impl CoordSpace {
                 return Err(exceptions::ValueError::py_err(format!("unsupported ID: {}. Use \"s\" for sequence or \"g\" for gap.", id)))
             }
         }
-        Ok(CoordSpace{ coords })
+        Ok(PointSpace{ coords })
     }
 
     /// to_blocks()
@@ -452,15 +455,15 @@ impl CoordSpace {
     /// copy()
     /// 
     /// Returns a deep copy of the current linear space.
-    fn copy(&self) -> PyResult<CoordSpace> {
+    fn copy(&self) -> PyResult<PointSpace> {
         let coords = self.coords.clone();
-        Ok(CoordSpace{ coords })
+        Ok(PointSpace{ coords })
     }
 
 }
 
 #[pyproto]
-impl PyObjectProtocol for CoordSpace {
+impl PyObjectProtocol for PointSpace {
     fn __repr__(&self) -> PyResult<String> {
         let start = match self.start() {
             Ok(x) => x,
@@ -474,7 +477,7 @@ impl PyObjectProtocol for CoordSpace {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        Ok(format!("CoordSpace(start={}, stop={}, length={})", start, stop, length))
+        Ok(format!("PointSpace(start={}, stop={}, length={})", start, stop, length))
     }
     
     fn __str__(&self) -> PyResult<String> {
@@ -569,7 +572,7 @@ pub fn arrays_to_blocks(data: Vec<i32>, ids: Vec<String>) -> PyResult<Vec<Block>
 fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Block>()?;
     // m.add_class::<BlockSpace>()?;
-    m.add_class::<CoordSpace>()?;
+    m.add_class::<PointSpace>()?;
 
     Ok(())
 }
