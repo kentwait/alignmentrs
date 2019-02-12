@@ -562,7 +562,7 @@ impl BaseAlignment {
             }
             self.ids.insert(i + offset, ids[offset].to_string());
             self.descriptions.insert(i + offset, descriptions[offset].to_string());
-            self.sequences.insert(i + offset, sequences[offset].chars().count().to_string());
+            self.sequences.insert(i + offset, sequences[offset].to_string());
         }
         Ok(())
     }
