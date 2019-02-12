@@ -1,6 +1,10 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 
+use std::fs::File;
+use std::io::{BufReader, BufRead};
+use regex::Regex;
+
 use crate::record::Record;
 
 #[pyclass(subclass)]
@@ -26,10 +30,12 @@ impl BaseAlignment {
     #[new]
     /// Creates a new BaseAlignment object from a list of ids, descriptions,
     /// and sequences.
-    fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>,
+               sequences: Vec<&str>) -> PyResult<()> {
         if (ids.len() != descriptions.len()) ||
            (ids.len() != sequences.len()) {
-            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "id, description, and sequence lists must have the same length"))
         }
         obj.init(|_| {
             BaseAlignment { 
@@ -43,7 +49,8 @@ impl BaseAlignment {
 
     /// Returns the sample id, description, and sequence at the given index as
     /// as a Sample object.
-    fn get_row(&self, i: usize) -> PyResult<Record> {  // TODO: Change this to Record to generalize Sample and Marker records
+    fn get_row(&self, i: usize) -> PyResult<Record> {
+        // TODO: Change this to Record to generalize Sample and Marker records
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         } else if self._nrows() <= i {
@@ -231,7 +238,8 @@ impl BaseAlignment {
     /// Sets many sample IDs simulateneously using a list of indices.
     fn set_ids(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err("index and id lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "index and id lists must have the same length"))
         }
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -258,7 +266,8 @@ impl BaseAlignment {
     /// Sets many sample descriptions simulateneously using a list of indices.
     fn set_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err("index and description lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "index and description lists must have the same length"))
         }
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -287,7 +296,8 @@ impl BaseAlignment {
     /// Sets many sample sequences simulateneously using a list of indices.
     fn set_sequences(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err("index and sequence lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "index and sequence lists must have the same length"))
         }
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -314,7 +324,9 @@ impl BaseAlignment {
             Err(x) => return Err(x)
         };
         if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err(format!("number of matched rows is not equal to the length of the given sequence list: {} != {}", ids.len(), values.len())))
+            return Err(exceptions::ValueError::py_err(
+                format!("number of matched rows is not equal to the length \
+                         of the given sequence list: {} != {}", ids.len(), values.len())))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
             if self._nrows() <= i {
@@ -530,37 +542,45 @@ impl BaseAlignment {
     // TODO: Insert/append ONE sample using Record object
 
     /// Inserts one or more samples at the specified position.
-    fn insert_rows(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn insert_rows(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>,
+                   sequences: Vec<&str>) -> PyResult<()> {
         let i = i as usize;
         if self._nrows() <= i {
             return Err(exceptions::IndexError::py_err("sample index out of range"))
         }
         if (ids.len() != descriptions.len()) ||
            (ids.len() != sequences.len()) {
-            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "id, description, and sequence lists must have the same length"))
         }
         for offset in 0..sequences.len() {
             let seq_len = sequences[offset].chars().count();
             if self._nrows() > 0 && self._ncols() != seq_len {
-                return Err(exceptions::ValueError::py_err(format!("sequence length does not match the alignment length: {} != {}", seq_len, self._ncols())))
+                return Err(exceptions::ValueError::py_err(
+                    format!("sequence length does not match the alignment length: {} != {}",
+                    seq_len, self._ncols())))
             }
             self.ids.insert(i + offset, ids[offset].to_string());
             self.descriptions.insert(i + offset, descriptions[offset].to_string());
-            self.sequences.insert(i + offset, sequences[offset].chars().count().to_string());
+            self.sequences.insert(i + offset, sequences[offset].to_string());
         }
         Ok(())
     }
 
     /// Appends one or more samples at the end of the list.
-    fn append_rows(&mut self, ids: Vec<&str>, descriptions: Vec<&str>, sequences: Vec<&str>) -> PyResult<()> {
+    fn append_rows(&mut self, ids: Vec<&str>, descriptions: Vec<&str>,
+                   sequences: Vec<&str>) -> PyResult<()> {
         if (ids.len() != descriptions.len()) ||
            (ids.len() != sequences.len()) {
-            return Err(exceptions::ValueError::py_err("id, description, and sequence lists must have the same length"))
+            return Err(exceptions::ValueError::py_err(
+                "id, description, and sequence lists must have the same length"))
         }
         for offset in 0..sequences.len() {
             let seq_len = sequences[offset].chars().count();
             if self._nrows() > 0 && self._ncols() != seq_len {
-                return Err(exceptions::ValueError::py_err(format!("sequence length does not match the alignment length: {} != {}", seq_len, self._ncols())))
+                return Err(exceptions::ValueError::py_err(
+                    format!("sequence length does not match the alignment length: {} != {}",
+                            seq_len, self._ncols())))
             }
             self.ids.push(ids[offset].to_string());
             self.descriptions.push(descriptions[offset].to_string());
@@ -671,7 +691,9 @@ impl BaseAlignment {
             for aln in aln_list.iter() {
                 let aln_len = aln.sequences.len();
                 if aln_len != sequence_len {
-                    return Err(exceptions::ValueError::py_err(format!("cannot concatenate alignments with unequal number of samples: {} != {}", sequence_len, aln_len)))
+                    return Err(exceptions::ValueError::py_err(
+                        format!("cannot concatenate alignments with \
+                                 unequal number of samples: {} != {}", sequence_len, aln_len)))
                 }
                 sequences[i].push_str(&aln.sequences[i]);
             }
@@ -769,6 +791,90 @@ impl BaseAlignment {
     }
 }
 
+lazy_static! {
+    static ref WS: Regex = Regex::new(r"\s+").unwrap();
+}
+
+#[pyfunction]
+/// fasta_file_to_basealignments(data_str)
+/// 
+/// Reads FASTA file and creates marker and sequence BaseAlignments.
+fn fasta_file_to_basealignments(path: &str, marker_kw: &str) -> 
+        PyResult<(BaseAlignment, BaseAlignment)> {
+    // Open the path in read-only mode, returns `io::Result<File>`
+    let f = match File::open(path) {
+        Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while trying to open file {:?}: {:?}", path, x.kind()))),
+        Ok(x) => x
+    };
+    let f = BufReader::new(f);
+
+    // Declare variables
+    let mut s_ids: Vec<String> = Vec::new();
+    let mut s_descriptions: Vec<String> = Vec::new();
+    let mut s_sequences: Vec<String> = Vec::new();
+
+    let mut m_ids: Vec<String> = Vec::new();
+    let mut m_descriptions: Vec<String> = Vec::new();
+    let mut m_sequences: Vec<String> = Vec::new();
+
+    let mut id = String::new();
+    let mut description = String::new();
+    let mut sequence = String::new();
+
+    // Match regexp
+    for line in f.lines() {
+        let line = match line {
+            Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while reading file {:?}: {:?}", path, x.kind()))),
+            Ok(x) => x.trim().to_string()
+        };
+        if line.starts_with(">") {
+            if sequence.len() > 0 {
+                if marker_kw != "" && id.contains(marker_kw) {
+                    m_ids.push(id.clone());
+                    m_descriptions.push(description.clone());
+                    m_sequences.push(sequence.clone());
+                } else {
+                    s_ids.push(id.clone());
+                    s_descriptions.push(description.clone());
+                    s_sequences.push(sequence.clone());
+                }
+                sequence.clear();
+            }
+            let matches: Vec<&str> = WS.splitn(line.trim_start_matches(">"), 2).collect();
+            id = matches[0].to_string();
+            description = match matches.len() {
+                l if l == 2 => matches[1].to_string(),
+                _ => String::new(),
+            };
+        } else {
+            sequence.push_str(&line);
+        }
+    }
+    if sequence.len() > 0 {
+        if marker_kw != "" && id.contains(marker_kw) {
+            m_ids.push(id);
+            m_descriptions.push(description);
+            m_sequences.push(sequence.clone());
+        } else {
+            s_ids.push(id);
+            s_descriptions.push(description);
+            s_sequences.push(sequence.clone());
+        }
+        sequence.clear();
+    }
+    let sample_aln = BaseAlignment {
+        ids: s_ids,
+        descriptions: s_descriptions,
+        sequences: s_sequences,
+    };
+    let marker_aln = BaseAlignment {
+        ids: m_ids,
+        descriptions: m_descriptions,
+        sequences: m_sequences,
+    };
+    Ok((sample_aln, marker_aln))
+}
+
 #[pyfunction]
 /// Concatenates a list of alignments over the site (column) axis.
 fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignment> {
@@ -783,7 +889,9 @@ fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignmen
         for aln in aln_list.iter() {
             let aln_len = aln.sequences.len();
             if aln_len != sequence_len {
-                return Err(exceptions::ValueError::py_err(format!("cannot concatenate alignments with unequal number of samples: {} != {}", sequence_len, aln_len)))
+                return Err(exceptions::ValueError::py_err(
+                    format!("cannot concatenate alignments with unequal number of samples: {} != {}", 
+                            sequence_len, aln_len)))
             }
             sequences[i].push_str(&aln.sequences[i]);
         }
@@ -794,10 +902,9 @@ fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignmen
 // Register python functions to PyO3
 #[pymodinit]
 fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_function!(concat_basealignments))?;
-
-    // Add Block class
     m.add_class::<BaseAlignment>()?;
+    m.add_function(wrap_function!(fasta_file_to_basealignments))?;
+    m.add_function(wrap_function!(concat_basealignments))?;
 
     Ok(())
 }

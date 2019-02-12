@@ -1,7 +1,7 @@
 import numpy as np
 import blockrs
-from libalignmentrs.alignment import BaseAlignment
-from libalignmentrs.fasta import fasta_file_to_basealignments
+from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
+from libalignmentrs.position import CoordSpace
 
 
 __all__ = ['Alignment']
@@ -32,7 +32,7 @@ class Alignment:
 
     """
 
-    def __init__(self, name, sample_alignment, marker_alignment):
+    def __init__(self, name, sample_alignment, marker_alignment, **kwargs):
         """Creates a new Alignment object from sample and marker alignments.
 
         Parameters
@@ -68,7 +68,13 @@ class Alignment:
         self.samples = sample_alignment
         self.markers = marker_alignment if marker_alignment else \
                        BaseAlignment([], [], [])
-        self.blocklists = []
+        if '_linspace' in kwargs.keys():
+            self._linspace: CoordSpace = kwargs['_linspace']
+        else:
+            start = kwargs['linspace_start'] \
+                    if 'linspace_start' in kwargs.keys() else 0
+            self._linspace: CoordSpace = CoordSpace(start,
+                                                    start + self.samples.nsites)
 
     # Properties to retrieve the number of rows in the alignment.
     # Because the alignment object distinguishes between samples and markers,
@@ -233,7 +239,8 @@ class Alignment:
         sample_aln = aln.samples.subset(sample_ids, sites)
         marker_aln = aln.samples.subset(marker_ids, sites) if aln.markers else \
                      None
-        return cls(aln.name, sample_aln, marker_aln)
+        return cls(aln.name, sample_aln, marker_aln,
+                   _linspace=aln._linspace.extract(sites))
 
     def get_samples(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the samples
@@ -290,7 +297,8 @@ class Alignment:
             raise TypeError('i must be an int, str, list of int, or list of str.')
         if sample_aln is None:
             raise ValueError('Value of `sample_aln` cannot be None.')
-        return self.__class__(self.name, sample_aln, None)
+        return self.__class__(self.name, sample_aln, None,
+                              _linspace=self._linspace.copy())
 
     def get_markers(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the markers
@@ -397,7 +405,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Calls specific set_sequence setter depending on the
         # type if i
@@ -455,7 +464,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Calls specific set_sequence setter depending on the
         # type if i
@@ -506,7 +516,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Calls specific set_sequence setter depending on the
         # type if i
@@ -559,7 +570,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         if isinstance(i, int):
             aln.samples.remove_rows([i])
@@ -618,7 +630,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         if isinstance(i, int):
             aln.samples.retain_rows([i])
@@ -670,7 +683,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Check type of i, and convert if necessary
         if isinstance(i, int):
@@ -681,18 +695,19 @@ class Alignment:
             aln.markers.remove_sites(i)
             assert aln.samples.nsites == aln.markers.nsites, \
                 "Sample and marker nsites are not equal."
-        # Update blocks if exists
-        if aln.blocklists:
-            aln.blocklists = [
-                blockrs.remove_sites_from_blocks(blist, i)
-                for seq, blist in zip(aln.samples.sequences, aln.blocklists)]
-        # Update block data in description if description encoder is specified
-        if description_encoder:
-            aln.samples.set_descriptions(
-                list(range(aln.samples.nrows)),
-                [description_encoder(sid, blist)
-                 for sid, blist in zip(aln.samples.ids, aln.blocklists)]
-            )
+        # # Update blocks if exists
+        # if aln.blocklists:
+        #     aln.blocklists = [
+        #         blockrs.remove_sites_from_blocks(blist, i)
+        #         for seq, blist in zip(aln.samples.sequences, aln.blocklists)]
+        # # Update block data in description if description encoder is specified
+        # if description_encoder:
+        #     aln.samples.set_descriptions(
+        #         list(range(aln.samples.nrows)),
+        #         [description_encoder(sid, blist)
+        #          for sid, blist in zip(aln.samples.ids, aln.blocklists)]
+        #     )
+        aln._linspace.remove(i)
         if copy:
             return aln
 
@@ -723,7 +738,8 @@ class Alignment:
 
         """
         aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy()) if copy else \
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
             self
         # Check type of i, and convert if necessary
         if isinstance(i, int):
@@ -734,19 +750,20 @@ class Alignment:
             aln.markers.retain_sites(i)
             assert aln.samples.nsites == aln.markers.nsites, \
                 "Sample and marker nsites are not equal."
-        # Update blocks if exists
-        if aln.blocklists:
-            j = [pos for pos in range(aln.samples.nsites) if pos not in i]
-            aln.blocklists = [
-                blockrs.remove_sites_from_blocks(blist, j)
-                for seq, blist in zip(aln.samples.sequences, aln.blocklists)]
-        # Update block data in description if description encoder is specified
-        if description_encoder:
-            aln.samples.set_descriptions(
-                list(range(aln.samples.nrows)),
-                [description_encoder(sid, blist)
-                 for sid, blist in zip(aln.samples.ids, aln.blocklists)]
-            )
+        # # Update blocks if exists
+        # if aln.blocklists:
+        #     j = [pos for pos in range(aln.samples.nsites) if pos not in i]
+        #     aln.blocklists = [
+        #         blockrs.remove_sites_from_blocks(blist, j)
+        #         for seq, blist in zip(aln.samples.sequences, aln.blocklists)]
+        # # Update block data in description if description encoder is specified
+        # if description_encoder:
+        #     aln.samples.set_descriptions(
+        #         list(range(aln.samples.nrows)),
+        #         [description_encoder(sid, blist)
+        #          for sid, blist in zip(aln.samples.ids, aln.blocklists)]
+        #     )
+        aln._linspace.retain(i)
         if copy:
             return aln
 
@@ -945,79 +962,79 @@ class Alignment:
 
     # Block-related methods
 
-    def set_blocklists(self, ref_seq, description_encoder=None):
-        """Creates new block information for the sequences given a reference.
+    # def set_blocklists(self, ref_seq, description_encoder=None):
+    #     """Creates new block information for the sequences given a reference.
 
-        Parameters
-        ----------
-        ref_seq : str
-            Reference sequence length must match alignment length.
-        description_encoder : function, optional
-            Function that uses the sample's name and list of blocks
-            to generate a string representation of the sample's block data.
-            If not specified, but site tracking is enabled, block data are
-            updated but the string representation in the description is not
-            updated. (default is None)
+    #     Parameters
+    #     ----------
+    #     ref_seq : str
+    #         Reference sequence length must match alignment length.
+    #     description_encoder : function, optional
+    #         Function that uses the sample's name and list of blocks
+    #         to generate a string representation of the sample's block data.
+    #         If not specified, but site tracking is enabled, block data are
+    #         updated but the string representation in the description is not
+    #         updated. (default is None)
 
-        """
-        self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
-                           for seq in self.samples.sequences]
-        if description_encoder:
-            self.samples.set_descriptions(
-                list(range(self.samples.nrows)),
-                [description_encoder(sid, blist)
-                 for sid, blist in zip(self.samples.ids, self.blocklists)]
-            )
+    #     """
+    #     self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
+    #                        for seq in self.samples.sequences]
+    #     if description_encoder:
+    #         self.samples.set_descriptions(
+    #             list(range(self.samples.nrows)),
+    #             [description_encoder(sid, blist)
+    #              for sid, blist in zip(self.samples.ids, self.blocklists)]
+    #         )
 
-    def parse_description_as_blocks(self, description_decoder=None):
-        """Parses sample description into block data.
+    # def parse_description_as_blocks(self, description_decoder=None):
+    #     """Parses sample description into block data.
 
-        Parameters
-        ----------
-        description_decoder : function
-            Function that locates the string representation of the list of
-            blocks from the text in the sample's description.
-            If not specified, the string after last under underscore "_" in
-            the description will be considered the stringed list of
-            blocks.
+    #     Parameters
+    #     ----------
+    #     description_decoder : function
+    #         Function that locates the string representation of the list of
+    #         blocks from the text in the sample's description.
+    #         If not specified, the string after last under underscore "_" in
+    #         the description will be considered the stringed list of
+    #         blocks.
 
-        """
-        if not self.blocklists:
-            self.blocklists = [None for _ in range(self.samples.nrows)]
-        for i, desc in enumerate(self.samples.descriptions):
-            if description_decoder:
-                desc = description_decoder(desc)
-            else:
-                desc = desc.split('_')[-1]
-            # Parse block str into blocks
-            self.blocklists[i] = blockrs.libblock.from_block_str(desc)
+    #     """
+    #     if not self.blocklists:
+    #         self.blocklists = [None for _ in range(self.samples.nrows)]
+    #     for i, desc in enumerate(self.samples.descriptions):
+    #         if description_decoder:
+    #             desc = description_decoder(desc)
+    #         else:
+    #             desc = desc.split('_')[-1]
+    #         # Parse block str into blocks
+    #         self.blocklists[i] = blockrs.libblock.from_block_str(desc)
 
-    def write_blocks_to_description(self, description_encoder):
-        """Writes each sample's block data as a string, replacing its
-        description.
+    # def write_blocks_to_description(self, description_encoder):
+    #     """Writes each sample's block data as a string, replacing its
+    #     description.
 
-        Parameters
-        ----------
-        description_encoder : function, optional
-            This function returns a formatted string encoding the block data.
-            The block string will replace the sample's description.
-            This function receives two parameters, the sample ID and the
-            sample's block data. (default is None)
+    #     Parameters
+    #     ----------
+    #     description_encoder : function, optional
+    #         This function returns a formatted string encoding the block data.
+    #         The block string will replace the sample's description.
+    #         This function receives two parameters, the sample ID and the
+    #         sample's block data. (default is None)
 
-        Raises
-        ------
-        TypeError
-            Given parameter has the wrong parameter type.
+    #     Raises
+    #     ------
+    #     TypeError
+    #         Given parameter has the wrong parameter type.
 
-        """
-        if self.blocklists:
-            self.samples.set_descriptions(
-                list(range(self.samples.nrows)),
-                [description_encoder(sid, blist)
-                 for sid, blist in zip(self.samples.ids, self.blocklists)]
-            )
-        else:
-            raise ValueError('Block list is empty')
+    #     """
+    #     if self.blocklists:
+    #         self.samples.set_descriptions(
+    #             list(range(self.samples.nrows)),
+    #             [description_encoder(sid, blist)
+    #              for sid, blist in zip(self.samples.ids, self.blocklists)]
+    #         )
+    #     else:
+    #         raise ValueError('Block list is empty')
 
     # Special methods
 

@@ -1,5 +1,5 @@
 import numpy as np
-from libalignmentrs.fasta import fasta_file_to_basealignments
+from libalignmentrs.alignment import fasta_file_to_basealignments
 from alignmentrs.aln import Alignment
 
 
@@ -30,7 +30,8 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
 
 
 def mark_sites_with_chars(aln, target_list, size=1,
-                          ignore_case=True, inverse=False, copy=False):
+                          ignore_case=True, inverse=False,
+                          copy=False, _sep='|'):
     """Adds markers to the alignment indicating which sites
     matche/contain the target character or string.
 
@@ -99,6 +100,7 @@ def mark_sites_with_chars(aln, target_list, size=1,
                 # If target is found, include the current position i
                 if changer(variant) in [changer(t) for t in target]
             ]
+            target_name = _sep.join(target)
         else:
             position_list = [
                 i
@@ -110,11 +112,12 @@ def mark_sites_with_chars(aln, target_list, size=1,
                 # If target is found, include the current position i
                 if changer(target) in changer(variant)
             ]
+            target_name = target
         filter_array[position_list] = 0
 
         # Add new marker
         aln.markers.append_rows(
-            ['{}_marker'.format(target)],
+            ['{}_marker'.format(target_name)],
             ['notes="{} if site has "{}", else {}"'.format(
                 t_c*size, target, f_c*size)],
             [''.join([t_c*size if i else f_c*size for i in filter_array])]

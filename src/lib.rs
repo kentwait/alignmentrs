@@ -6,7 +6,7 @@ extern crate regex;
 
 pub mod alignment;
 pub mod record;
-pub mod fasta;
+pub mod position;
 
 // #[cfg(test)]
 // mod tests {
