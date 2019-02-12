@@ -33,6 +33,6 @@ setup(
                         'lib/libalignmentrs/record.cpython-37m-darwin.so',
                         'lib/libalignmentrs/position.cpython-37m-darwin.so',
                         ]},
-    install_requires=['blockrs', 'numpy'],
+    install_requires=['numpy'],
     zip_safe=False,  # Rust extensions are not zip safe, like C-extensions.
 )
