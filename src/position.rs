@@ -561,8 +561,10 @@ impl CoordSpace {
                     let id = &ids[i];
                     if id == "s" {
                         new_data.push(x);
-                    } else {
+                    } else if id == "g" {
                         new_data.push(-1);
+                    } else {
+                        return Err(exceptions::ValueError::py_err(format!("unsupported ID: {}. Use \"s\" for sequence or \"g\" for gap.", id)))
                     }
                 }
                 Ok(CoordSpace { coords: new_data })
@@ -590,7 +592,7 @@ impl CoordSpace {
             } else if id == "g" {
                 coords.push(-1);
             } else {
-                return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", x)))
+                return Err(exceptions::ValueError::py_err(format!("unsupported ID: {}. Use \"s\" for sequence or \"g\" for gap.", id)))
             }
         }
         Ok(CoordSpace{ coords })
