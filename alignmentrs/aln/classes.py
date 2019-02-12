@@ -71,7 +71,10 @@ class Alignment:
         if '_linspace' in kwargs.keys():
             self._linspace: CoordSpace = kwargs['_linspace']
         else:
-            self._linspace: CoordSpace = CoordSpace(0, self.samples.nsites)
+            start = kwargs['linspace_start'] \
+                    if 'linspace_start' in kwargs.keys() else 0
+            self._linspace: CoordSpace = CoordSpace(start,
+                                                    start + self.samples.nsites)
 
     # Properties to retrieve the number of rows in the alignment.
     # Because the alignment object distinguishes between samples and markers,
