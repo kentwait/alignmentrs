@@ -491,6 +491,18 @@ impl CoordSpace {
 
     /// Extracts coordinates by relative positions as a new CoordSpace.
     fn extract(&self, coords: Vec<i32>) -> PyResult<CoordSpace> {
+        let max = match coords.iter().max() {
+            Some(x) => {
+                if max >= self.coords.len() {
+                    return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
+                }
+                x
+            },
+            None => {
+                return Ok(CoordSpace { coords: self.coords.clone()})
+                }
+            }
+        };
         let coords: Vec<i32> = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
         Ok(CoordSpace{ coords })
     }
@@ -498,6 +510,17 @@ impl CoordSpace {
     /// Removes points in linear space given based on a list of relative
     /// coordinates.
     fn remove(&mut self, coords: Vec<i32>) -> PyResult<()> {
+        let max = match coords.iter().max() {
+            Some(x) => {
+                if max >= self.coords.len() {
+                    return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
+                }
+                x
+            },
+            None => {
+                return Ok(())
+            }
+        };
         self.coords = self.coords.iter().enumerate().filter(|(i, _)| !coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
         Ok(())
     }
@@ -505,40 +528,52 @@ impl CoordSpace {
     /// Retains points in linear space specified by a
     /// list of coordinates to keep.
     fn retain(&mut self, coords: Vec<i32>) -> PyResult<()> {
+        let max = match coords.iter().max() {
+            Some(x) => {
+                if max >= self.coords.len() {
+                    return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
+                }
+                x
+            },
+            None => {
+                self.coords = Vec::new();
+                return Ok(())
+            }
+        };
         self.coords = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
         Ok(())
     }
 
-    /// Inserts into the linear space at the given position.
-    fn insert(&mut self, pos: i32, start: i32, length: i32) -> PyResult<()> {
-        // Insert to start of list if pos is 0,
-        // Append to end of list if pos is the length,
-        // Otherwise split at the position and concat
-        if pos == 0 {
-            let mut new_coords: Vec<i32> = (start..start+length).collect();
-            new_coords.append(&mut self.coords);
-            self.coords = new_coords;
-            return Ok(())
-        } else if pos == self.coords.len() as i32 {
-            return self.append(start, length)
-        }
-        // Split list into two and combine
-        let mut new_coords: Vec<i32> = (start..start+length).collect();
-        let (left, right) = self.coords.split_at(pos as usize);
-        let mut left: Vec<i32> = left.iter().map(|x| *x ).collect();
-        let mut right: Vec<i32> = right.iter().map(|x| *x ).collect();
-        left.append(&mut new_coords);
-        left.append(&mut right);
-        self.coords = left;
-        Ok(())
-    }
+    // /// Inserts into the linear space at the given position.
+    // fn insert(&mut self, pos: i32, start: i32, length: i32) -> PyResult<()> {
+    //     // Insert to start of list if pos is 0,
+    //     // Append to end of list if pos is the length,
+    //     // Otherwise split at the position and concat
+    //     if pos == 0 {
+    //         let mut new_coords: Vec<i32> = (start..start+length).collect();
+    //         new_coords.append(&mut self.coords);
+    //         self.coords = new_coords;
+    //         return Ok(())
+    //     } else if pos == self.coords.len() as i32 {
+    //         return self.append(start, length)
+    //     } // TODO: else if pos > self.coords.len()
+    //     // Split list into two and combine
+    //     let mut new_coords: Vec<i32> = (start..start+length).collect();
+    //     let (left, right) = self.coords.split_at(pos as usize);
+    //     let mut left: Vec<i32> = left.iter().map(|x| *x ).collect();
+    //     let mut right: Vec<i32> = right.iter().map(|x| *x ).collect();
+    //     left.append(&mut new_coords);
+    //     left.append(&mut right);
+    //     self.coords = left;
+    //     Ok(())
+    // }
 
-    /// Appends to the end of the linear space.
-    fn append(&mut self, start: i32, length: i32) -> PyResult<()> {
-        let mut new_coords: Vec<i32> = (start..start+length).collect();
-        self.coords.append(&mut new_coords);
-        Ok(())
-    }
+    // /// Appends to the end of the linear space.
+    // fn append(&mut self, start: i32, length: i32) -> PyResult<()> {
+    //     let mut new_coords: Vec<i32> = (start..start+length).collect();
+    //     self.coords.append(&mut new_coords);
+    //     Ok(())
+    // }
 
     // start, stop, full_len
 
