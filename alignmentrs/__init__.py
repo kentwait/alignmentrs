@@ -10,7 +10,7 @@ from alignmentrs.alnset import AlignmentSet, fasta_directory_to_alignmentset
 
 
 __author__ = 'Kent Kawashima'
-__version__ = '0.8.4postfix1'
+__version__ = '0.8.5'
 __all__ = [
     # From dynamic library
     'BaseAlignment', 'Record', 'Block', 'CoordSpace', 'librs',
