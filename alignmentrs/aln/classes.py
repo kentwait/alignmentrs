@@ -237,7 +237,7 @@ class Alignment:
         marker_aln = aln.samples.subset(marker_ids, sites) if aln.markers else \
                      None
         return cls(aln.name, sample_aln, marker_aln,
-                   _linspace=aln._linspace.copy().retain(sites))
+                   _linspace=aln._linspace.extract(sites))
 
     def get_samples(self, i, match_prefix=False, match_suffix=False):
         """Returns a list of sequence strings containing only the samples
