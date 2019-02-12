@@ -177,5 +177,5 @@ Cargo.lock
 # Ignores .cargo/config which is specific to MacOS
 /.cargo/config
 
-# Nose tests
+# Ignores noseids
 .noseids
