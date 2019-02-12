@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
+use pyo3::types::PyDict;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -104,6 +105,643 @@ impl PyObjectProtocol for Block {
     }
 }
 
+#[pyclass(subclass)]
+#[derive(Clone)]
+/// LinearSpace(init_state, start, stop)
+/// 
+/// LinearSpace represents a discrete linear space stored
+/// in intervals called Blocks.
+pub struct LinearSpace {
+
+    #[prop(get)]
+    start: i32,
+
+    #[prop(get)]
+    stop: i32,
+
+    lookup: Vec<(String, i32)>,
+
+    blocks: Vec<[i32; 3]>,
+
+}
+
+#[pyproto]
+impl PyObjectProtocol for LinearSpace {
+    fn __repr__(&self) -> PyResult<String> {
+        let start = match self.start() {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        let stop = match self.stop() {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        let length = match self.len_all() {
+            Ok(x) => x,
+            Err(x) => return Err(x)
+        };
+        Ok(format!("LinearSpace(start={}, stop={}, length={})", start, stop, length))
+    }
+    
+    fn __str__(&self) -> PyResult<String> {
+        let mut strings: Vec<String> = Vec::new();
+        if let Ok(blocks) = self.to_blocks() {
+            for block in blocks {
+                if let Ok(s) = block.__str__() {
+                    strings.push(s);
+                } else {
+                    return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
+                }
+            }
+        } else {
+            return Err(exceptions::ValueError::py_err("cannot generate blocks"))
+        }
+        Ok(strings.join(","))
+    }
+}
+
+#[pymethods]
+impl LinearSpace {
+    #[new]
+    /// Creates a new LinearSpace object from an init_state, and start and stop
+    /// coordinates.
+    fn __new__(obj: &PyRawObject, start: i32, stop: i32, init_state: &str,  state_int_map: Vec<(String, i32)>) -> PyResult<()> {
+        if start > stop {
+            return Err(exceptions::ValueError::py_err(
+                format!("start must be less than stop: {} !< {}",
+                        start, stop)))
+        }
+        let mut state_int_map = state_int_map;
+        state_int_map.sort_by_key(|&(n, _)| n);
+        let init_int: i32 = match state_int_map.binary_search_by_key(&init_state.to_string(), |&(x, _)| x) {
+            Ok(i) => state_int_map[i].1,
+            Err(_) => {
+                return Err(exceptions::IndexError::py_err("state not found in state_int_map"))
+            }
+        };
+        obj.init(|_| {
+            LinearSpace { 
+                start: start,
+                stop: stop,
+                lookup: state_int_map.clone(),
+                blocks: vec![[start, stop, init_int]],
+            }
+        })
+    }
+
+    // Add extract function for "get"
+    // fn extract(&self, coords: Vec<i32>) ->PyResult<LinearSpace> {
+    // }
+    fn remove(&mut self, positions: Vec<i32>) -> PyResult<()> {
+        match self._remove(positions) {
+            Ok(_) => Ok(()),
+            Err(msg) => Err(exceptions::IndexError::py_err(msg.to_string()))
+        }
+    }
+
+    fn retain(&mut self, positions: Vec<i32>) -> PyResult<()> {
+        match self._retain(positions) {
+            Ok(_) => Ok(()),
+            Err(msg) => Err(exceptions::IndexError::py_err(msg.to_string()))
+        }
+    }
+
+    // start, stop, full_len
+
+    /// Returns the value at the start of the linear space.
+    fn _start(&self) -> PyResult<i32> {
+        match self.blocks.first() {
+            Some([_, x, _]) => Ok(*x),
+            None => return Err(exceptions::ValueError::py_err("cannot get minimum position: block list is empty"))
+        }
+    }
+
+    /// Returns the end value of the linear space.
+    /// This value is not part of the space.
+    fn _stop(&self) -> PyResult<i32> {
+        match self.blocks.last() {
+            Some([_, _, x]) => Ok(*x),
+            None => return Err(exceptions::ValueError::py_err("cannot get maximum position: block list is empty"))
+        }
+    }
+
+    /// Returns the total length of the linear space.
+    fn len(&self) -> i32 {
+        let mut length = 0;
+        for [start, stop, _] in self.blocks.iter() {
+            let (start, stop) = (*start, *stop);
+            length += stop - start;
+        }
+        length
+    }
+
+    /// Returns the total length of the linear space where the
+    /// state is equal to 1.
+    fn len_seq(&self) -> PyResult<i32> {
+        let mut length = 0;
+        for [id, start, stop] in self.blocks.iter() {
+            let (id, start, stop) = (*id, *start, *stop);
+            if id == 1 {
+                length += stop - start;
+            }
+        }
+        Ok(length)
+    }
+
+    /// Returns the total length of the linear space where the
+    /// state is equal to 0.
+    fn len_gap(&self) -> PyResult<i32> {
+        let mut length = 0;
+        for [id, start, stop] in self.blocks.iter() {
+            let (id, start, stop) = (*id, *start, *stop);
+            if id == 0 {
+                length += stop - start;
+            }
+        }
+        Ok(length)
+    }
+    
+    // Format conversion
+
+    #[staticmethod]
+    /// Returns a linear space created using the given list of blocks.
+    fn from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<LinearSpace> {
+        match arrays_to_blocks(data, ids) {
+            Ok(x) => {
+                let mut blocks: Vec<[i32; 3]> = Vec::new();
+                for Block{ id, start, stop } in x.iter() {
+                    let start = *start;
+                    let stop = *stop;
+                    if id == "s" {
+                        blocks.push([1, start, stop]);
+                    } else if id == "g" {
+                        blocks.push([0, start, stop]);
+                    } else {
+                        return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", id)))
+                    }
+                }
+                Ok(LinearSpace{ blocks })
+            },
+            Err(x) => Err(x),
+        }
+    }
+
+    #[staticmethod]
+    /// Returns a linear space created using the given list of blocks.
+    fn from_blocks(blocks: Vec<&Block>) -> PyResult<LinearSpace> {
+        let mut data: Vec<[i32; 3]> = Vec::new();
+        for Block{ id, start, stop} in blocks.iter() {
+            let id: i32 = match id.parse() {
+                Ok(x) => x,
+                Err(_) => return Err(exceptions::TypeError::py_err("Cannot parse block id, maybe not i32?"))
+            };
+            data.push([id, *start, *stop]);
+        }
+        Ok(LinearSpace { blocks: data })
+    }
+
+    /// Returns the linear space as a list of blocks.
+    fn to_blocks(&self) -> PyResult<Vec<Block>> {
+        Ok(
+            self.blocks.iter()
+                .map(|[id, start, stop]| {
+                    let id = match *id {
+                        1 => "s",
+                        _ => "g"
+                    }.to_string();
+                    Block { id, start: *start, stop: *stop }
+                }).collect()
+        )
+    }
+
+    /// Returns the linear space as a list of integer coordinates.
+    fn to_arrays(&self) -> PyResult<(Vec<i32>, Vec<String>)> {
+        let mut data: Vec<i32> = Vec::new();
+        let mut ids: Vec<String> = Vec::new();
+        for [id, start, stop] in self.blocks.iter() {
+            let (id, start, stop) = (*id, *start, *stop);
+            if id == 1 {
+                let mut data_array: Vec<i32> = (start..stop).map(|x| x).collect();
+                let mut id_array: Vec<String> = vec!["s".to_string(); data_array.len()];
+                data.append(&mut data_array);
+                ids.append(&mut id_array);
+            } else if id == 0 {
+                let mut data_array: Vec<i32> = (start..stop).map(|_| -1).collect();
+                let mut id_array: Vec<String> = vec!["g".to_string(); data_array.len()];
+                data.append(&mut data_array);
+                ids.append(&mut id_array);
+            } else {
+                return Err(exceptions::ValueError::py_err(format!("unexpected id value: {}", id)))
+            }
+
+        }
+        Ok((data, ids))
+    }
+
+    // Formatting methods
+
+    /// Converts block into a compressed string representation.
+    fn to_compressed_str(&self) -> PyResult<String> {
+        self.__str__()
+    }
+
+    /// Converts block into an extended (human-readable) string
+    /// representation.
+    fn to_extended_str(&self) -> PyResult<String> {
+        let mut strings: Vec<String> = Vec::new();
+        if let Ok(blocks) = self.to_blocks() {
+            for block in blocks {
+                if let Ok(s) = block.to_extended_str() {
+                    strings.push(s);
+                } else {
+                    return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
+                }
+            }
+        } else {
+            return Err(exceptions::ValueError::py_err("cannot generate blocks"))
+        }
+        Ok(strings.join(","))
+    }
+
+    /// Converts block into comma-separated list of positions.
+    fn to_array_str(&self) -> PyResult<String> {
+        let mut strings: Vec<String> = Vec::new();
+        if let Ok(blocks) = self.to_blocks() {
+            for block in blocks {
+                if let Ok(s) = block.to_array_str() {
+                    strings.push(s);
+                } else {
+                    return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
+                }
+            }
+        } else {
+            return Err(exceptions::ValueError::py_err("cannot generate blocks"))
+        }
+        Ok(strings.join(","))
+    }
+
+    /// Returns a deep copy of the current linear space.
+    fn copy(&self) -> PyResult<LinearSpace> {
+        let blocks = self.blocks.clone();
+        Ok(LinearSpace{ blocks })
+    }
+}
+
+impl LinearSpace {
+    fn _remove(&mut self, positions: Vec<i32>) -> Result<(), &str> {
+        // Check if positions list is empty or not using max()
+        if let Some(max) = positions.iter().max() {
+            // If largest relative position is larger than the total length
+            // of the linear space, then return an error
+            if *max >= self.len() {
+                return Err(&format!("index out of range: {}", max))
+            }
+            // Create a vector of arrays representing relative start and stops
+            let mut start_offset = 0;
+            let rel_blocks: Vec<[i32;2]> = self.blocks.iter().map(|[a, z, _]| 
+            {
+                let length = z - a;
+                start_offset += length;
+                [start_offset-length, start_offset]
+            }).collect();
+            // Sort positions in reverse order
+            let mut positions = positions;
+            positions.sort_unstable();
+            positions.reverse();
+            let mut offset = 0;
+            for &rel_pos in positions.iter() {
+                let length = rel_blocks.len() - offset;
+                for i in (0..length).rev() {
+                    let [rel_start, rel_stop]: [i32; 2] = rel_blocks[i];
+                    let [abs_start, abs_stop, id]: [i32; 3] = self.blocks[i];
+                    if rel_pos > rel_start && rel_pos < rel_stop - 1 {
+                        // Remove block currently at j and get values
+                        // Split this block at pos
+                        // 10,11,12,13,14,15 : remove at index 2 (3rd pos)
+                        // [_,10,16]
+                        // 10,11,   13,14,15
+                        // [_,10,12], [13:16]
+                        // Insert two new blocks at j and j+1
+                        let abs_pos = abs_start + (rel_pos - rel_start);
+                        self.blocks[i] = [abs_start, abs_pos, id];
+                        self.blocks.insert(i+1, [abs_pos+1, abs_stop, id]);
+                        offset += 1;
+                        break;
+                    } else if rel_pos == rel_start {
+                        if abs_start+1 == abs_stop {
+                            let _ = self.blocks.remove(i);
+                            // no offset increment
+                        } else {
+                            self.blocks[i] = [abs_start+1, abs_stop, id];
+                            offset += 1;
+                        }
+                        break;
+                    } else if rel_pos == rel_stop - 1 {
+                        self.blocks[i] = [abs_start, abs_stop-1, id];
+                        // no offset increment
+                        break;
+                    }
+                }
+            }
+        } 
+        Ok(())
+    }
+
+    fn _retain(&mut self, positions: Vec<i32>) -> Result<(), &str> {
+        // Check if positions list is empty or not using max()
+        if let Some(max) = positions.iter().max() {
+            // If largest relative position is larger than the total length
+            // of the linear space, then return an error
+            if *max >= self.len() {
+                return Err(&format!("index out of range: {}", max))
+            }
+            let inverse_rel_positions: Vec<i32> = (0..self.len())
+                .filter(|x| !positions.contains(x))
+                .collect();
+            return self._remove(inverse_rel_positions)
+        } 
+        Ok(())
+    }
+
+    // fn insert(&mut self, pos: i32, state: i32, length: i32) -> PyResult<()> {
+    //     Ok(())
+    // }
+
+    // These methods relies on reading into the block
+    // But another way to access it is the relative position of the block
+
+    /// Removes points in linear space given based on a list of coordinates.
+    fn _remove_abs(&mut self, positions: Vec<i32>) -> PyResult<()> {
+        let mut positions = positions;
+        positions.sort_unstable();
+        positions.reverse();
+        let mut offset = 0;
+        for &pos in positions.iter() {
+            let length = self.blocks.len() - offset;
+            for i in (0..length).rev() {
+                let [start, stop, id]: [i32; 3] = self.blocks[i];
+                if pos > start && pos < stop - 1 {
+                    // Remove block currently at j and get values
+                    // Split this block at pos
+                    // 10,11,12,13,14,15 : remove at index 2 (3rd pos)
+                    // [_,10,16]
+                    // 10,11,   13,14,15
+                    // [_,10,12], [13:16]
+                    // Insert two new blocks at j and j+1
+                    self.blocks[i] = [start, pos, id];
+                    self.blocks.insert(i+1, [pos+1, stop, id]);
+                    offset += 1;
+                } else if pos == start {
+                    if start == stop - 1 {
+                        let _ = self.blocks.remove(i);
+                        // no offset increment
+                    } else {
+                        self.blocks[i] = [pos+1, stop, id];
+                        // no offset increment
+                    }
+                } else if pos == stop - 1 {
+                    self.blocks[i] = [start, pos, id];
+                    // no offset increment
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Retains points in linear space specified by a
+    /// list of coordinates to keep.
+    fn _retain_abs(&mut self, coords: Vec<i32>) -> PyResult<()> {
+        if let Some([_, _, stop]) = self.blocks.last() {
+            let inverse_ilist: Vec<i32> = (0..*stop)
+                                            .filter(|x| !coords.contains(x))
+                                            .collect();
+            return self.remove(inverse_ilist)
+        };
+        Err(exceptions::ValueError::py_err("cannot perform retain on \
+                                            dimension: block list is empty"))
+    }
+
+    /// Inserts into the linear space at the given position.
+    fn _insert_abs(&mut self, pos: i32, state: i32, length: i32) -> PyResult<()> {
+        for i in 0..self.blocks.len() {
+            let [id, start, stop] = self.blocks[i];
+            if start >= pos && stop < pos {
+                if id == state {
+                    // Extend current block
+                    self.blocks[i] = [id, start, stop + length];
+                } else {
+                    // Create new state
+                    self.blocks.insert(i + 1, [id, stop, stop + length]);
+                }
+                // Adjust
+                for j in i..self.blocks.len() {
+                    let [id, start, stop] = self.blocks[j];
+                    self.blocks[j] = [id, start+length, stop+length];
+                }
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    /// Appends to the end of the linear space.
+    fn _append_abs(&mut self, state: i32, length: i32) -> PyResult<()> {
+        if let Some([id, start, stop]) = self.blocks.last() {
+            let (id, start, stop) = (*id, *start, *stop);
+            let i = self.blocks.len();
+            if id == state {
+                // Extend current block
+                self.blocks[i] = [id, start, stop + length];
+            } else {
+                // Create new state
+                self.blocks.push([id, stop, stop + length]);
+            }
+        } else {
+            self.blocks.push([state, 0, length]);
+        }
+        Ok(())
+    }
+
+    // start, stop, full_len
+
+    /// Returns the value at the start of the linear space.
+    fn _start(&self) -> PyResult<i32> {
+        match self.blocks.first() {
+            Some([_, x, _]) => Ok(*x),
+            None => return Err(exceptions::ValueError::py_err("cannot get minimum position: block list is empty"))
+        }
+    }
+
+    /// Returns the end value of the linear space.
+    /// This value is not part of the space.
+    fn _stop(&self) -> PyResult<i32> {
+        match self.blocks.last() {
+            Some([_, _, x]) => Ok(*x),
+            None => return Err(exceptions::ValueError::py_err("cannot get maximum position: block list is empty"))
+        }
+    }
+
+    /// Returns the total length of the linear space.
+    fn _len(&self) -> i32 {
+        let mut length = 0;
+        for [start, stop, _] in self.blocks.iter() {
+            let (start, stop) = (*start, *stop);
+            length += stop - start;
+        }
+        length
+    }
+
+    /// Returns the total length of the linear space where the
+    /// state is equal to 1.
+    fn len_seq(&self) -> PyResult<i32> {
+        let mut length = 0;
+        for [id, start, stop] in self.blocks.iter() {
+            let (id, start, stop) = (*id, *start, *stop);
+            if id == 1 {
+                length += stop - start;
+            }
+        }
+        Ok(length)
+    }
+
+    /// Returns the total length of the linear space where the
+    /// state is equal to 0.
+    fn len_gap(&self) -> PyResult<i32> {
+        let mut length = 0;
+        for [id, start, stop] in self.blocks.iter() {
+            let (id, start, stop) = (*id, *start, *stop);
+            if id == 0 {
+                length += stop - start;
+            }
+        }
+        Ok(length)
+    }
+    
+    // Format conversion
+
+    #[staticmethod]
+    /// Returns a linear space created using the given list of blocks.
+    fn _from_arrays(data: Vec<i32>, ids: Vec<String>) -> PyResult<LinearSpace> {
+        match arrays_to_blocks(data, ids) {
+            Ok(x) => {
+                let mut blocks: Vec<[i32; 3]> = Vec::new();
+                for Block{ id, start, stop } in x.iter() {
+                    let start = *start;
+                    let stop = *stop;
+                    if id == "s" {
+                        blocks.push([1, start, stop]);
+                    } else if id == "g" {
+                        blocks.push([0, start, stop]);
+                    } else {
+                        return Err(exceptions::ValueError::py_err(format!("unexpected coordinate value: {}", id)))
+                    }
+                }
+                Ok(LinearSpace{ blocks })
+            },
+            Err(x) => Err(x),
+        }
+    }
+
+    #[staticmethod]
+    /// Returns a linear space created using the given list of blocks.
+    fn _from_blocks(blocks: Vec<&Block>) -> PyResult<LinearSpace> {
+        let mut data: Vec<[i32; 3]> = Vec::new();
+        for Block{ id, start, stop} in blocks.iter() {
+            let id: i32 = match id.parse() {
+                Ok(x) => x,
+                Err(_) => return Err(exceptions::TypeError::py_err("Cannot parse block id, maybe not i32?"))
+            };
+            data.push([id, *start, *stop]);
+        }
+        Ok(LinearSpace { blocks: data })
+    }
+
+    /// Returns the linear space as a list of blocks.
+    fn _to_blocks(&self) -> PyResult<Vec<Block>> {
+        Ok(
+            self.blocks.iter()
+                .map(|[id, start, stop]| {
+                    let id = match *id {
+                        1 => "s",
+                        _ => "g"
+                    }.to_string();
+                    Block { id, start: *start, stop: *stop }
+                }).collect()
+        )
+    }
+
+    /// Returns the linear space as a list of integer coordinates.
+    fn _to_arrays(&self) -> PyResult<(Vec<i32>, Vec<String>)> {
+        let mut data: Vec<i32> = Vec::new();
+        let mut ids: Vec<String> = Vec::new();
+        for [id, start, stop] in self.blocks.iter() {
+            let (id, start, stop) = (*id, *start, *stop);
+            if id == 1 {
+                let mut data_array: Vec<i32> = (start..stop).map(|x| x).collect();
+                let mut id_array: Vec<String> = vec!["s".to_string(); data_array.len()];
+                data.append(&mut data_array);
+                ids.append(&mut id_array);
+            } else if id == 0 {
+                let mut data_array: Vec<i32> = (start..stop).map(|_| -1).collect();
+                let mut id_array: Vec<String> = vec!["g".to_string(); data_array.len()];
+                data.append(&mut data_array);
+                ids.append(&mut id_array);
+            } else {
+                return Err(exceptions::ValueError::py_err(format!("unexpected id value: {}", id)))
+            }
+
+        }
+        Ok((data, ids))
+    }
+
+    // Formatting methods
+
+    /// Converts block into a compressed string representation.
+    fn _to_compressed_str(&self) -> PyResult<String> {
+        self.__str__()
+    }
+
+    /// Converts block into an extended (human-readable) string
+    /// representation.
+    fn _to_extended_str(&self) -> PyResult<String> {
+        let mut strings: Vec<String> = Vec::new();
+        if let Ok(blocks) = self.to_blocks() {
+            for block in blocks {
+                if let Ok(s) = block.to_extended_str() {
+                    strings.push(s);
+                } else {
+                    return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
+                }
+            }
+        } else {
+            return Err(exceptions::ValueError::py_err("cannot generate blocks"))
+        }
+        Ok(strings.join(","))
+    }
+
+    /// Converts block into comma-separated list of positions.
+    fn _to_array_str(&self) -> PyResult<String> {
+        let mut strings: Vec<String> = Vec::new();
+        if let Ok(blocks) = self.to_blocks() {
+            for block in blocks {
+                if let Ok(s) = block.to_array_str() {
+                    strings.push(s);
+                } else {
+                    return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
+                }
+            }
+        } else {
+            return Err(exceptions::ValueError::py_err("cannot generate blocks"))
+        }
+        Ok(strings.join(","))
+    }
+
+    /// Returns a deep copy of the current linear space.
+    fn _copy(&self) -> PyResult<LinearSpace> {
+        let blocks = self.blocks.clone();
+        Ok(LinearSpace{ blocks })
+    }
+}
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -568,7 +1206,7 @@ pub fn arrays_to_blocks(data: Vec<i32>, ids: Vec<String>) -> PyResult<Vec<Block>
 #[pymodinit]
 fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Block>()?;
-    // m.add_class::<BlockSpace>()?;
+    // m.add_class::<LinearSpace>()?;
     m.add_class::<CoordSpace>()?;
 
     Ok(())
