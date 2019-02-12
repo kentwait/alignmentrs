@@ -42,5 +42,5 @@ Alignment(nsamples=3, nsites=40, nmarkers=0)
 
 ## License
 
-MIT License
+[MIT License](https://github.com/kentwait/alignmentrs/blob/master/LICENSE)
 
