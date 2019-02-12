@@ -1,4 +1,3 @@
-import numpy as np
 from libalignmentrs.alignment import fasta_file_to_basealignments
 from alignmentrs.aln import Alignment
 
