@@ -469,7 +469,7 @@ impl CoordSpace {
     /// Removes points in linear space given based on a list of relative
     /// coordinates.
     fn remove(&mut self, coords: Vec<i32>) -> PyResult<()> {
-        self.coords = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
+        self.coords = self.coords.iter().enumerate().filter(|(i, _)| !coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
         Ok(())
     }
 
@@ -477,7 +477,7 @@ impl CoordSpace {
     /// Retains points in linear space specified by a
     /// list of coordinates to keep.
     fn retain(&mut self, coords: Vec<i32>) -> PyResult<()> {
-        self.coords = self.coords.iter().enumerate().filter(|(i, _)| !coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
+        self.coords = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
         Ok(())
     }
 
