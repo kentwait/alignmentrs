@@ -500,7 +500,6 @@ impl CoordSpace {
             },
             None => {
                 return Ok(CoordSpace { coords: self.coords.clone()})
-                }
             }
         };
         let coords: Vec<i32> = self.coords.iter().enumerate().filter(|(i, _)| coords.contains(&(*i as i32))).map(|(_, x)| *x ).collect();
