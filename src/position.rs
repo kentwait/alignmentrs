@@ -75,21 +75,6 @@ impl Block {
     // TODO: Add a method to convert to CIGAR string
     // fn to_cigar_str(&self) -> PyResult<String> {
     // }
-
-    /// to_array_str()
-    /// 
-    /// Converts block into comma-separated list of positions.
-    fn to_array_str(&self) -> PyResult<String> {
-        match self.to_array() {
-            Ok(res) => {
-                let v: Vec<String> = res.iter()
-                                        .map(|x| format!("{}", x))
-                                        .collect();
-                Ok(v.join(","))
-            },
-            Err(x) => Err(x)
-        }
-    }
 }
 
 #[pyproto]
@@ -435,19 +420,11 @@ impl PointSpace {
 
     /// to_array_str()
     /// 
-    /// Converts block into comma-separated list of positions.
+    /// Returns a comma-separated list of coordinate points.
     fn to_array_str(&self) -> PyResult<String> {
         let mut strings: Vec<String> = Vec::new();
-        if let Ok(blocks) = self.to_blocks() {
-            for block in blocks {
-                if let Ok(s) = block.to_array_str() {
-                    strings.push(s);
-                } else {
-                    return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
-                }
-            }
-        } else {
-            return Err(exceptions::ValueError::py_err("cannot generate blocks"))
+        for point in self.coords.iter() {
+            strings.push(format!("{}", point));
         }
         Ok(strings.join(","))
     }
