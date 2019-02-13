@@ -148,7 +148,7 @@ mod tests {
     use super::{PyObjectProtocol, Record};
 
     #[test]
-    fn test_repr() {
+    fn __repr__() {
         let expected = "Record(id=\"test\", len=9, description=\"Test description\")";
         let record = Record{
             id: "test".to_string(),
@@ -160,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn test_str() {
+    fn __str__() {
         let expected = ">test Test description\nATGCGATTA";
         let record = Record{
             id: "test".to_string(),
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn test_len() {
+    fn len() {
         let expected = 9;
         let record = Record{
             id: "test".to_string(),
