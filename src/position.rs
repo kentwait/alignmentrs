@@ -342,6 +342,8 @@ impl LinearSpace {
     //                                         dimension: block list is empty"))
     // }
 
+    // TODO: Add insert and append methods
+
     // start, stop, full_len
 
     /// lb()
