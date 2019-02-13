@@ -101,6 +101,8 @@ impl PyObjectProtocol for Block {
 /// list of integer coordinates.
 pub struct PointSpace {
 
+    // start: i32,
+    // stop: i32,
     coords: Vec<i32>
 
 }
@@ -127,17 +129,18 @@ impl PointSpace {
     /// 
     /// Extracts coordinates by relative positions as a new PointSpace.
     fn extract(&self, coords: Vec<i32>) -> PyResult<PointSpace> {
-        if let Some(max) = coords.iter().max() {
-            if *max >= self.coords.len() as i32 {
-                return Err(exceptions::IndexError::py_err(format!("index out of range: {}", max)))
-            }
-            let mut new_coords: Vec<i32> = Vec::new();
-            for i in coords.iter() {
-                new_coords.push(self.coords[*i as usize]);
-            }
-            Ok(PointSpace{ coords: new_coords })
-        } else {
-            Ok(PointSpace { coords: self.coords.clone()})
+        match coords.iter().max() {
+            Some(max) => {
+                if *max >= self.coords.len() as i32 {
+                    return Err(exceptions::ValueError::py_err(format!("index out of range: {}", max)))
+                }
+                let mut new_coords: Vec<i32> = Vec::new();
+                for i in coords.iter() {
+                    new_coords.push(self.coords[*i as usize]);
+                }
+                Ok(PointSpace{ coords: new_coords })
+            },
+            None => Ok(PointSpace { coords: self.coords.clone()})
         }
     }
 
