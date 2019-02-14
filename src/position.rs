@@ -105,7 +105,8 @@ impl PyObjectProtocol for Block {
 pub struct BlockSpace {
 
     // TODO: Add relative start, stop coords
-    coords: Vec<[i32; 3]>,
+    // coords: Vec<[i32; 3]>,
+    coords: Vec<(String, i32, i32)>,
 
 }
 
@@ -137,7 +138,7 @@ impl BlockSpace {
     #[new]
     /// Creates a new BlockSpace object from an init_state, and start and stop
     /// coordinates.
-    fn __new__(obj: &PyRawObject, start: i32, stop: i32, init_state: i32) -> PyResult<()> {
+    fn __new__(obj: &PyRawObject, start: i32, stop: i32, init_state: &str) -> PyResult<()> {
         if start > stop {
             return Err(exceptions::ValueError::py_err(
                 format!("start must be less than stop: {} !< {}",
@@ -145,7 +146,7 @@ impl BlockSpace {
         }
         obj.init(|_| {
             BlockSpace {
-                coords: vec![[start, stop, init_state]],
+                coords: vec![(init_state.to_string(), start, stop)],
             }
         })
     }
@@ -167,11 +168,12 @@ impl BlockSpace {
             // Unroll blocks into a vector of i32
             let (coord_list, id_list) = self.to_arrays()?;
             // Extract
-            let mut ext_coord_list: Vec<i32> = Vec::new();
-            let mut ext_id_list: Vec<i32> = Vec::new();
+            let mut ext_coord_list: Vec<i32> = Vec::with_capacity(positions.len());
+            let mut ext_id_list: Vec<String> = Vec::with_capacity(positions.len());
             for i in positions.iter() {
-                ext_coord_list.push(coord_list[*i as usize]);
-                ext_id_list.push(id_list[*i as usize]);
+                let i = *i as usize;
+                ext_coord_list[i].clone_from(&coord_list[i]);
+                ext_id_list[i].clone_from(&id_list[i]);
             }
             // Reassemble to blocks
             arrays_to_linspace(ext_coord_list, ext_id_list)
@@ -192,10 +194,12 @@ impl BlockSpace {
                 return Err(exceptions::IndexError::py_err(
                     format!("index out of range: {}", max)))
             }
-            let coords: Vec<[i32; 3]> = self.coords.iter().enumerate()
+            let coords: Vec<(String, i32, i32)> = self.coords.iter().enumerate()
             .filter(
                 |(i, _)| ids.contains(&(*i as i32))
-            ).map(|(_, v)| *v ).collect();
+            ).map(
+                |(_, (id, start, stop))| (id.to_string(), *start, *stop)
+            ).collect();
             Ok(BlockSpace{ coords })
         } else {
             Ok(BlockSpace{ coords: self.coords.clone() })
@@ -260,13 +264,14 @@ impl BlockSpace {
             // Unroll blocks into a vector of i32
             let (coord_list, id_list) = self.to_arrays()?;
             // Extract
-            let mut ext_coord_list: Vec<i32> = Vec::new();
-            let mut ext_id_list: Vec<i32> = Vec::new();
+            let mut ext_coord_list: Vec<i32> = Vec::with_capacity(positions.len());
+            let mut ext_id_list: Vec<String> = Vec::with_capacity(positions.len());
             let mut positions = positions;
             positions.sort_unstable();
             for i in positions.iter() {
-                ext_coord_list.push(coord_list[*i as usize]);
-                ext_id_list.push(id_list[*i as usize]);
+                let i = *i as usize;
+                ext_coord_list[i].clone_from(&coord_list[i]);
+                ext_id_list[i].clone_from(&id_list[i]);
             }
             // Reassemble to blocks
             // Replace coords
@@ -286,10 +291,12 @@ impl BlockSpace {
                 return Err(exceptions::IndexError::py_err(
                     format!("index out of range: {}", max)))
             }
-            let coords: Vec<[i32; 3]> = self.coords.iter().enumerate()
+            let coords: Vec<(String, i32, i32)> = self.coords.iter().enumerate()
             .filter(
                 |(i, _)| ids.contains(&(*i as i32))
-            ).map(|(_, v)| *v ).collect();
+            ).map(
+                |(_, (id, start, stop))| (id.to_string(), *start, *stop)
+            ).collect();
             self.coords = coords;
         } else {
             self.coords = Vec::new();
@@ -366,7 +373,7 @@ impl BlockSpace {
     /// Returns the lower bound of the linear space.
     fn lb(&self) -> PyResult<i32> {
         match self.coords.first() {
-            Some([x, _, _]) => Ok(*x),
+            Some((_, x, _)) => Ok(*x),
             None => return Err(exceptions::ValueError::py_err(
                 "linear space is empty"))
         }
@@ -379,7 +386,7 @@ impl BlockSpace {
     /// This value is not part of the space.
     fn ub(&self) -> PyResult<i32> {
         match self.coords.last() {
-            Some([_, x, _]) => Ok(*x),
+            Some((_, _, x)) => Ok(*x),
             None => return Err(exceptions::ValueError::py_err(
                 "linear space is empty"))
         }
@@ -391,7 +398,7 @@ impl BlockSpace {
             return Ok(0)
         }
         let mut length = 0;
-        for [start, stop, _] in self.coords.iter() {
+        for (_, start, stop) in self.coords.iter() {
             length += stop - start;
         }
         Ok(length)
@@ -408,7 +415,7 @@ impl BlockSpace {
             return Ok(Vec::new())
         }
         let mut blocks: Vec<Block> = Vec::new();
-        for [start, stop, id] in self.coords.iter() {
+        for (id, start, stop) in self.coords.iter() {
             blocks.push(Block{ id: format!("{}", id), start: *start, stop: *stop });
         }
         Ok(blocks)
@@ -422,13 +429,13 @@ impl BlockSpace {
     /// --
     /// 
     /// Returns the linear space as a list of start, stop, and id tuples.
-    fn to_list(&self) -> PyResult<Vec<(i32, i32, i32)>> {
+    fn to_list(&self) -> PyResult<Vec<(String, i32, i32)>> {
         if self.coords.len() == 0 {
             return Ok(Vec::new())
         }
-        let mut list: Vec<(i32, i32, i32)> = Vec::new();
-        for [start, stop, id] in self.coords.iter() {
-            list.push((*start, *stop, *id));
+        let mut list: Vec<(String, i32, i32)> = Vec::new();
+        for (id, start, stop) in self.coords.iter() {
+            list.push((id.to_string(), *start, *stop));
         }
         Ok(list)
     }
@@ -437,16 +444,16 @@ impl BlockSpace {
     /// --
     /// 
     /// Returns the linear space as corresponding coordinates and id lists.
-    fn to_arrays(&self) -> PyResult<(Vec<i32>, Vec<i32>)> {
+    fn to_arrays(&self) -> PyResult<(Vec<i32>, Vec<String>)> {
         if self.coords.len() == 0 {
             return Ok((Vec::new(), Vec::new()))
         }
         let mut coords: Vec<i32> = Vec::new();
-        let mut ids: Vec<i32> = Vec::new();
-        for [start, stop, id] in self.coords.iter() {
+        let mut ids: Vec<String> = Vec::new();
+        for (id, start, stop) in self.coords.iter() {
             for i in *start..*stop {
                 coords.push(i);
-                ids.push(*id);
+                ids.push(id.to_string());
             }
         }
         Ok((coords, ids))
@@ -464,7 +471,7 @@ impl BlockSpace {
             return Ok(String::new())
         }
         let mut strings: Vec<String> = Vec::new();
-        for [start, stop, id] in self.coords.iter() {
+        for (id, start, stop) in self.coords.iter() {
             strings.push(format!("{}={}:{}", id, start, stop));
         }
         Ok(strings.join(";"))
@@ -480,7 +487,7 @@ impl BlockSpace {
             return Ok(String::new())
         }
         let mut strings: Vec<String> = Vec::new();
-        for [start, stop, id] in self.coords.iter() {
+        for (id, start, stop) in self.coords.iter() {
             let mut b_strings: Vec<String> = Vec::new();
             b_strings.push(format!("{}=", id));
             for i in *start..*stop {
@@ -501,15 +508,15 @@ impl BlockSpace {
             return Ok(String::new())
         }
         let mut strings: Vec<String> = Vec::new();
-        let mut curr_id = self.coords[0][2];
-        for [start, stop, id] in self.coords.iter() {
-            if curr_id != *id {
+        let mut curr_id = &self.coords[0].0;
+        for (id, start, stop) in self.coords.iter() {
+            if curr_id != id {
                 return Err(exceptions::ValueError::py_err(
                     "cannot represent a linear space with 
                     more than one block type"))
             }
             strings.push(format!("{}:{}", start, stop));
-            curr_id = *id;
+            curr_id = id;
         }
         Ok(strings.join(";"))
     }
@@ -524,9 +531,9 @@ impl BlockSpace {
             return Ok(String::new())
         }
         let mut strings: Vec<String> = Vec::new();
-        let mut curr_id = self.coords[0][2];
-        for [start, stop, id] in self.coords.iter() {
-            if curr_id != *id {
+        let mut curr_id = &self.coords[0].0;
+        for (id, start, stop) in self.coords.iter() {
+            if curr_id != id {
                 return Err(exceptions::ValueError::py_err(
                     "cannot represent a linear space with 
                     more than one block type"))
@@ -534,7 +541,7 @@ impl BlockSpace {
             for i in *start..*stop {
                 strings.push(format!("{}", i));
             }
-            curr_id = *id;
+            curr_id = id;
         }
         Ok(strings.join(","))  
     }
@@ -555,13 +562,9 @@ impl BlockSpace {
 /// 
 /// Returns a linear space created using the given list of blocks.
 pub fn blocks_to_linspace(blocks: Vec<&Block>) -> PyResult<BlockSpace> {
-    let mut coords: Vec<[i32; 3]> = Vec::new();
-    for Block{ id, start, stop } in blocks.iter() {
-        if let Ok(v) = id.parse::<i32>() {
-            coords.push([*start, *stop, v]);
-        } else {
-            return Err(exceptions::ValueError::py_err("error converting Block id to int"))
-        }
+    let mut coords: Vec<(String, i32, i32)> = Vec::with_capacity(blocks.len());
+    for (i, Block{ id, start, stop }) in blocks.iter().enumerate() {
+        coords[i] = (id.to_string(), *start, *stop);
     }
     Ok(BlockSpace{ coords })
 }
@@ -571,9 +574,8 @@ pub fn blocks_to_linspace(blocks: Vec<&Block>) -> PyResult<BlockSpace> {
 /// --
 /// 
 /// Returns a linear space created using the given coordinate list.
-pub fn list_to_linspace(coords: Vec<(i32, i32, i32)>) -> PyResult<BlockSpace> {
-    let coords: Vec<[i32; 3]> = coords.iter().map(|(a, b, c)| [*a, *b, *c]).collect();
-    Ok(BlockSpace{ coords })
+pub fn list_to_linspace(coords: Vec<(String, i32, i32)>) -> PyResult<BlockSpace> {
+    Ok(BlockSpace{ coords: coords.clone() })
 }
 
 #[pyfunction]
@@ -582,18 +584,18 @@ pub fn list_to_linspace(coords: Vec<(i32, i32, i32)>) -> PyResult<BlockSpace> {
 /// 
 /// Returns a linear space based on the corresponding lists of coordinates
 /// and ids.
-pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<i32>) -> PyResult<BlockSpace> {
+pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<String>) -> PyResult<BlockSpace> {
     if coords.len() != ids.len() {
         return Err(exceptions::ValueError::py_err("lists do not have the same length"))
     }
     if coords.len() == 0 {
         return Ok(BlockSpace{ coords: Vec::new() })
     }
-    let mut new_coords: Vec<[i32; 3]> = Vec::new();
-    let mut last_id = ids[0];
+    let mut new_coords: Vec<(String, i32, i32)> = Vec::new();
+    let mut last_id = &ids[0];
     let mut last_start = coords[0];
     for i in 1..ids.len() {
-        let c_id = ids[i];
+        let c_id = &ids[i];
         let c_pos = coords[i];
         let p_pos = coords[i-1];
         // Scenarios:
@@ -607,42 +609,25 @@ pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<i32>) -> PyResult<BlockSpac
         if c_id == last_id {
             if c_pos != p_pos + 1 {
                 // Create new block and push
-                new_coords.push([last_start, p_pos + 1, last_id]);
+                new_coords.push((last_id.to_string(), last_start, p_pos + 1));
                 // Assgin current id as last_id and current pos as last_start
                 last_id = c_id;
                 last_start = c_pos;
             }
         } else {
             // Create new block and push
-            new_coords.push([last_start, p_pos + 1, last_id]);
+            new_coords.push((last_id.to_string(), last_start, p_pos + 1));
             // Assign current id as last_id and current pos as last_start
             last_id = c_id;
             last_start = c_pos;
         }
     }
     new_coords.push(
-        [last_start, coords.last().unwrap() + 1, last_id]);
+        (last_id.to_string(), last_start, coords.last().unwrap() + 1));
     Ok(BlockSpace{ coords: new_coords })
 }
 
 // Special string formatters
-#[pyfunction]
-pub fn blockspace_to_seqgap_str(blockspace: &BlockSpace) -> PyResult<String> {
-    if blockspace.coords.len() == 0 {
-        return Ok(String::new())
-    }
-    let mut strings: Vec<String> = Vec::new();
-    for [start, stop, id] in blockspace.coords.iter() {
-        let id = match *id {
-            1 => "s",
-            0 => "g",
-            _ => return Err(exceptions::ValueError::py_err(
-                    format!("unexpected id: {}",id)))
-        };
-        strings.push(format!("{}={}:{}", id, start, stop));
-    }
-    Ok(strings.join(";"))
-}
 
 lazy_static! {
     static ref BLOCK_REGEX: Regex = Regex::new(r"(\x2D*\d+)\3A(\x2D*\d+)").unwrap();
@@ -650,7 +635,7 @@ lazy_static! {
 
 #[pyfunction]
 pub fn simple_block_str_to_linspace(blocks_str: &str) -> PyResult<BlockSpace> {
-    let mut coords: Vec<[i32; 3]> = Vec::new();
+    let mut coords: Vec<(String, i32, i32)> = Vec::new();
     for cap in BLOCK_REGEX.captures_iter(blocks_str) {
         let start = match &cap[1].parse::<i32>() {
             Ok(v) => *v,
@@ -662,7 +647,7 @@ pub fn simple_block_str_to_linspace(blocks_str: &str) -> PyResult<BlockSpace> {
             Err(_) => return Err(exceptions::ValueError::py_err(
                 "error converting block stop to i32"))
         };
-        coords.push([start, stop, 1]);
+        coords.push((format!("{}", 1), start, stop));
     }
     Ok(BlockSpace{ coords })
 }
@@ -1130,7 +1115,6 @@ fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_function!(blocks_to_linspace))?;
     m.add_function(wrap_function!(list_to_linspace))?;
     m.add_function(wrap_function!(arrays_to_linspace))?;
-    m.add_function(wrap_function!(blockspace_to_seqgap_str))?;
     m.add_function(wrap_function!(simple_block_str_to_linspace))?;
 
     Ok(())
