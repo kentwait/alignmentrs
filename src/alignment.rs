@@ -692,7 +692,8 @@ impl BaseAlignment {
                     ids.push(i as i32);
                 },
                 None => {
-                    return Err(exceptions::ValueError::py_err(format!("sample id {} not found", name)))
+                    return Err(exceptions::ValueError::py_err(
+                        format!("sample id {} not found", name)))
                 }
             }
         }
@@ -792,7 +793,8 @@ impl BaseAlignment {
                 if aln_len != sequence_len {
                     return Err(exceptions::ValueError::py_err(
                         format!("cannot concatenate alignments with \
-                                 unequal number of samples: {} != {}", sequence_len, aln_len)))
+                                 unequal number of samples: {} != {}",
+                                 sequence_len, aln_len)))
                 }
                 sequences[i].push_str(&aln.sequences[i]);
             }
@@ -858,7 +860,8 @@ impl BaseAlignment {
 #[pyproto]
 impl PyObjectProtocol for BaseAlignment {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("BaseAlignment(nsamples={nsamples}, nsites={nsites})", nsamples=self._nrows(), nsites=self._ncols()))
+        Ok(format!("BaseAlignment(nsamples={nsamples}, nsites={nsites})",
+                   nsamples=self._nrows(), nsites=self._ncols()))
     }
 
     fn __str__(&self) -> PyResult<String> {
@@ -868,7 +871,9 @@ impl PyObjectProtocol for BaseAlignment {
         let mut fasta_strings: Vec<String> = Vec::new();
         for i in 0..self._nrows() {
             if self.descriptions[i].chars().count() > 0 {
-                fasta_strings.push(format!(">{} {}\n{}", self.ids[i], self.descriptions[i], self.sequences[i]));
+                fasta_strings.push(
+                    format!(">{} {}\n{}", self.ids[i], self.descriptions[i],
+                            self.sequences[i]));
             } else {
                 fasta_strings.push(format!(">{}\n{}", self.ids[i], self.sequences[i]));
             }
@@ -910,7 +915,9 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
         PyResult<(BaseAlignment, BaseAlignment, Vec<String>)> {
     // Open the path in read-only mode, returns `io::Result<File>`
     let f = match File::open(path) {
-        Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while trying to open file {:?}: {:?}", path, x.kind()))),
+        Err(x) => return Err(exceptions::IOError::py_err(
+            format!("encountered an error while trying to open file {:?}: {:?}",
+                    path, x.kind()))),
         Ok(x) => x
     };
     let f = BufReader::new(f);
@@ -933,7 +940,9 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
     // Match regexp
     for line in f.lines() {
         let line = match line {
-            Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while reading file {:?}: {:?}", path, x.kind()))),
+            Err(x) => return Err(exceptions::IOError::py_err(
+                format!("encountered an error while reading file {:?}: {:?}",
+                        path, x.kind()))),
             Ok(x) => x.trim().to_string()
         };
         if line.starts_with(">") {
@@ -949,7 +958,8 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
                 }
                 sequence.clear();
             }
-            let matches: Vec<&str> = WS.splitn(line.trim_start_matches(">"), 2).collect();
+            let matches: Vec<&str> = WS.splitn(
+                line.trim_start_matches(">"), 2).collect();
             id = matches[0].to_string();
             description = match matches.len() {
                 l if l == 2 => matches[1].to_string(),
@@ -1003,7 +1013,8 @@ fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignmen
             let aln_len = aln.sequences.len();
             if aln_len != sequence_len {
                 return Err(exceptions::ValueError::py_err(
-                    format!("cannot concatenate alignments with unequal number of samples: {} != {}", 
+                    format!("cannot concatenate alignments with unequal \
+                            number of samples: {} != {}", 
                             sequence_len, aln_len)))
             }
             sequences[i].push_str(&aln.sequences[i]);
