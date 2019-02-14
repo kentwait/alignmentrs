@@ -1,12 +1,21 @@
+from collections import OrderedDict
 import os
 import random
+import warnings
 
-from blockrs import CatBlock
-from libalignmentrs.alignment import concat_basealignments
 from alignmentrs.aln.classes import Alignment
+from libalignmentrs.alignment import concat_basealignments
+from libalignmentrs.position import Block, list_to_linspace
+
 
 
 __all__ = ['AlignmentSet']
+
+
+class AlignmentMismatchWarning(warnings.UserWarning):
+    """Warning for mismatched/incompatible alignments.
+    """
+    pass
 
 
 class AlignmentSet:
@@ -20,7 +29,6 @@ class AlignmentSet:
         Metadata about the alignment set.
 
     """
-
     def __init__(self, name, aln_list, metadata=None):
         """Creates a new AlignmentSet from a list of Alignment objects.
 
@@ -29,21 +37,28 @@ class AlignmentSet:
         name : str
             Name of alignment set.
         aln_list : list of Alignment
-            List of Alignments to group together. Alignments must have thet
-            same number of samples and markers, and share the same sample
-            and marker names.
+            List of Alignments to group together.
+            Alignments should have thet same number of samples and markers, 
+            and share the same sample and marker names.
+            A warning is raised when any one of these conditions are
+            not satisfied.
 
-        Raises
-        ------
-        ValueError
-            Alignments in `aln_list` do not have the same number of
-            samples/markers, or so not share the same sample/marker names.
+        Warnings
+        --------
+        AlignmentMismatchWarning
+            Alignments do not have matching identifiers or have inconsitent markers.
 
         """
         self.name = name
-        self._alignments = {aln.name: aln for aln in aln_list}
-        self.metadata = metadata if metadata else dict()
+        self._alignments: OrderedDict = OrderedDict([(aln.name, aln) for aln in aln_list])
+        self.metadata: dict = metadata if metadata else dict()
+        # Check alignments
+        self._consistent: bool = True
+        self.drop_empty()
 
+
+    # Properties
+    # ==========================================================================
     @property
     def nalns(self):
         """int: Returns the number of alignments in the set"""
@@ -51,18 +66,26 @@ class AlignmentSet:
 
     @property
     def alignment_names(self):
-        """list of str: Returns list of alignment names"""
+        """list: Returns list of alignment names"""
         return list(self._alignments.keys())
 
     @property
     def alignments(self):
-        """list of Alignment: Returns list of alignment objects"""
+        """list of Alignment: Returns list of Alignment objects"""
         return list(self._alignments.values())
 
+    @property
+    def consistent(self):
+        """bool: Returns whether alignments in the set have consistent
+        identifiers and markers"""
+        return self._consistent
+
+
+    # Methods
+    # ==========================================================================
     def resample(self, name, k, copy_metadata=True,
                  with_replacement=False):
-        """Returns a new AlignmentSet resampling from the current
-        set of alignments.
+        """Takes a sample of alignments from the set and returns a new AlignmentSet. 
 
         Parameters
         ----------
@@ -124,62 +147,62 @@ class AlignmentSet:
         keys : list or None, optional
             List of alignment names to concatenate. The order of the list
             determines the order of concatenation.
-            If None, alignments are concatenated arbitrarily.
-            (default is None)
-        description_encoder : function or None, optional
-            This function returns a formatted string encoding CatBlock data.
-            The CatBlock string will replace the sample's description.
-            This function receives two parameters, the sample ID and the
-            sample's concatenation order as a list of CatBlocks.
-            If None, the description will follow the description of the
-            first alignment in during concatenation.
+            (default is None, alignments are concatenated arbitrarily)
 
-        Returns
+        Returns 
         -------
         Alignment
 
         """
-        if keys is not None:
-            if not isinstance(keys, list):
-                raise ValueError('keys must be None or a list of alignment names')
+        if (keys is not None) and not isinstance(keys, list):
+            raise ValueError('keys must be None or a list of alignment names')
         # Check if alignments are compatible
-        test_aln = None
-        # for i in range(1, len(self._alignments)):
-        for name, aln in self._alignments.items():
-            if test_aln is None:
-                test_aln = aln
-            passed = True
-            if not(test_aln.samples or aln.samples):
-                raise ValueError(
-                    'Cannot create an AlignmentSet from a alignment with '
-                    'different number of samples')
-            else:
-                if not test_aln.samples.is_row_similar(aln.samples):
-                    raise ValueError(
-                        'Cannot create an AlignmentSet from a alignment with '
-                        'different sample names/differently ordered '
-                        'sample names.')
+        self._check_raise()
 
-            if not(test_aln.markers or aln.markers):
-                raise ValueError(
-                    'Cannot create an AlignmentSet from a alignment with '
-                    'different number of markers')
-            else:
-                if test_aln.markers.is_row_similar(aln.markers):
-                    raise ValueError(
-                        'Cannot create an AlignmentSet from a alignment with '
-                        'different marker names/differently ordered '
-                        'marker names.')
+        samples = []
+        markers = []
+        block_list = []
+        start = 0
+        for i, k in enumerate((name for name in self.alignment_names)):
+            sample = self._alignments[k].samples
+            marker = self._alignments[k].markers
+            samples.append(sample)
+            markers.append(marker)
 
-        sample_alignment = concat_basealignments(
-            [self._alignments[k].samples for k in (name for name in self.alignment_names)])
-        try:
-            marker_alignment = concat_basealignments(
-                [self._alignments[k].markers for k in (name for name in self.alignment_names)])
-        except Exception:
+            block_list.append([start, start + sample.nsites, k])
+            start += sample.nsites
+
+        sample_alignment = concat_basealignments(samples)
+        if markers[0]:
+            marker_alignment = concat_basealignments(markers)
+        else:
             marker_alignment = None
-        return Alignment(name, sample_alignment, marker_alignment)
 
+        metadata = OrderedDict([
+            ('aln|{}|coords'.format(k), v.linspace.to_simple_block_str())
+            for k, v in self._alignments.items()
+        ])
+        return Alignment(
+            name, sample_alignment, marker_alignment,
+            linspace=list_to_linspace(block_list),
+            metadata=metadata
+        )
+
+    def drop_empty(self):
+        """Deletes empty alignments and recheck consistency."""
+        # Remove empty alignments
+        empty_ids = []
+        for name, aln in self._alignments.items():
+            if not aln:
+                empty_ids.append(name)
+        for name in empty_ids:
+            del self._alignments[name]
+        # Check if updated set is consistent
+        self._consistent = self._check_warn()
+
+
+    # Format converters
+    # ==========================================================================
     def to_fasta_files(self, path_mapping, include_markers=True):
         """Saves specified alignments as FASTA-formatted text files
         based on a dictionary of alignment names and their corresponding
@@ -286,8 +309,8 @@ class AlignmentSet:
         return cls(name, list(sequence_d.values()))
 
     @classmethod
-    def from_fasta_dir(cls, dirpath, name, marker_kw=None,
-                       suffix='.aln', filename_to_key_encoder=None,
+    def from_fasta_dir(cls, dirpath, name, marker_kw=None, suffix='.aln',
+                       filename_to_key_encoder=None,
                        comment_parser=None):
         """Reads a directory containing FASTA files and stores data as a
         set of alignment objects inside an AlignmentSet.
@@ -333,6 +356,91 @@ class AlignmentSet:
             filename_to_key_encoder,
             comment_parser)
 
+
+    # Check alignments
+    # ==========================================================================
+    def _check_warn(self):
+        # Check if alignments are compatible
+        sample_missing = 0
+        sample_mismatch = 0
+
+        marker_present = 0
+        marker_missing = 0
+        marker_mismatch = 0
+
+        test_aln = None        
+        for name, aln in self._alignments.items():
+            if not aln.samples:
+                sample_missing += 1
+            if aln.markers:
+                marker_present += 1
+            else:
+                marker_missing += 1
+
+            if test_aln is None:
+                test_aln = aln
+                continue
+
+            if not test_aln.samples.is_row_similar(aln.samples):
+                sample_mismatch += 1
+            if not test_aln.markers.is_row_similar(aln.markers):
+                marker_mismatch += 1
+            
+            test_aln = aln
+
+        passed = True
+        if sample_missing > 0:
+            msg = '{}/{} alignments do not have sample entries.'.format(
+                sample_missing, len(self._alignments)
+            )
+            warnings.warn(msg, AlignmentMismatchWarning)
+            passed = False
+
+        if sample_mismatch > 0:
+            msg = '{}/{} alignments do not have the same sample identifiers.'.format(
+                sample_mismatch, len(self._alignments)-1
+            )
+            warnings.warn(msg, AlignmentMismatchWarning)
+            passed = False
+
+        if marker_present > 0 and marker_missing > 0:
+            msg = '{}/{} alignments have markers, {}/{} alignments do not have markers.'.format(
+                sample_missing, len(self._alignments)
+            )
+            warnings.warn(msg, AlignmentMismatchWarning)
+            passed = False
+
+        if marker_mismatch > 0:
+            msg = '{}/{} alignments do not have the same markers identifiers.'.format(
+                marker_mismatch, len(self._alignments)-1
+            )
+            warnings.warn(msg, AlignmentMismatchWarning)
+            passed = False
+        
+        return passed
+
+    def _check_raise(self):
+        test_aln = None
+        for name, aln in self._alignments.items():
+            if test_aln is None:
+                test_aln = aln
+                continue
+
+            if not(test_aln.samples or aln.samples):
+                raise ValueError('Alignment is missing sample sequences.')
+            else:
+                if not test_aln.samples.is_row_similar(aln.samples):
+                    raise ValueError('Sample identifiers do not match.')
+
+            if not(test_aln.markers ^ aln.markers):
+                raise ValueError('Presence/absence of markers is not consistent.')
+            else:
+                if test_aln.markers.is_row_similar(aln.markers):
+                    raise ValueError('Marker identifiers do not match')
+
+
+    # Special methods
+    # ==========================================================================
     def __getitem__(self, key):
         return self._alignments[key]
 
@@ -344,11 +452,13 @@ class AlignmentSet:
             yield name, aln
 
     def __repr__(self):
+        nsamples = 'Inconsistent'
+        nmarkers = 'Inconsistent'
+        if self.consistent:
+            nsamples = self.alignments[0].nsamples if self.nalns > 0 else 'None'
+            nmarkers = self.alignments[0].nmarkers if self.nalns > 0 else 'None'
         return '{}(nalns={}, nsamples={}, nmarkers={})'.format(
-            self.__class__.__name__,
-            self.nalns,
-            self.alignments[0].nsamples if self.nalns > 0 else None,
-            self.alignments[0].nmarkers if self.nalns > 0 else None
+            self.__class__.__name__, self.nalns, nsamples, nmarkers
         )
 
     def __len__(self):
