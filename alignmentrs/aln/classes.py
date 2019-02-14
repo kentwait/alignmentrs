@@ -97,7 +97,7 @@ class Alignment:
                     start + self.samples.nsites
             state = kwargs['linspace_default_state'] \
                     if 'linspace_default_state' in kwargs.keys() else \
-                    1
+                    "1"
             self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
     # Properties
@@ -1579,3 +1579,50 @@ class Alignment:
             '.nsamples to get the number of samples, '
             '.nmarkers to get the number of markers, or '
             '.nrows to get all the number of alignment rows.')
+
+    def __bool__(self):
+        if self.nsites == 0 or self.nrows == 0:
+            return False
+        return True
+
+
+class CatAlignment(Alignment):
+    def to_fasta(self, path, include_markers=True, 
+                 include_headers=True,
+                 include_metadata=True):
+        """Saves the alignment as a FASTA-formatted file.
+        Some metadata may not be lost.
+
+        Parameters
+        ----------
+        path : str
+            Path to save the alignment to.
+        include_markers : bool, optional
+            Whether or not to output marker sequences.
+            (default is True, include markers in the output)
+        include_headers : bool, optional
+            Whether or not to output header infomation,
+            ie. alignment name and coordinates.
+            (default is True, include headers in the output as
+            comments)
+        include_metadata : bool, optional
+            Whether or not to output metadata as comments.
+            (default is True, include metadata in the output as
+            comments)
+
+        """
+        headers_d = {
+            'name': str(self.name),
+            'coords': '{' + self._linspace.to_block_str() + '}',
+        }
+        with open(path, 'w') as writer:
+            if include_headers:
+                for k, v in headers_d.items():
+                    print(';{k}\t{v}'.format(k=k, v=v))
+            if include_metadata:
+                for k, v in self.metadata.items():
+                    print(';{k}\t{v}'.format(k=k, v=v))
+            print(self.samples, file=writer)
+            if include_markers:
+                print(self.markers, file=writer)
+
