@@ -1016,7 +1016,8 @@ class Alignment:
 
     def __str__(self):
         return '\n'.join([
-            ';coords{' + self._linspace.to_simple_block_str() + '}',
+            ';name\t' + self.name,
+            ';coords\t{' + self._linspace.to_simple_block_str() + '}',
             str(self.samples),
             str(self.markers),
         ])
