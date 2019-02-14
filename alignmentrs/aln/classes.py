@@ -71,10 +71,15 @@ class Alignment:
         if '_linspace' in kwargs.keys():
             self._linspace: BlockSpace = kwargs['_linspace']
         else:
-            start = kwargs['linspace_start'] \
-                    if 'linspace_start' in kwargs.keys() else 0
-            self._linspace: BlockSpace = \
-                BlockSpace(start, start + self.samples.nsites, 1)
+            start = kwargs['linspace_default_start'] \
+                    if 'linspace_default_start' in kwargs.keys() else 0
+            stop = kwargs['linspace_default_stop'] \
+                    if 'linspace_default_stop' in kwargs.keys() else \
+                    start + self.samples.nsites
+            state = kwargs['linspace_default_state'] \
+                    if 'linspace_default_state' in kwargs.keys() else \
+                    1
+            self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
     # Properties to retrieve the number of rows in the alignment.
     # Because the alignment object distinguishes between samples and markers,
@@ -150,6 +155,12 @@ class Alignment:
         if not self.markers:
             return []
         return self.markers.sequences
+
+    @property
+    def coordinates(self):
+        """list of int: Returns the coordinates of the current alignment
+        relative to positions when the alignment was created/loaded."""
+        return self._linspace.to_arrays()[0]
 
     # Methods
 
@@ -989,6 +1000,26 @@ class Alignment:
         for i in range(start, stop, size):
             yield [s[i:i+size] for s in self.markers.sequences]
 
+    def reset_coordinates(self, start=0, stop=None, state=1):
+        """Resets the coordinates associated to the alignment columns.  
+
+        Parameters
+        ----------
+        start : int, optional
+            Starting coordinate value (default is 0)
+        stop : int, optional
+            End coordinate value. This value is not part of linear space
+            represented by the alignment length. (default is None, ending value
+            becomes the sum of start and the number of sites)
+        state : int, optional
+            State annotation. (default is 1)
+
+        """
+        start = start if start is not None else 0
+        stop = stop if stop is not None else start + self.samples.nsites
+        state = state if state is not None else 1
+        self._linspace: BlockSpace = BlockSpace(start, stop, state)
+
     # Block-related methods
 
     # def set_blocklists(self, ref_seq, description_encoder=None):
@@ -1097,7 +1128,11 @@ class Alignment:
         )
 
     def __str__(self):
-        return '\n'.join([str(self.samples), str(self.markers)])
+        return '\n'.join([
+            ';coords{' + self._linspace.to_simple_block_str() + '}',
+            str(self.samples),
+            str(self.markers),
+        ])
 
     def __len__(self):
         raise NotImplementedError(
