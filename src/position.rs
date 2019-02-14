@@ -77,21 +77,6 @@ impl Block {
     // TODO: Add a method to convert to CIGAR string
     // fn to_cigar_str(&self) -> PyResult<String> {
     // }
-
-    /// to_array_str()
-    /// 
-    /// Converts block into comma-separated list of positions.
-    fn to_array_str(&self) -> PyResult<String> {
-        match self.to_array() {
-            Ok(res) => {
-                let v: Vec<String> = res.iter()
-                                        .map(|x| format!("{}", x))
-                                        .collect();
-                Ok(v.join(","))
-            },
-            Err(x) => Err(x)
-        }
-    }
 }
 
 #[pyproto]
@@ -666,6 +651,8 @@ pub fn blockspace_to_seqgap_str(blockspace: &BlockSpace) -> PyResult<String> {
 /// list of integer coordinates.
 pub struct CoordSpace {
 
+    // start: i32,
+    // stop: i32,
     coords: Vec<i32>
 
 }
@@ -985,19 +972,11 @@ impl CoordSpace {
 
     /// to_array_str()
     /// 
-    /// Converts block into comma-separated list of positions.
+    /// Returns a comma-separated list of coordinate points.
     fn to_array_str(&self) -> PyResult<String> {
         let mut strings: Vec<String> = Vec::new();
-        if let Ok(blocks) = self.to_blocks() {
-            for block in blocks {
-                if let Ok(s) = block.to_array_str() {
-                    strings.push(s);
-                } else {
-                    return Err(exceptions::ValueError::py_err("cannot get string representation of block"))
-                }
-            }
-        } else {
-            return Err(exceptions::ValueError::py_err("cannot generate blocks"))
+        for point in self.coords.iter() {
+            strings.push(format!("{}", point));
         }
         Ok(strings.join(","))
     }
@@ -1129,4 +1108,194 @@ fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_function!(arrays_to_linspace))?;
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    
+    // Block
+    mod block_tests {
+
+        use super::{Block, PyObjectProtocol};
+
+        #[test]
+        fn in_block_true() {
+            let expected = true;
+            let block = Block{ id: "test".to_string(), start: 1, stop: 4 };
+            let actual = block.in_block(2).expect("in_block method failed");
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn in_block_false() {
+            let expected = false;
+            let block = Block{ id: "test".to_string(), start: 1, stop: 4 };
+            let actual = block.in_block(5).expect("in_block method failed");
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn to_array() {
+            let expected: Vec<i32> = vec![1,2,3];
+            let block = Block{ id: "test".to_string(), start: 1, stop: 4 };
+            let actual = block.to_array().expect("to_array method failed");
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn to_compressed_str() {
+            let expected = "test=3";
+            let block = Block{ id: "test".to_string(), start: 1, stop: 4 };
+            let actual = block.to_compressed_str().expect("to_compressed_str method failed");
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn to_extended_str() {
+            let expected = "test=1:4";
+            let block = Block{ id: "test".to_string(), start: 1, stop: 4 };
+            let actual = block.to_extended_str().expect("to_extended_str method failed");
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn __repr__() {
+            let expected = "Block(id=\"test\", start=1, stop=4";
+            let block = Block{ id: "test".to_string(), start: 1, stop: 4 };
+            let actual = block.__repr__().expect("__repr__ method failed");
+            assert_eq!(expected, actual);
+        }
+
+        #[test]
+        fn __str__() {
+            let expected = "test=3";
+            let block = Block{ id: "test".to_string(), start: 1, stop: 4 };
+            let actual = block.__str__().expect("__str__ method failed");
+            assert_eq!(expected, actual);
+        }
+    }
+
+    // CoordSpace
+    mod point_space_tests {
+
+        use super::{CoordSpace, PyObjectProtocol, exceptions};
+
+        #[test]
+        fn extract() {
+            let expected: Vec<i32> = vec![5,6,9,-1,3,2,0,1];
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            // let actual: Vec<i32> = space.extract(vec![7,8,11,4,3,2,0,1]).unwrap().coords;
+            assert_eq!(expected, space.coords);
+        }
+
+        #[test]
+        fn remove() {
+            // let expected = CoordSpace{ coords: vec![1,2,3,-1,4,5,6,7,9]};
+            // let mut space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            // space.remove(vec![0,4,10]).expect("remove method failed");
+            // let actual = space;
+            // assert_eq!(expected.coords, actual.coords);
+        }
+
+        #[test]
+        fn retain() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn start() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn stop() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn len_all() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn len_gap() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn len_seq() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn from_blocks() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn from_arrays() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn to_blocks() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn to_arrays() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn to_compressed_str() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn to_extended_str() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+
+        #[test]
+        fn to_array_str() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+        
+        #[test]
+        fn copy() {
+            let expected = "";
+            let space = CoordSpace{ coords: vec![0,1,2,3,-1,-1,4,5,6,7,8,9] };
+            let actual = "";
+        }
+    }
 }
