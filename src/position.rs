@@ -115,6 +115,7 @@ impl PyObjectProtocol for Block {
 /// in intervals called Blocks.
 pub struct BlockSpace {
 
+    // TODO: Add relative start, stop coords
     coords: Vec<[i32; 3]>,
 
 }
@@ -167,7 +168,7 @@ impl BlockSpace {
     /// as a new BlockSpace.
     fn extract(&self, positions: Vec<i32>) -> PyResult<BlockSpace> {
         if let Some(max) = positions.iter().max() {
-            if *max >= self.coords.len() as i32 {
+            if *max >= self.len().unwrap() as i32 {
                 return Err(exceptions::IndexError::py_err(
                     format!("index out of range: {}", max)))
             }
@@ -204,59 +205,10 @@ impl BlockSpace {
                 return Err(exceptions::ValueError::py_err(
                     format!("index out of range: {}", max)))
             }
-
-            // Create a vector of arrays representing relative start and stops
-            let mut start_offset = 0;
-            let rel_blocks: Vec<[i32;2]> = self.coords.iter()
-                .map(|[a, z, _]| {
-                    let length = z - a;
-                    start_offset += length;
-                    [start_offset-length, start_offset]
-            }).collect();
-
-            // Sort positions in reverse order
-            let mut positions = positions;
-            positions.sort_unstable();
-            positions.reverse();
-            
-            // Iterate over positions in reverse
-            let mut offset = 0;
-            for &rel_pos in positions.iter() {
-                let length = rel_blocks.len() - offset;
-                for i in (0..length).rev() {
-                    let [rel_start, rel_stop]: [i32; 2] = rel_blocks[i];
-                    let [abs_start, abs_stop, id] = self.coords[i];
-                    if rel_pos > rel_start && rel_pos < rel_stop - 1 {
-                        // Remove block currently at j and get values
-                        // Split this block at pos
-                        // 10,11,12,13,14,15 : remove at index 2 (3rd pos)
-                        // [_,10,16]
-                        // 10,11,   13,14,15
-                        // [_,10,12], [13:16]
-                        // Insert two new blocks at j and j+1
-                        let abs_pos = abs_start + (rel_pos - rel_start);
-                        self.coords[i] = [abs_start, abs_pos, id];
-                        self.coords.insert(i+1, [abs_pos+1, abs_stop, id]);
-                        offset += 1;
-                        break;
-                    } else if rel_pos == rel_start {
-                        // target is the start of the block
-                        if abs_start+1 == abs_stop {
-                            let _ = self.coords.remove(i);
-                            // no offset increment
-                        } else {
-                            self.coords[i] = [abs_start+1, abs_stop, id];
-                            offset += 1;
-                        }
-                        break;
-                    } else if rel_pos == rel_stop - 1 {
-                        // target is the end of the block
-                        self.coords[i] = [abs_start, abs_stop-1, id];
-                        // no offset increment
-                        break;
-                    }
-                }
-            }
+            let inverse_rel_positions: Vec<i32> = (0..length)
+                .filter(|x| !positions.contains(x))
+                .collect();
+            return self.retain(inverse_rel_positions)
         } 
         Ok(())
     }
@@ -270,16 +222,26 @@ impl BlockSpace {
         if let Some(max) = positions.iter().max() {
             // If largest relative position is larger than the total length
             // of the linear space, then return an error
-            let length = self.len().unwrap();
-            if *max >= length {
-                return Err(exceptions::ValueError::py_err(
+            if *max >= self.len().unwrap() {
+                return Err(exceptions::IndexError::py_err(
                     format!("index out of range: {}", max)))
             }
-            let inverse_rel_positions: Vec<i32> = (0..length)
-                .filter(|x| !positions.contains(x))
-                .collect();
-            return self.remove(inverse_rel_positions)
-        } 
+            // Unroll blocks into a vector of i32
+            let (coord_list, id_list) = self.to_arrays()?;
+            // Extract
+            let mut ext_coord_list: Vec<i32> = Vec::new();
+            let mut ext_id_list: Vec<i32> = Vec::new();
+            let mut positions = positions;
+            positions.sort_unstable();
+            for i in positions.iter() {
+                ext_coord_list.push(coord_list[*i as usize]);
+                ext_id_list.push(id_list[*i as usize]);
+            }
+            // Reassemble to blocks
+            // Replace coords
+            self.coords = arrays_to_linspace(ext_coord_list, ext_id_list)
+                .unwrap().coords;
+        }
         Ok(())
     }
 
@@ -535,6 +497,9 @@ pub fn list_to_linspace(coords: Vec<(i32, i32, i32)>) -> PyResult<BlockSpace> {
 pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<i32>) -> PyResult<BlockSpace> {
     if coords.len() != ids.len() {
         return Err(exceptions::ValueError::py_err("lists do not have the same length"))
+    }
+    if coords.len() == 0 {
+        return Ok(BlockSpace{ coords: Vec::new() })
     }
     let mut new_coords: Vec<[i32; 3]> = Vec::new();
     let mut last_id = ids[0];
