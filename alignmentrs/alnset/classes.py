@@ -40,31 +40,6 @@ class AlignmentSet:
             samples/markers, or so not share the same sample/marker names.
 
         """
-        # Check
-        for i in range(1, len(aln_list)):
-            passed = True
-            if not(aln_list[0].samples or aln_list[i].samples):
-                raise ValueError(
-                    'Cannot create an AlignmentSet from a alignment with '
-                    'different number of samples')
-            else:
-                if not aln_list[0].samples.is_row_similar(aln_list[i].samples):
-                    raise ValueError(
-                        'Cannot create an AlignmentSet from a alignment with '
-                        'different sample names/differently ordered '
-                        'sample names.')
-
-            if not(aln_list[0].markers or aln_list[i].markers):
-                raise ValueError(
-                    'Cannot create an AlignmentSet from a alignment with '
-                    'different number of markers')
-            else:
-                if aln_list[0].markers.is_row_similar(aln_list[i].markers):
-                    raise ValueError(
-                        'Cannot create an AlignmentSet from a alignment with '
-                        'different marker names/differently ordered '
-                        'marker names.')
-
         self.name = name
         self._alignments = {aln.name: aln for aln in aln_list}
         self.metadata = metadata if metadata else dict()
@@ -167,8 +142,32 @@ class AlignmentSet:
         if keys is not None:
             if not isinstance(keys, list):
                 raise ValueError('keys must be None or a list of alignment names')
-        else:
-            keys = (name for name in self.alignment_names)
+        # # Check
+        # for i in range(1, len(self._alignments)):
+        #     passed = True
+        #     if not(aln_list[0].samples or aln_list[i].samples):
+        #         raise ValueError(
+        #             'Cannot create an AlignmentSet from a alignment with '
+        #             'different number of samples')
+        #     else:
+        #         if not aln_list[0].samples.is_row_similar(aln_list[i].samples):
+        #             raise ValueError(
+        #                 'Cannot create an AlignmentSet from a alignment with '
+        #                 'different sample names/differently ordered '
+        #                 'sample names.')
+
+        #     if not(aln_list[0].markers or aln_list[i].markers):
+        #         raise ValueError(
+        #             'Cannot create an AlignmentSet from a alignment with '
+        #             'different number of markers')
+        #     else:
+        #         if aln_list[0].markers.is_row_similar(aln_list[i].markers):
+        #             raise ValueError(
+        #                 'Cannot create an AlignmentSet from a alignment with '
+        #                 'different marker names/differently ordered '
+        #                 'marker names.')
+
+        keys = (name for name in self.alignment_names)
         sample_alignment = concat_basealignments(
             [self._alignments[k].samples for k in keys])
         try:
