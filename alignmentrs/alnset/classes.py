@@ -114,7 +114,7 @@ class AlignmentSet:
         }
         return self.__class__(name, aln_list, metadata=new_metadata)
 
-    def concatenate(self, name, keys=None, description_encoder=None):
+    def concatenate(self, name, keys=None):
         """Returns an concatenated alignment from the alignment set.
 
         Parameters
@@ -124,7 +124,7 @@ class AlignmentSet:
         keys : list or None, optional
             List of alignment names to concatenate. The order of the list
             determines the order of concatenation.
-            If None, alignments are concatenated based on original order.
+            If None, alignments are concatenated arbitrarily.
             (default is None)
         description_encoder : function or None, optional
             This function returns a formatted string encoding CatBlock data.
@@ -142,54 +142,42 @@ class AlignmentSet:
         if keys is not None:
             if not isinstance(keys, list):
                 raise ValueError('keys must be None or a list of alignment names')
-        # # Check
+        # Check if alignments are compatible
+        test_aln = None
         # for i in range(1, len(self._alignments)):
-        #     passed = True
-        #     if not(aln_list[0].samples or aln_list[i].samples):
-        #         raise ValueError(
-        #             'Cannot create an AlignmentSet from a alignment with '
-        #             'different number of samples')
-        #     else:
-        #         if not aln_list[0].samples.is_row_similar(aln_list[i].samples):
-        #             raise ValueError(
-        #                 'Cannot create an AlignmentSet from a alignment with '
-        #                 'different sample names/differently ordered '
-        #                 'sample names.')
+        for name, aln in self._alignments.items():
+            if test_aln is None:
+                test_aln = aln
+            passed = True
+            if not(test_aln.samples or aln.samples):
+                raise ValueError(
+                    'Cannot create an AlignmentSet from a alignment with '
+                    'different number of samples')
+            else:
+                if not test_aln.samples.is_row_similar(aln.samples):
+                    raise ValueError(
+                        'Cannot create an AlignmentSet from a alignment with '
+                        'different sample names/differently ordered '
+                        'sample names.')
 
-        #     if not(aln_list[0].markers or aln_list[i].markers):
-        #         raise ValueError(
-        #             'Cannot create an AlignmentSet from a alignment with '
-        #             'different number of markers')
-        #     else:
-        #         if aln_list[0].markers.is_row_similar(aln_list[i].markers):
-        #             raise ValueError(
-        #                 'Cannot create an AlignmentSet from a alignment with '
-        #                 'different marker names/differently ordered '
-        #                 'marker names.')
+            if not(test_aln.markers or aln.markers):
+                raise ValueError(
+                    'Cannot create an AlignmentSet from a alignment with '
+                    'different number of markers')
+            else:
+                if test_aln.markers.is_row_similar(aln.markers):
+                    raise ValueError(
+                        'Cannot create an AlignmentSet from a alignment with '
+                        'different marker names/differently ordered '
+                        'marker names.')
 
-        keys = (name for name in self.alignment_names)
         sample_alignment = concat_basealignments(
-            [self._alignments[k].samples for k in keys])
+            [self._alignments[k].samples for k in (name for name in self.alignment_names)])
         try:
             marker_alignment = concat_basealignments(
-                [self._alignments[k].markers for k in keys])
+                [self._alignments[k].markers for k in (name for name in self.alignment_names)])
         except Exception:
             marker_alignment = None
-
-        if description_encoder:
-            start = 0
-            def cb(sid, val):
-                nonlocal start
-                start += val
-                return CatBlock(str(sid), start-val, start)
-            cblist = [cb(name, aln.nsites)
-                      for name, aln in self._alignments.items()]
-            descriptions = [description_encoder(sid, cblist)
-                            for sid in sample_alignment.ids]
-            sample_alignment.set_descriptions(
-                list(range(sample_alignment.nsamples)),
-                descriptions
-            )
         return Alignment(name, sample_alignment, marker_alignment)
 
     def to_fasta_files(self, path_mapping, include_markers=True):
