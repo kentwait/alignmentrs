@@ -667,7 +667,7 @@ class Alignment:
         if copy:
             return aln
 
-    def remove_sites(self, i, description_encoder=None, copy=False):
+    def remove_sites(self, i, copy=False):
         """Removes sites based on the given list of column numbers.
 
         This is the functional opposite of the `retain_sites` method.
@@ -676,12 +676,6 @@ class Alignment:
         ----------
         i : int, or list of int
             int or list specifying the sites to be removed.
-        description_encoder : function, optional
-            Function that uses the sample's name and list of blocks
-            to generate a string representation of the sample's block data.
-            If not specified, but site tracking is enabled, block data are
-            updated but the string representation in the description is not
-            updated. (default is None)
         copy : bool, optional
             Returns a new copy instead of removing sites inplace.
             (default is False, operation is done inplace)
@@ -706,23 +700,11 @@ class Alignment:
             aln.markers.remove_sites(i)
             assert aln.samples.nsites == aln.markers.nsites, \
                 "Sample and marker nsites are not equal."
-        # # Update blocks if exists
-        # if aln.blocklists:
-        #     aln.blocklists = [
-        #         blockrs.remove_sites_from_blocks(blist, i)
-        #         for seq, blist in zip(aln.samples.sequences, aln.blocklists)]
-        # # Update block data in description if description encoder is specified
-        # if description_encoder:
-        #     aln.samples.set_descriptions(
-        #         list(range(aln.samples.nrows)),
-        #         [description_encoder(sid, blist)
-        #          for sid, blist in zip(aln.samples.ids, aln.blocklists)]
-        #     )
         aln._linspace.remove(i)
         if copy:
             return aln
 
-    def retain_sites(self, i, description_encoder=None, copy=False):
+    def retain_sites(self, i, copy=False):
         """Keeps sites based on the given list of column numbers.
 
         This is the functional opposite of the `remove_sites` method.
@@ -731,12 +713,6 @@ class Alignment:
         ----------
         i : int or list of int
             int or list specifying the sites to be retained.
-        description_encoder : function, optional
-            Function that uses the sample's name and list of blocks
-            to generate a string representation of the sample's block data.
-            If not specified, but site tracking is enabled, block data are
-            updated but the string representation in the description is not
-            updated. (default is None)
         copy : bool, optional
             Returns a new copy instead of performing the operation inplace.
             (default is False, operation is done inplace)
@@ -761,19 +737,6 @@ class Alignment:
             aln.markers.retain_sites(i)
             assert aln.samples.nsites == aln.markers.nsites, \
                 "Sample and marker nsites are not equal."
-        # # Update blocks if exists
-        # if aln.blocklists:
-        #     j = [pos for pos in range(aln.samples.nsites) if pos not in i]
-        #     aln.blocklists = [
-        #         blockrs.remove_sites_from_blocks(blist, j)
-        #         for seq, blist in zip(aln.samples.sequences, aln.blocklists)]
-        # # Update block data in description if description encoder is specified
-        # if description_encoder:
-        #     aln.samples.set_descriptions(
-        #         list(range(aln.samples.nrows)),
-        #         [description_encoder(sid, blist)
-        #          for sid, blist in zip(aln.samples.ids, aln.blocklists)]
-        #     )
         aln._linspace.retain(i)
         if copy:
             return aln
@@ -1019,82 +982,6 @@ class Alignment:
         stop = stop if stop is not None else start + self.samples.nsites
         state = state if state is not None else 1
         self._linspace: BlockSpace = BlockSpace(start, stop, state)
-
-    # Block-related methods
-
-    # def set_blocklists(self, ref_seq, description_encoder=None):
-    #     """Creates new block information for the sequences given a reference.
-
-    #     Parameters
-    #     ----------
-    #     ref_seq : str
-    #         Reference sequence length must match alignment length.
-    #     description_encoder : function, optional
-    #         Function that uses the sample's name and list of blocks
-    #         to generate a string representation of the sample's block data.
-    #         If not specified, but site tracking is enabled, block data are
-    #         updated but the string representation in the description is not
-    #         updated. (default is None)
-
-    #     """
-    #     self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
-    #                        for seq in self.samples.sequences]
-    #     if description_encoder:
-    #         self.samples.set_descriptions(
-    #             list(range(self.samples.nrows)),
-    #             [description_encoder(sid, blist)
-    #              for sid, blist in zip(self.samples.ids, self.blocklists)]
-    #         )
-
-    # def parse_description_as_blocks(self, description_decoder=None):
-    #     """Parses sample description into block data.
-
-    #     Parameters
-    #     ----------
-    #     description_decoder : function
-    #         Function that locates the string representation of the list of
-    #         blocks from the text in the sample's description.
-    #         If not specified, the string after last under underscore "_" in
-    #         the description will be considered the stringed list of
-    #         blocks.
-
-    #     """
-    #     if not self.blocklists:
-    #         self.blocklists = [None for _ in range(self.samples.nrows)]
-    #     for i, desc in enumerate(self.samples.descriptions):
-    #         if description_decoder:
-    #             desc = description_decoder(desc)
-    #         else:
-    #             desc = desc.split('_')[-1]
-    #         # Parse block str into blocks
-    #         self.blocklists[i] = blockrs.libblock.from_block_str(desc)
-
-    # def write_blocks_to_description(self, description_encoder):
-    #     """Writes each sample's block data as a string, replacing its
-    #     description.
-
-    #     Parameters
-    #     ----------
-    #     description_encoder : function, optional
-    #         This function returns a formatted string encoding the block data.
-    #         The block string will replace the sample's description.
-    #         This function receives two parameters, the sample ID and the
-    #         sample's block data. (default is None)
-
-    #     Raises
-    #     ------
-    #     TypeError
-    #         Given parameter has the wrong parameter type.
-
-    #     """
-    #     if self.blocklists:
-    #         self.samples.set_descriptions(
-    #             list(range(self.samples.nrows)),
-    #             [description_encoder(sid, blist)
-    #              for sid, blist in zip(self.samples.ids, self.blocklists)]
-    #         )
-    #     else:
-    #         raise ValueError('Block list is empty')
 
     # Special methods
 
