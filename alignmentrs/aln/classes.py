@@ -65,9 +65,9 @@ class Alignment:
                 'not equal: {} != {}'.format(
                     sample_alignment.nsites, marker_alignment.nsites))
         self.name = name
-        self.samples = sample_alignment
-        self.markers = marker_alignment if marker_alignment else \
-                       BaseAlignment([], [], [])
+        self.samples: BaseAlignment = sample_alignment
+        self.markers: BaseAlignment = marker_alignment \
+            if marker_alignment else BaseAlignment([], [], [])
         if '_linspace' in kwargs.keys():
             self._linspace: BlockSpace = kwargs['_linspace']
         else:
@@ -764,6 +764,72 @@ class Alignment:
         #          for sid, blist in zip(aln.samples.ids, aln.blocklists)]
         #     )
         aln._linspace.retain(i)
+        if copy:
+            return aln
+
+    def reorder_samples(self, ids, copy=False):
+        """Reorders samples based on a list of names or positions.
+
+        Parameters
+        ----------
+        ids : list of int or list of str
+            Order of the list specifies the new ordering of the samples.
+        copy : bool, optional
+            Returns a new copy instead of performing the operation inplace.
+            (default is False, operation is done inplace)
+
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
+
+        """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
+            self
+        # Check type of i, and convert if necessary
+        if isinstance(ids, list) and sum((isinstance(j, int) for j in ids)):
+            pass
+        elif isinstance(ids, list) and sum((isinstance(j, str) for j in ids)):
+            ids = aln.samples.row_names_to_ids(ids)
+        else:
+            raise TypeError('ids must be a list of int or list of str.')
+        aln.samples.reorder_rows(ids)
+        if copy:
+            return aln
+
+    def reorder_markers(self, ids, copy=False):
+        """Reorders markers based on a list of names or positions.
+
+        Parameters
+        ----------
+        ids : list of int or list of str
+            Order of the list specifies the new ordering of the markers.
+        copy : bool, optional
+            Returns a new copy instead of performing the operation inplace.
+            (default is False, operation is done inplace)
+
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a new alignment, otherwise no
+            value is returned (None).
+
+        """
+        aln = self.__class__(
+            self.name, self.samples.copy(), self.markers.copy(),
+            _linspace=self._linspace.copy()) if copy else \
+            self
+        # Check type of i, and convert if necessary
+        if isinstance(ids, list) and sum((isinstance(j, int) for j in ids)):
+            pass
+        elif isinstance(ids, list) and sum((isinstance(j, str) for j in ids)):
+            ids = aln.markers.row_names_to_ids(ids)
+        else:
+            raise TypeError('ids must be a list of int or list of str.')
+        aln.markers.reorder_rows(ids)
         if copy:
             return aln
 
