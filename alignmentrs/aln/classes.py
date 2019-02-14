@@ -1,7 +1,7 @@
 import numpy as np
-import blockrs
 from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
 from libalignmentrs.position import BlockSpace
+from alignmentrs.util import parse_comment_list
 
 
 __all__ = ['Alignment']
@@ -1158,39 +1158,6 @@ class Alignment:
         if copy:
             return aln
 
-    def reorder_samples(self, ids, copy=False):
-        """Reorders samples based on a list of names or positions.
-
-        Parameters
-        ----------
-        ids : list of int or list of str
-            Order of the list specifies the new ordering of the samples.
-        copy : bool, optional
-            Returns a new copy instead of performing the operation inplace.
-            (default is False, operation is done inplace)
-
-        Returns
-        -------
-        Alignment or None
-            If copy is True, returns a new alignment, otherwise no
-            value is returned (None).
-
-        """
-        aln = self.__class__(
-            self.name, self.samples.copy(), self.markers.copy(),
-            _linspace=self._linspace.copy()) if copy else \
-            self
-        # Check type of i, and convert if necessary
-        if isinstance(ids, list) and sum((isinstance(j, int) for j in ids)):
-            pass
-        elif isinstance(ids, list) and sum((isinstance(j, str) for j in ids)):
-            ids = aln.samples.row_names_to_ids(ids)
-        else:
-            raise TypeError('ids must be a list of int or list of str.')
-        aln.samples.reorder_rows(ids)
-        if copy:
-            return aln
-
     # Marker deleters
     # ------------------------------
     def remove_markers(self, i, match_prefix=False, match_suffix=False,
@@ -1436,7 +1403,7 @@ class Alignment:
     # Format converters
     # ==========================================================================
     @classmethod
-    def from_fasta(cls, path, name, marker_kw=None):
+    def from_fasta(cls, path, name=None, marker_kw=None, comment_parser=None):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -1459,7 +1426,13 @@ class Alignment:
         if marker_kw is None:
             marker_kw = ''
         # Create alignments
-        return cls(name, *fasta_file_to_basealignments(path, marker_kw))
+        samples, markers, comment_list = \
+            fasta_file_to_basealignments(path, marker_kw)
+        comment_parser = \
+            comment_parser if comment_parser is not None else parse_comment_list
+        kwargs = comment_parser(comment_list)
+        name = name if name else kwargs['name']
+        return cls(name, samples, markers, **kwargs)
 
     def to_fasta(self, path, include_markers=True):
         """Saves the alignment as a FASTA-formatted text file.
@@ -1527,6 +1500,7 @@ class Alignment:
     def __len__(self):
         raise NotImplementedError(
             'len() is not implemented for Alignment.\n'
-            'Use .nsamples to get the number of samples, '
+            'Use .nsites to get the number of columns, '
+            '.nsamples to get the number of samples, '
             '.nmarkers to get the number of markers, or '
             '.nrows to get all the number of alignment rows.')

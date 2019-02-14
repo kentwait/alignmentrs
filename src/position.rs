@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 
+use regex::Regex;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -643,6 +644,29 @@ pub fn blockspace_to_seqgap_str(blockspace: &BlockSpace) -> PyResult<String> {
     Ok(strings.join(";"))
 }
 
+lazy_static! {
+    static ref BLOCK_REGEX: Regex = Regex::new(r"(\x2D*\d+)\3A(\x2D*\d+)").unwrap();
+}
+
+#[pyfunction]
+pub fn simple_block_str_to_linspace(blocks_str: &str) -> PyResult<BlockSpace> {
+    let mut coords: Vec<[i32; 3]> = Vec::new();
+    for cap in BLOCK_REGEX.captures_iter(blocks_str) {
+        let start = match &cap[1].parse::<i32>() {
+            Ok(v) => *v,
+            Err(_) => return Err(exceptions::ValueError::py_err(
+                "error converting block start to i32"))
+        };
+        let stop = match &cap[2].parse::<i32>() {
+            Ok(v) => *v,
+            Err(_) => return Err(exceptions::ValueError::py_err(
+                "error converting block stop to i32"))
+        };
+        coords.push([start, stop, 1]);
+    }
+    Ok(BlockSpace{ coords })
+}
+
 #[pyclass(subclass)]
 #[derive(Clone)]
 /// CoordSpace(init_state, start, stop)
@@ -1107,6 +1131,7 @@ fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_function!(list_to_linspace))?;
     m.add_function(wrap_function!(arrays_to_linspace))?;
     m.add_function(wrap_function!(blockspace_to_seqgap_str))?;
+    m.add_function(wrap_function!(simple_block_str_to_linspace))?;
 
     Ok(())
 }

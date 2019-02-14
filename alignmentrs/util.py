@@ -1,4 +1,5 @@
 import os
+from libalignmentrs.position import simple_block_str_to_linspace
 
 
 __all__ = ['fasta_file_to_lists']
@@ -78,3 +79,15 @@ def fasta_file_to_lists(path, marker_kw=None):
             'sequences': marker_seqs,
         }
     }
+
+
+def parse_comment_list(comment_list: list):
+    comments_d = dict()
+    for comment in comment_list:
+        k, v = comment[1:].strip().split('\t')
+        if k == 'name':
+            comments_d['name'] = v
+        elif k == 'coords':
+            comments_d['_linspace'] = \
+                simple_block_str_to_linspace(v)
+    return comments_d
