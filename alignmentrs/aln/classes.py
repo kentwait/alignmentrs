@@ -1444,7 +1444,7 @@ class Alignment:
 
         """
         with open(path, 'w') as writer:
-            print(';name\t' + self.name, file=writer)
+            print(';name\t' + str(self.name), file=writer)
             print(';coords\t{' + self._linspace.to_simple_block_str() + '}',
                   file=writer)
             print(self.samples, file=writer)
@@ -1486,13 +1486,13 @@ class Alignment:
     def __str__(self):
         if self.markers:
             return '\n'.join([
-                ';name\t' + self.name,
+                ';name\t' + str(self.name),
                 ';coords\t{' + self._linspace.to_simple_block_str() + '}',
                 str(self.samples),
                 str(self.markers),
             ])
         return '\n'.join([
-            ';name\t' + self.name,
+            ';name\t' + str(self.name),
             ';coords\t{' + self._linspace.to_simple_block_str() + '}',
             str(self.samples),
         ])
