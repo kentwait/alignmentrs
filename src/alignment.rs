@@ -645,6 +645,39 @@ impl BaseAlignment {
         Ok(())
     }
 
+    /// reorder_rows(ids, /)
+    /// --
+    /// 
+    /// Reorders the sequences inplace based on a list of their 
+    /// existing positions.
+    fn reorder_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        if let Some(max) = ids.iter().max() {
+            let length = self.ids.len();
+            if ids.len() != length {
+                return Err(exceptions::ValueError::py_err(format!(
+                    "list length does not match the number of samples: {} != {}",
+                    ids.len(), length)))
+            }
+            if *max >= length as i32 {
+                return Err(exceptions::IndexError::py_err(
+                    format!("index out of range: {}", max)))
+            }
+            let mut new_ids: Vec<String> = Vec::with_capacity(length);
+            let mut new_descriptions: Vec<String> = Vec::with_capacity(length);
+            let mut new_sequences: Vec<String> = Vec::with_capacity(length);
+            for (i, id) in ids.iter().enumerate() {
+                let id = *id as usize;
+                new_ids[i].clone_from(&self.ids[id]);
+                new_descriptions[i].clone_from(&self.descriptions[id]);
+                new_sequences[i].clone_from(&self.sequences[id]);
+            }
+            self.ids = new_ids;
+            self.descriptions = new_descriptions;
+            self.sequences = new_sequences;
+        }
+        Ok(())
+    }
+
     /// row_names_to_ids(names)
     /// 
     /// Converts a list of sample names to its corresponding sample indices.
