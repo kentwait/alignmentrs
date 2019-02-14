@@ -1,7 +1,7 @@
 import numpy as np
 import blockrs
 from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
-from libalignmentrs.position import LinearSpace
+from libalignmentrs.position import BlockSpace
 
 
 __all__ = ['Alignment']
@@ -69,12 +69,12 @@ class Alignment:
         self.markers = marker_alignment if marker_alignment else \
                        BaseAlignment([], [], [])
         if '_linspace' in kwargs.keys():
-            self._linspace: LinearSpace = kwargs['_linspace']
+            self._linspace: BlockSpace = kwargs['_linspace']
         else:
             start = kwargs['linspace_start'] \
                     if 'linspace_start' in kwargs.keys() else 0
-            self._linspace: LinearSpace = \
-                LinearSpace(start, start + self.samples.nsites, 1)
+            self._linspace: BlockSpace = \
+                BlockSpace(start, start + self.samples.nsites, 1)
 
     # Properties to retrieve the number of rows in the alignment.
     # Because the alignment object distinguishes between samples and markers,

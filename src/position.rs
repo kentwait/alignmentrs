@@ -108,19 +108,19 @@ impl PyObjectProtocol for Block {
 
 #[pyclass(subclass)]
 #[derive(Clone)]
-/// LinearSpace(start, stop, init_state, /)
+/// BlockSpace(start, stop, init_state, /)
 /// --
 /// 
-/// LinearSpace represents a discrete linear space stored
+/// BlockSpace represents a discrete linear space stored
 /// in intervals called Blocks.
-pub struct LinearSpace {
+pub struct BlockSpace {
 
     coords: Vec<[i32; 3]>,
 
 }
 
 #[pyproto]
-impl PyObjectProtocol for LinearSpace {
+impl PyObjectProtocol for BlockSpace {
     fn __repr__(&self) -> PyResult<String> {
         let lb = match self.lb() {
             Ok(x) => x,
@@ -134,7 +134,7 @@ impl PyObjectProtocol for LinearSpace {
             Ok(x) => x,
             Err(x) => return Err(x)
         };
-        Ok(format!("LinearSpace(lb={}, ub={}, length={})", lb, ub, length))
+        Ok(format!("BlockSpace(lb={}, ub={}, length={})", lb, ub, length))
     }
     
     fn __str__(&self) -> PyResult<String> {
@@ -143,9 +143,9 @@ impl PyObjectProtocol for LinearSpace {
 }
 
 #[pymethods]
-impl LinearSpace {
+impl BlockSpace {
     #[new]
-    /// Creates a new LinearSpace object from an init_state, and start and stop
+    /// Creates a new BlockSpace object from an init_state, and start and stop
     /// coordinates.
     fn __new__(obj: &PyRawObject, start: i32, stop: i32, init_state: i32) -> PyResult<()> {
         if start > stop {
@@ -154,7 +154,7 @@ impl LinearSpace {
                         start, stop)))
         }
         obj.init(|_| {
-            LinearSpace {
+            BlockSpace {
                 coords: vec![[start, stop, init_state]],
             }
         })
@@ -164,8 +164,8 @@ impl LinearSpace {
     /// --
     /// 
     /// Extracts coordinates according to its current positions
-    /// as a new LinearSpace.
-    fn extract(&self, positions: Vec<i32>) -> PyResult<LinearSpace> {
+    /// as a new BlockSpace.
+    fn extract(&self, positions: Vec<i32>) -> PyResult<BlockSpace> {
         if let Some(max) = positions.iter().max() {
             if *max >= self.coords.len() as i32 {
                 return Err(exceptions::IndexError::py_err(
@@ -183,7 +183,7 @@ impl LinearSpace {
             // Reassemble to blocks
             arrays_to_linspace(ext_coord_list, ext_id_list)
         } else {
-            Ok(LinearSpace{ coords: self.coords.clone() })
+            Ok(BlockSpace{ coords: self.coords.clone() })
         }
     }
 
@@ -492,9 +492,9 @@ impl LinearSpace {
     /// --
     /// 
     /// Returns a deep copy of the current linear space.
-    fn copy(&self) -> PyResult<LinearSpace> {
+    fn copy(&self) -> PyResult<BlockSpace> {
         let coords = self.coords.clone();
-        Ok(LinearSpace{ coords })
+        Ok(BlockSpace{ coords })
     }
 }
 
@@ -504,7 +504,7 @@ impl LinearSpace {
 /// --
 /// 
 /// Returns a linear space created using the given list of blocks.
-pub fn blocks_to_linspace(blocks: Vec<&Block>) -> PyResult<LinearSpace> {
+pub fn blocks_to_linspace(blocks: Vec<&Block>) -> PyResult<BlockSpace> {
     let mut coords: Vec<[i32; 3]> = Vec::new();
     for Block{ id, start, stop } in blocks.iter() {
         if let Ok(v) = id.parse::<i32>() {
@@ -513,7 +513,7 @@ pub fn blocks_to_linspace(blocks: Vec<&Block>) -> PyResult<LinearSpace> {
             return Err(exceptions::ValueError::py_err("error converting Block id to int"))
         }
     }
-    Ok(LinearSpace{ coords })
+    Ok(BlockSpace{ coords })
 }
 
 #[pyfunction]
@@ -521,9 +521,9 @@ pub fn blocks_to_linspace(blocks: Vec<&Block>) -> PyResult<LinearSpace> {
 /// --
 /// 
 /// Returns a linear space created using the given coordinate list.
-pub fn list_to_linspace(coords: Vec<(i32, i32, i32)>) -> PyResult<LinearSpace> {
+pub fn list_to_linspace(coords: Vec<(i32, i32, i32)>) -> PyResult<BlockSpace> {
     let coords: Vec<[i32; 3]> = coords.iter().map(|(a, b, c)| [*a, *b, *c]).collect();
-    Ok(LinearSpace{ coords })
+    Ok(BlockSpace{ coords })
 }
 
 #[pyfunction]
@@ -532,7 +532,7 @@ pub fn list_to_linspace(coords: Vec<(i32, i32, i32)>) -> PyResult<LinearSpace> {
 /// 
 /// Returns a linear space based on the corresponding lists of coordinates
 /// and ids.
-pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<i32>) -> PyResult<LinearSpace> {
+pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<i32>) -> PyResult<BlockSpace> {
     if coords.len() != ids.len() {
         return Err(exceptions::ValueError::py_err("lists do not have the same length"))
     }
@@ -569,7 +569,7 @@ pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<i32>) -> PyResult<LinearSpa
     }
     new_coords.push(
         [last_start, coords.last().unwrap() + 1, last_id]);
-    Ok(LinearSpace{ coords: new_coords })
+    Ok(BlockSpace{ coords: new_coords })
 }
 
 
@@ -1036,7 +1036,7 @@ pub fn arrays_to_blocks(data: Vec<i32>, ids: Vec<String>) -> PyResult<Vec<Block>
 #[pymodinit]
 fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Block>()?;
-    m.add_class::<LinearSpace>()?;
+    m.add_class::<BlockSpace>()?;
     m.add_class::<CoordSpace>()?;
 
     m.add_function(wrap_function!(blocks_to_linspace))?;
