@@ -1158,7 +1158,7 @@ class Alignment:
         if copy:
             return aln
 
-        def reorder_samples(self, ids, copy=False):
+    def reorder_samples(self, ids, copy=False):
         """Reorders samples based on a list of names or positions.
 
         Parameters
@@ -1471,6 +1471,9 @@ class Alignment:
 
         """
         with open(path, 'w') as writer:
+            print(';name\t' + self.name, file=writer)
+            print(';coords\t{' + self._linspace.to_simple_block_str() + '}',
+                  file=writer)
             print(self.samples, file=writer)
             if include_markers:
                 print(self.markers, file=writer)
@@ -1508,12 +1511,18 @@ class Alignment:
         )
 
     def __str__(self):
+        if self.markers:
+            return '\n'.join([
+                ';name\t' + self.name,
+                ';coords\t{' + self._linspace.to_simple_block_str() + '}',
+                str(self.samples),
+                str(self.markers),
+            ])
         return '\n'.join([
-            ';name\t' + self.name,
-            ';coords\t{' + self._linspace.to_simple_block_str() + '}',
-            str(self.samples),
-            str(self.markers),
-        ])
+                ';name\t' + self.name,
+                ';coords\t{' + self._linspace.to_simple_block_str() + '}',
+                str(self.samples),
+            ])
 
     def __len__(self):
         raise NotImplementedError(
