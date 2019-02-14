@@ -1,6 +1,11 @@
+import os
+from copy import deepcopy
+
 import numpy as np
+
 from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
 from libalignmentrs.position import BlockSpace
+from libalignmentrs.record import Record
 from alignmentrs.util import parse_comment_list
 
 
@@ -10,31 +15,32 @@ __all__ = ['Alignment']
 class Alignment:
     """Represents a multiple sequence alignment.
 
-    Alignment encapsulates information included in the FASTA format:
-    sequence names/ids, descriptions, and sequences.
+    The Alignment object encapsulates information generally
+    included in the FASTA format:
+    - sequence names/ids
+    - descriptions
+    - sequences
 
-    Additionally, Alignment can track site order using
-    block metadata.
+    Additionally, the Alignment object also stores comments
+    (lines prefixed by a semicolon ";") as metadata.
 
     Attributes
     ----------
     name : str
         Name of the alignment.
     samples : BaseAlignment
-        Alignment of sample sequences
-    markers : BaseAlignment.
+        Alignment of sample sequences.
+    markers : BaseAlignment
         Alignment of non-sample sequences. This is metadata
         stored as a row in the alignment that describes some
         kind of site-specific information.
-    blocklists : list of Block
-        List that stores positional information of the alignment since
-        tracking was initiated.
+    metadata : dict
+        Other information related to the alignment.
 
     """
 
     def __init__(self, name, sample_alignment, marker_alignment,
-                 linspace=None, metadata=None,
-                 **kwargs):
+                 linspace=None, metadata=None, **kwargs):
         """Creates a new Alignment object from sample and marker alignments.
 
         Parameters
@@ -43,10 +49,20 @@ class Alignment:
             Name of the alignment.
         sample_alignment : BaseAlignment
             Alignment of sample sequences.
-        marker_alignment: BaseAlignment
+        marker_alignment : BaseAlignment
             Alignment of non-sample sequences. These sequences are
-            usually metadata to indicate site-specific information.
+            usually site-specific metadata.
             If None, an empty BaseAlignment replaces the None value.
+        linspace : BlockSpace, optional
+            Linear space that assigns coordinate values to alignment
+            columns. (default is None, the constructor will create a new
+            linear space starting from 0).
+        metadata : dict, optional
+            Other information related to the alignment. (default is None,
+            which creates a blank dictionary)
+        **kwargs
+            Other keyword arguments used to initialize states in the
+            Alignment object.
 
         Raises
         ------
@@ -102,8 +118,8 @@ class Alignment:
 
     @property
     def coordinates(self):
-        """list of int: Returns the coordinates of the current alignment
-        relative to positions when the alignment was created/loaded."""
+        """list of int: Returns the list of coordinates 
+        associated to each column in the alignment."""
         return self._linspace.to_arrays()[0]
 
     # Sample properties
@@ -115,12 +131,12 @@ class Alignment:
 
     @property
     def sample_ids(self):
-        """list of str: Returns the list of sample sequences."""
+        """list of str: Returns the list of sample identifiers."""
         return self.samples.ids
 
     @property
     def sample_descriptions(self):
-        """list of str: Returns the list of sample sequences."""
+        """list of str: Returns the list of sample descriptions."""
         return self.samples.descriptions
 
     @property
@@ -139,21 +155,21 @@ class Alignment:
 
     @property
     def marker_ids(self):
-        """list of str: Returns the list of sample sequences."""
+        """list of str: Returns the list of markers identifiers."""
         if not self.markers:
             return []
         return self.markers.ids
 
     @property
     def marker_descriptions(self):
-        """list of str: Returns the list of sample sequences."""
+        """list of str: Returns the list of marker descriptions."""
         if not self.markers:
             return []
         return self.markers.descriptions
 
     @property
     def marker_sequences(self):
-        """list of str: Returns the list of sample sequences."""
+        """list of str: Returns the list of marker sequences."""
         if not self.markers:
             return []
         return self.markers.sequences
@@ -166,20 +182,21 @@ class Alignment:
     # ------------------------------
     @classmethod
     def subset(cls, aln, sample_ids=None, marker_ids=None, sites=None):
-        """Returns a subset of the alignment by samples, markers and sites.
+        """Returns a subset of a given alignment based on the
+        specified set of samples, markers and sites.
 
         Parameters
         ----------
         aln : Alignment
         sample_ids : int, list of int, or None
-            int, str or list specifying the samples to be included.
+            An int/str/list specifying the samples to be included.
             If None, all samples will be included in the subset.
         marker_ids : int, list of int, or None
-            int, str or list specifying the markers to be included.
+            An int/str/list specifying the markers to be included.
             Row indices for markers in the alignment.
             If None, all markers will be included in the subset.
         sites : int, list of int, or None
-            int, or list specifying the sites to be included.
+            An int/list specifying the sites to be included.
             If None, all sites will be included in the subset.
 
         Raises
@@ -250,7 +267,44 @@ class Alignment:
                      None
         return cls(
             aln.name, sample_aln, marker_aln,
-            linspace=aln._linspace.extract(sites))
+            linspace=aln._linspace.extract(sites),
+            metadata=deepcopy(aln.metadata))
+
+    def get_subset(self, sample_ids=None, marker_ids=None, sites=None):
+        """Returns a subset of the alignment based on the given set of
+        samples, markers and sites.
+
+        Parameters
+        ----------
+        sample_ids : int, list of int, or None
+            An int/str/list specifying the samples to be included.
+            If None, all samples will be included in the subset.
+        marker_ids : int, list of int, or None
+            int, str or list specifying the markers to be included.
+            Row indices for markers in the alignment.
+            If None, all markers will be included in the subset.
+        sites : int, list of int, or None
+            int, or list specifying the sites to be included.
+            If None, all sites will be included in the subset.
+
+        Raises
+        ------
+        TypeError
+            Given parameter has the wrong parameter type.
+        ValueError
+            marker_ids is specified but the alignment has no
+            marker sequences.
+
+        Returns
+        -------
+        Alignment
+            New alignment object containing the subset of sample and
+            markers rows, and site columns.
+            This subset is a deep copy of the original alignment and
+            will not be affect by changes made in the original.
+
+        """
+        return self.subset(self, sample_ids, marker_ids, sites)
 
     def get_sites(self, i):
         """Returns a new alignment containing only the sites specified
@@ -259,7 +313,7 @@ class Alignment:
         Parameters
         ----------
         i : int or list of int
-            int or list specifying the sites to be retrieved.
+            An int/list specifying the sites to be retrieved.
 
         Returns
         -------
@@ -281,7 +335,7 @@ class Alignment:
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            int, str or list specifying the samples to be retrieved.
+            An int/str/list specifying the samples to be retrieved.
         match_prefix : bool, optional
             Whether to interpret `i` as a prefix to match against
             the list of sample names. (default is False)
@@ -297,40 +351,35 @@ class Alignment:
 
         Returns
         -------
-        Alignment
-            Creates a new Alignment object containing the specified sample/s
-            and markers are not included. This subset is a deep copy of the
-            original slignment and will not be affect by changes made in the
-            original.
+        BaseAlignment
+            Creates a new sample BaseAlignment object containing the
+            specified sample/s.
+            This subset is a deep copy of the original sample BaseAlignment
+            object and will not be affect by changes made in the original.
 
         """
         # Call get_sample/s method for sample BaseAlignment depending on the
         # type of i
-        sample_aln = None
         if isinstance(i, int):
-            sample_aln = self.samples.get_rows([i])
+            return self.samples.get_rows([i])
         elif isinstance(i, str):
             if match_prefix:
-                sample_aln = self.samples.get_rows_by_prefix([i])
+                return self.samples.get_rows_by_prefix([i])
             elif match_suffix:
-                sample_aln = self.samples.get_rows_by_suffix([i])
+                return self.samples.get_rows_by_suffix([i])
             else:
-                sample_aln = self.samples.get_rows_by_name([i])
+                return self.samples.get_rows_by_name([i])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            sample_aln = self.samples.get_rows(i)
+            return self.samples.get_rows(i)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             if match_prefix:
-                sample_aln = self.samples.get_rows_by_prefix(i)
+                return self.samples.get_rows_by_prefix(i)
             elif match_suffix:
-                sample_aln = self.samples.get_rows_by_suffix(i)
+                return self.samples.get_rows_by_suffix(i)
             else:
-                sample_aln = self.samples.get_rows_by_name(i)
+                return self.samples.get_rows_by_name(i)
         else:
             raise TypeError('i must be an int, str, list of int, or list of str.')
-        if sample_aln is None:
-            raise ValueError('Value of `sample_aln` cannot be None.')
-        return self.__class__(
-            self.name, sample_aln, None, linspace=self._linspace.copy())
 
     # Marker getters
     # ------------------------------
@@ -341,7 +390,7 @@ class Alignment:
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            int, str or list specifying the markers to be retrieved.
+            An int/str/list specifying the markers to be retrieved.
         match_prefix : bool, optional
             Whether to interpret `i` as a prefix to match against
             the list of markers names. (default is False)
@@ -394,24 +443,18 @@ class Alignment:
     # Insert/append one sample
     # ------------------------------
     def insert_sample(self, i, name, description, sequence, copy=False):
-        """Inserts new sequences in the alignment matrix at the specified
-        row position inplace.
+        """Inserts a sample entry at the specified position.
 
         Parameters
         ----------
         i : int
-            Row position to insert the samples into the sample alignment.
-        ids : list of str
-            List of new sample names/IDs to be appended to the
-            existing list of sample names.
-        descriptions : list of str
-            List of new sample descriptions to be appended to the
-            existing list of descriptions. Length and order must correspond to
-            the given list of ids.
-        samples : list of str
-            List of new sample sequences to be appended to the
-            existing list of sequences. Length and order must correspond to
-            the given list of ids.
+            Row position to insert the sample.
+        name : str
+            Sample identifier.
+        description : str
+            Sample description.
+        sequence : str
+            Sample sequence.
         copy : bool, optional
             Returns a new copy instead of inserting inplace.
             (default is False, operation is done inplace)
@@ -433,24 +476,18 @@ class Alignment:
         )
 
     def append_sample(self, name, description, sequence, copy=False):
-        """Inserts new sequences after the last row of the alignment matrix
-        inplace. This increases the total number of samples.
+        """Appends a sample entry after the last sample in the alignment.
 
         Parameters
         ----------
-        ids : list of str
-            List of new sample names/IDs to be appended to the
-            existing list of sample names.
-        descriptions : list of str
-            List of new sample descriptions to be appended to the
-            existing list of descriptions. Length and order must correspond to
-            the given list of ids.
-        samples : list of str
-            List of new sample sequences to be appended to the
-            existing list of sequences. Length and order must correspond to
-            the given list of ids.
+        name : str
+            Sample identifier.
+        description : str
+            Sample description.
+        sequence : str
+            Sample sequence.
         copy : bool, optional
-            Returns a new copy instead of appending the samples inplace.
+            Returns a new copy instead of inserting inplace.
             (default is False, operation is done inplace)
 
         Raises
@@ -471,25 +508,22 @@ class Alignment:
 
     # Insert/append many samples
     # ------------------------------
-    def insert_samples_from_lists(self, i, ids, descriptions, samples, copy=False):
-        """Inserts new sequences in the alignment matrix at the specified
-        row position inplace.
+    def insert_samples_from_lists(self, i, ids, descriptions, sequences, copy=False):
+        """Inserts sample entries at the specified position.
 
         Parameters
         ----------
         i : int
-            Row position to insert the samples into the sample alignment.
+            Row position to insert the samples.
         ids : list of str
-            List of new sample names/IDs to be appended to the
-            existing list of sample names.
+            List of sample identifiers to insert. The order should correspond
+            to the order of ther other lists.
         descriptions : list of str
-            List of new sample descriptions to be appended to the
-            existing list of descriptions. Length and order must correspond to
-            the given list of ids.
-        samples : list of str
-            List of new sample sequences to be appended to the
-            existing list of sequences. Length and order must correspond to
-            the given list of ids.
+            List of sample descriptions to insert. The order should correspond
+            to the order of ther other lists.
+        sequences : list of str
+            List of sample sequneces to insert. The order should correspond
+            to the order of ther other lists.
         copy : bool, optional
             Returns a new copy instead of inserting inplace.
             (default is False, operation is done inplace)
@@ -506,11 +540,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Calls specific set_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
@@ -519,32 +549,29 @@ class Alignment:
         if not(isinstance(descriptions, list) and
                sum((isinstance(j, str) for j in descriptions))):
             raise TypeError('descriptions must be a list of str.')
-        if not(isinstance(samples, list) and
-               sum((isinstance(j, str) for j in samples))):
-            raise TypeError('samples must be a list of str.')
-        aln.samples.insert_rows(i, ids, descriptions, samples)
+        if not(isinstance(sequences, list) and
+               sum((isinstance(j, str) for j in sequences))):
+            raise TypeError('sequences must be a list of str.')
+        aln.samples.insert_rows(i, ids, descriptions, sequences)
         if copy:
             return aln
 
-    def append_samples_from_lists(self, ids, descriptions, samples, copy=False):
-        """Inserts new sequences after the last row of the alignment matrix
-        inplace. This increases the total number of samples.
+    def append_samples_from_lists(self, ids, descriptions, sequences, copy=False):
+        """Appends sample entries after the last sample in the alignment.
 
         Parameters
         ----------
         ids : list of str
-            List of new sample names/IDs to be appended to the
-            existing list of sample names.
+            List of sample identifiers to insert. The order should correspond
+            to the order of ther other lists.
         descriptions : list of str
-            List of new sample descriptions to be appended to the
-            existing list of descriptions. Length and order must correspond to
-            the given list of ids.
-        samples : list of str
-            List of new sample sequences to be appended to the
-            existing list of sequences. Length and order must correspond to
-            the given list of ids.
+            List of sample descriptions to insert. The order should correspond
+            to the order of ther other lists.
+        sequences : list of str
+            List of sample sequneces to insert. The order should correspond
+            to the order of ther other lists.
         copy : bool, optional
-            Returns a new copy instead of appending the samples inplace.
+            Returns a new copy instead of inserting inplace.
             (default is False, operation is done inplace)
 
         Raises
@@ -559,11 +586,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Calls specific set_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
@@ -572,34 +595,28 @@ class Alignment:
         if not(isinstance(descriptions, list) and
                sum((isinstance(j, str) for j in descriptions))):
             raise TypeError('descriptions must be a list of str.')
-        if not(isinstance(samples, list) and
-               sum((isinstance(j, str) for j in samples))):
-            raise TypeError('samples must be a list of str.')
-        aln.samples.append_rows(ids, descriptions, samples)
+        if not(isinstance(sequences, list) and
+               sum((isinstance(j, str) for j in sequences))):
+            raise TypeError('sequences must be a list of str.')
+        aln.samples.append_rows(ids, descriptions, sequences)
         if copy:
             return aln
 
     # Insert/append one marker
     # ------------------------------
     def insert_marker(self, i, name, description, sequence, copy=False):    
-        """Inserts new sequences in the alignment matrix at the specified
-        row position inplace.
+        """Inserts a marker entry at the specified position.
 
         Parameters
         ----------
         i : int
-            Row position to insert the samples into the sample alignment.
-        ids : list of str
-            List of new sample names/IDs to be appended to the
-            existing list of sample names.
-        descriptions : list of str
-            List of new sample descriptions to be appended to the
-            existing list of descriptions. Length and order must correspond to
-            the given list of ids.
-        samples : list of str
-            List of new sample sequences to be appended to the
-            existing list of sequences. Length and order must correspond to
-            the given list of ids.
+            Row position to insert the marker.
+        name : str
+            Marker identifier.
+        description : str
+            Marker description.
+        sequence : str
+            Marker sequence.
         copy : bool, optional
             Returns a new copy instead of inserting inplace.
             (default is False, operation is done inplace)
@@ -621,24 +638,18 @@ class Alignment:
         )
 
     def append_marker(self, name, description, sequence, copy=False):
-        """Inserts new sequences after the last row of the alignment matrix
-        inplace. This increases the total number of samples.
+        """Appends a marker entry after the last marker in the alignment.
 
         Parameters
         ----------
-        ids : list of str
-            List of new sample names/IDs to be appended to the
-            existing list of sample names.
-        descriptions : list of str
-            List of new sample descriptions to be appended to the
-            existing list of descriptions. Length and order must correspond to
-            the given list of ids.
-        samples : list of str
-            List of new sample sequences to be appended to the
-            existing list of sequences. Length and order must correspond to
-            the given list of ids.
+        name : str
+            Marker identifier.
+        description : str
+            Marker description.
+        sequence : str
+            Marker sequence.
         copy : bool, optional
-            Returns a new copy instead of appending the samples inplace.
+            Returns a new copy instead of inserting inplace.
             (default is False, operation is done inplace)
 
         Raises
@@ -660,24 +671,21 @@ class Alignment:
     # Insert/append many markers
     # ------------------------------
     def insert_markers_from_lists(self, i, ids, descriptions, markers, copy=False):
-        """Inserts new sequences in the alignment matrix at the specified
-        row position inplace.
+        """Inserts marker entries at the specified position.
 
         Parameters
         ----------
         i : int
-            Row position to insert the markers into the sample alignment.
+            Row position to insert the markers.
         ids : list of str
-            List of new sample names/IDs to be appended to the
-            existing list of sample names.
+            List of marker identifiers to insert. The order should correspond
+            to the order of ther other lists.
         descriptions : list of str
-            List of new sample descriptions to be appended to the
-            existing list of descriptions. Length and order must correspond to
-            the given list of ids.
-        markers : list of str
-            List of new sample sequences to be appended to the
-            existing list of sequences. Length and order must correspond to
-            the given list of ids.
+            List of marker descriptions to insert. The order should correspond
+            to the order of ther other lists.
+        sequences : list of str
+            List of marker sequneces to insert. The order should correspond
+            to the order of ther other lists.
         copy : bool, optional
             Returns a new copy instead of inserting inplace.
             (default is False, operation is done inplace)
@@ -694,12 +702,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else \
-            self
+        aln = self.copy() if copy else self
         # Calls specific set_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
@@ -716,24 +719,21 @@ class Alignment:
             return aln
 
     def append_markers_from_lists(self, ids, descriptions, markers, copy=False):
-        """Inserts new sequences after the last row of the alignment matrix
-        inplace. This increases the total number of markers.
+        """Appends marker entries after the last marker in the alignment.
 
         Parameters
         ----------
         ids : list of str
-            List of new sample names/IDs to be appended to the
-            existing list of sample names.
+            List of marker identifiers to insert. The order should correspond
+            to the order of ther other lists.
         descriptions : list of str
-            List of new sample descriptions to be appended to the
-            existing list of descriptions. Length and order must correspond to
-            the given list of ids.
-        markers : list of str
-            List of new sample sequences to be appended to the
-            existing list of sequences. Length and order must correspond to
-            the given list of ids.
+            List of marker descriptions to insert. The order should correspond
+            to the order of ther other lists.
+        sequences : list of str
+            List of marker sequneces to insert. The order should correspond
+            to the order of ther other lists.
         copy : bool, optional
-            Returns a new copy instead of appending the markers inplace.
+            Returns a new copy instead of inserting inplace.
             (default is False, operation is done inplace)
 
         Raises
@@ -748,11 +748,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Calls specific set_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
@@ -772,17 +768,18 @@ class Alignment:
     # Setter methods
     # ==========================================================================
     def replace_samples(self, i, sequences, copy=False):
-        """Replaces the sequence for a given row in the alignment matrix.
+        """Replaces sequences of the specified samples.
 
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            int, str or list specifying the samples to be replaced.
-            If a list, length must match the length of `sequences`.
+            An int/str/list specifying the samples to be replaced.
+            If a list, length must match the number of given sequences.
         sequences : str
-            str or list of new sequences. If `i` is an int or str,
-            must be a str. If `i` is a list, must be a list and
-            length must match the length of `i`.
+            A single sequence or a list of sequences.
+            If `i` is an int/str, `sequences` must be a str.
+            If `i` is a list, `sequences` must list and the number of sequences
+            must match the length of `i`.
         copy : bool, optional
             Returns a new copy instead of performing the
             replacement inplace. (default is False, operation is done
@@ -800,11 +797,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Calls specific set_sequence setter depending on the
         # type if i
         if isinstance(i, int) and isinstance(sequences, str):
@@ -823,17 +816,18 @@ class Alignment:
             return aln
 
     def replace_markers(self, i, sequences, copy=False):
-        """Replaces the sequence for a given row in the alignment matrix.
+        """Replaces sequences of the specified markers.
 
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            int, str or list specifying the markers to be replaced.
-            If a list, length must match the length of `sequences`.
+            An int/str/list specifying the markers to be replaced.
+            If a list, length must match the number of given sequences.
         sequences : str
-            str or list of new sequences. If `i` is an int or str,
-            must be a str. If `i` is a list, must be a list and
-            length must match the length of `i`.
+            A single sequence or a list of sequences.
+            If `i` is an int/str, `sequences` must be a str.
+            If `i` is a list, `sequences` must list and the number of sequences
+            must match the length of `i`.
         copy : bool, optional
             Returns a new copy instead of performing the
             replacement inplace. (default is False, operation is done
@@ -851,11 +845,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Calls specific set_sequence setter depending on the
         # type if i
         if isinstance(i, int) and isinstance(sequences, str):
@@ -874,7 +864,7 @@ class Alignment:
             return aln
 
     def reorder_samples(self, ids, copy=False):
-        """Reorders samples based on a list of names or positions.
+        """Reorders samples based on a list of identifiers or indices.
 
         Parameters
         ----------
@@ -891,11 +881,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Check type of i, and convert if necessary
         if isinstance(ids, list) and sum((isinstance(j, int) for j in ids)):
             pass
@@ -908,12 +894,12 @@ class Alignment:
             return aln
 
     def reorder_markers(self, ids, copy=False):
-        """Reorders markers based on a list of names or positions.
+        """Reorders markers based on a list of identifiers or indices.
 
         Parameters
         ----------
         ids : list of int or list of str
-            Order of the list specifies the new ordering of the markers.
+            Order of the list specifies the new ordering of the samples.
         copy : bool, optional
             Returns a new copy instead of performing the operation inplace.
             (default is False, operation is done inplace)
@@ -925,11 +911,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Check type of i, and convert if necessary
         if isinstance(ids, list) and sum((isinstance(j, int) for j in ids)):
             pass
@@ -942,16 +924,17 @@ class Alignment:
             return aln
 
     def reset_coordinates(self, start=0, stop=None, state=1):
-        """Resets the coordinates associated to the alignment columns.  
+        """Resets the coordinates of the alignment columns.  
 
         Parameters
         ----------
         start : int, optional
             Starting coordinate value (default is 0)
         stop : int, optional
-            End coordinate value. This value is not part of linear space
-            represented by the alignment length. (default is None, ending value
-            becomes the sum of start and the number of sites)
+            End coordinate value.
+            This value is not part of linear space representing the alignment.
+            (default is None, ending value becomes the sum of start and
+            the number of sites)
         state : int, optional
             State annotation. (default is 1)
 
@@ -968,14 +951,13 @@ class Alignment:
     # General deleters
     # ------------------------------
     def remove_sites(self, i, copy=False):
-        """Removes sites based on the given list of column numbers.
-
-        This is the functional opposite of the `retain_sites` method.
+        """Removes sites based on a list of column numbers.
+        This is the opposite of the `retain_sites` method.
 
         Parameters
         ----------
         i : int, or list of int
-            int or list specifying the sites to be removed.
+            An int/list specifying the sites to be removed.
         copy : bool, optional
             Returns a new copy instead of removing sites inplace.
             (default is False, operation is done inplace)
@@ -987,11 +969,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Check type of i, and convert if necessary
         if isinstance(i, int):
             i = [i]
@@ -1006,14 +984,13 @@ class Alignment:
             return aln
 
     def retain_sites(self, i, copy=False):
-        """Keeps sites based on the given list of column numbers.
-
-        This is the functional opposite of the `remove_sites` method.
+        """Keeps sites based on a list of column numbers.
+        This is the opposite of the `remove_sites` method.
 
         Parameters
         ----------
         i : int or list of int
-            int or list specifying the sites to be retained.
+            An int/list specifying the sites to be retained.
         copy : bool, optional
             Returns a new copy instead of performing the operation inplace.
             (default is False, operation is done inplace)
@@ -1025,11 +1002,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         # Check type of i, and convert if necessary
         if isinstance(i, int):
             i = [i]
@@ -1047,14 +1020,13 @@ class Alignment:
     # ------------------------------
     def remove_samples(self, i, match_prefix=False, match_suffix=False,
                        copy=False):
-        """Removes sample sequences based on the given index.
-
-        This is the functional opposite of the `retain_samples` method.
+        """Removes samples based a list of identifiers or indices.
+        This is the opposite of the `retain_samples` method.
 
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            int, str or list specifying the samples to be removed.
+            An int/str/list specifying the samples to be removed.
         match_prefix : bool, optional
             Whether to interpret `i` as a prefix to match against
             the list of sample names. (default is False)
@@ -1078,11 +1050,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         if isinstance(i, int):
             aln.samples.remove_rows([i])
         elif isinstance(i, str):
@@ -1107,14 +1075,13 @@ class Alignment:
             return aln
 
     def retain_samples(self, i, match_prefix=False, match_suffix=False, copy=False):
-        """Keeps sample sequences based on the given index.
-
-        This is the functional opposite of the `remove_samples` method.
+        """Removes samples based a list of identifiers or indices.
+        This is the opposite of the `remove_samples` method.
 
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            int, str or list specifying the samples to be retained.
+            An int/str/list specifying the samples to be retained.
         match_prefix : bool, optional
             Whether to interpret `i` as a prefix to match against
             the list of sample names. (default is False)
@@ -1139,11 +1106,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         if isinstance(i, int):
             aln.samples.retain_rows([i])
         elif isinstance(i, str):
@@ -1171,14 +1134,13 @@ class Alignment:
     # ------------------------------
     def remove_markers(self, i, match_prefix=False, match_suffix=False,
                        copy=False):
-        """Removes sample sequences based on the given index.
-
-        This is the functional opposite of the `retain_markers` method.
+        """Removes markers based a list of identifiers or indices.
+        This is the opposite of the `retain_markers` method.
 
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            int, str or list specifying the markers to be removed.
+            An int/str/list specifying the markers to be removed.
         match_prefix : bool, optional
             Whether to interpret `i` as a prefix to match against
             the list of sample names. (default is False)
@@ -1202,11 +1164,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         if isinstance(i, int):
             aln.markers.remove_rows([i])
         elif isinstance(i, str):
@@ -1231,20 +1189,19 @@ class Alignment:
             return aln
 
     def retain_markers(self, i, match_prefix=False, match_suffix=False, copy=False):
-        """Keeps sample sequences based on the given index.
-
-        This is the functional opposite of the `remove_markers` method.
+        """Removes markers based a list of identifiers or indices.
+        This is the opposite of the `remove_markers` method.
 
         Parameters
         ----------
         i : int, str, list of int, or list of str
-            int, str or list specifying the markers to be retained.
+            An int/str/list specifying the markers to be retained.
         match_prefix : bool, optional
             Whether to interpret `i` as a prefix to match against
-            the list of sample names. (default is False)
+            the list of marker names. (default is False)
         match_suffix : bool, optional
             Whether to interpret `i` as a suffix to match against
-            the list of sample names. This parameter is considered
+            the list of marker names. This parameter is considered
             only if match_prefix is False. (default is False)
         copy : bool, optional
             Returns a new copy instead of performing the
@@ -1263,11 +1220,7 @@ class Alignment:
             value is returned (None).
 
         """
-        aln = self.__class__(
-            self.name,
-            self.samples.copy(),
-            self.markers.copy(),
-            linspace=self._linspace.copy()) if copy else self
+        aln = self.copy() if copy else self
         if isinstance(i, int):
             aln.markers.retain_rows([i])
         elif isinstance(i, str):
@@ -1302,10 +1255,12 @@ class Alignment:
         start : int, optional
             Starting column position. (default is 0)
         stop : [type], optional
-            Stopping column position. If None, the iterator will continue
-            until the end of the alignment. (default is None)
+            Stopping column position.
+            If None, the iterator will continue until the end of the alignment.
+            (default is None)
         size : int, optional
-            Size of chunks to yield. For single characters, `size` = 1.
+            Number of characters to yield at each iteration.
+            For single characters, `size` = 1.
             For codons, `size` = 3. (default is 1)
 
         Raises
@@ -1342,10 +1297,12 @@ class Alignment:
         start : int, optional
             Starting position. (default is 0)
         stop : [type], optional
-            Stopping column position. If None, the iterator will continue
-            until the end of the alignment. (default is None)
+            Stopping column position.
+            If None, the iterator will continue until the end of the alignment.
+            (default is None)
         size : int, optional
-            Size of chunks to yield. For single characters, `size` = 1.
+            Number of characters to yield at each iteration.
+            For single characters, `size` = 1.
             For codons, `size` = 3. (default is 1)
 
         Raises
@@ -1377,10 +1334,12 @@ class Alignment:
         start : int, optional
             Starting position. (default is 0)
         stop : [type], optional
-            Stopping column position. If None, the iterator will continue
-            until the end of the alignment. (default is None)
+            Stopping column position.
+            If None, the iterator will continue until the end of the alignment.
+            (default is None)
         size : int, optional
-            Size of chunks to yield. For single characters, `size` = 1.
+            Number of characters to yield at each iteration.
+            For single characters, `size` = 1.
             For codons, `size` = 3. (default is 1)
 
         Raises
@@ -1406,6 +1365,59 @@ class Alignment:
         for i in range(start, stop, size):
             yield [s[i:i+size] for s in self.markers.sequences]
 
+    def iter_samples(self):
+        """Iterates over samples in the alignment, returning a Record object.
+        Excludes markers.
+
+        Yields
+        ------
+        Record
+
+        """
+        for i in self.nsamples:
+            yield Record(
+                self.samples.ids[i],
+                self.samples.descriptions[i],
+                self.samples.sequences[i],
+            )
+    
+    def iter_markers(self):
+        """Iterates over markers in the alignment, returning a Record object.
+        Excludes samples.
+
+        Yields
+        ------
+        Record
+
+        """
+        for i in self.nmarkers:
+            yield Record(
+                self.markers.ids[i],
+                self.markers.descriptions[i],
+                self.markers.sequences[i],
+            )
+
+    def iter_rows(self):
+        """Iterates over samples, followed by markers in the alignment,
+        returning a Record object.
+
+        Yields
+        ------
+        Record
+
+        """
+        for i in self.nsamples:
+            yield Record(
+                self.samples.ids[i],
+                self.samples.descriptions[i],
+                self.samples.sequences[i],
+            )
+        for i in self.nmarkers:
+            yield Record(
+                self.markers.ids[i],
+                self.markers.descriptions[i],
+                self.markers.sequences[i],
+            )
 
     # Format converters
     # ==========================================================================
@@ -1417,11 +1429,14 @@ class Alignment:
         ----------
         path : str
             Path to FASTA file.
-        name : str
+        name : str, optional
             Name of the new alignment.
+            (default is None, takes the name from the comments
+            or uses the filename)
         marker_kw : str, optional
             A sample is considered a marker if this keyword is found
-            in the identifier.
+            in the identifier. (default is None, uses the built-in
+            comment parser)
 
         Returns
         -------
@@ -1438,22 +1453,49 @@ class Alignment:
         comment_parser = \
             comment_parser if comment_parser is not None else parse_comment_list
         kwargs = comment_parser(comment_list)
-        name = name if name else kwargs['name']
+        if name is not None:
+            name = name
+        elif 'name' in kwargs.keys():
+            name = kwargs['name']
+        else:
+            name = os.path.basename(path)
         return cls(name, samples, markers, **kwargs)
 
-    def to_fasta(self, path, include_markers=True):
-        """Saves the alignment as a FASTA-formatted text file.
+    def to_fasta(self, path, include_markers=True, 
+                 include_headers=True,
+                 include_metadata=True):
+        """Saves the alignment as a FASTA-formatted file.
+        Some metadata may not be lost.
 
         Parameters
         ----------
         path : str
             Path to save the alignment to.
+        include_markers : bool, optional
+            Whether or not to output marker sequences.
+            (default is True, include markers in the output)
+        include_headers : bool, optional
+            Whether or not to output header infomation,
+            ie. alignment name and coordinates.
+            (default is True, include headers in the output as
+            comments)
+        include_metadata : bool, optional
+            Whether or not to output metadata as comments.
+            (default is True, include metadata in the output as
+            comments)
 
         """
+        headers_d = {
+            'name': str(self.name),
+            'coords': '{' + self._linspace.to_simple_block_str() + '}',
+        }
         with open(path, 'w') as writer:
-            print(';name\t' + str(self.name), file=writer)
-            print(';coords\t{' + self._linspace.to_simple_block_str() + '}',
-                  file=writer)
+            if include_headers:
+                for k, v in headers_d.items():
+                    print(';{k}\t{v}'.format(k=k, v=v))
+            if include_metadata:
+                for k, v in self.metadata.items():
+                    print(';{k}\t{v}'.format(k=k, v=v))
             print(self.samples, file=writer)
             if include_markers:
                 print(self.markers, file=writer)
@@ -1461,26 +1503,56 @@ class Alignment:
 
     # Special methods
     # ==========================================================================
+    def copy(self):
+        """Creates a new deep copy of the alignment.
+
+        Returns
+        -------
+        Alignment
+            The new alignment object is a deep copy of the original alignment.
+
+        """
+        return self.__class__(
+            self.name,
+            self.samples.copy(),
+            self.markers.copy(),
+            metadata=deepcopy(self.metadata),
+            linspace=self._linspace.copy())
+
     def __getitem__(self, key):
-        if key in self.samples.ids():
-            i = self.samples.row_names_to_ids([key])[0]
-            return self.samples.get_row(i)
-        elif key in self.markers.ids():
-            i = self.markers.row_names_to_ids([key])[0]
-            return self.markers.get_row(i)
-        raise KeyError('Key did not match any sample or marker ID')
+        if isinstance(key, str):
+            if key in self.samples.ids():
+                i = self.samples.row_names_to_ids([key])[0]
+                return self.samples.get_row(i)
+            elif key in self.markers.ids():
+                i = self.markers.row_names_to_ids([key])[0]
+                return self.markers.get_row(i)
+            raise KeyError('Key did not match any sample or marker ID')
+        elif isinstance(key, int):
+            return self.get_sites(key)
+        raise TypeError('Key must be str or int.')
 
     def __delitem__(self, key):
-        if key in self.samples.ids():
-            i = self.samples.row_names_to_ids([key])
-            return self.samples.remove_rows(i)
-        elif key in self.markers.ids():
-            i = self.markers.row_names_to_ids([key])
-            return self.markers.remove_rows(i)
-        raise KeyError('Key did not match any sample or marker ID')
+        if isinstance(key, str):
+            if key in self.samples.ids():
+                i = self.samples.row_names_to_ids([key])
+                return self.samples.remove_rows(i)
+            elif key in self.markers.ids():
+                i = self.markers.row_names_to_ids([key])
+                return self.markers.remove_rows(i)
+            raise KeyError('Key did not match any sample or marker ID')
+        elif isinstance(key, int):
+            return self.remove_sites(key)
+        raise TypeError('Key must be str or int.')
 
     def __iter__(self):
-        yield from self.iter_sites()
+        raise NotImplementedError(
+            'Iteration over alignment is ambiguous.'
+            'Use .iter_samples, .iter_markers, or .iter_rows '
+            'to iterate across samples, markers or all entries, respectively.'
+            'Use .iter_sample_sites, .iter_marker_sites, .iter_sites '
+            'to iterate across sites in samples, markers or '
+            'sites across both samples and markers, respectively.')
 
     def __repr__(self):
         return '{}(nsamples={}, nsites={}, nmarkers={})'.format(
@@ -1491,18 +1563,14 @@ class Alignment:
         )
 
     def __str__(self):
-        if self.markers:
-            return '\n'.join([
-                ';name\t' + str(self.name),
-                ';coords\t{' + self._linspace.to_simple_block_str() + '}',
-                str(self.samples),
-                str(self.markers),
-            ])
-        return '\n'.join([
+        parts = [
             ';name\t' + str(self.name),
             ';coords\t{' + self._linspace.to_simple_block_str() + '}',
             str(self.samples),
-        ])
+        ]
+        if self.markers:
+            return '\n'.join(parts + [str(self.markers)])
+        return '\n'.join(parts)
 
     def __len__(self):
         raise NotImplementedError(
