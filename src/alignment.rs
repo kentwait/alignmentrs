@@ -878,7 +878,7 @@ impl PyObjectProtocol for BaseAlignment {
 
     // Determines the "truthyness" of the object
     fn __bool__(&self) -> PyResult<bool> {
-        if self._nrows() == 0 {
+        if self._ncols() == 0 {
             return Ok(false)
         }
         Ok(true)
