@@ -161,11 +161,13 @@ impl BlockSpace {
         })
     }
 
+    // Realtive position methods
+
     /// extract(positions, /)
     /// --
     /// 
-    /// Extracts coordinates according to its current positions
-    /// as a new BlockSpace.
+    /// Returns a new BlockSpace containing coordinates
+    /// based on the list of relative positions.
     fn extract(&self, positions: Vec<i32>) -> PyResult<BlockSpace> {
         if let Some(max) = positions.iter().max() {
             if *max >= self.len().unwrap() as i32 {
@@ -188,13 +190,31 @@ impl BlockSpace {
         }
     }
 
-    // Realtive position methods
+    /// extract_blocks(ids, /)
+    /// --
+    /// 
+    /// Returns a new BlockSpace containing blocks based on the
+    /// given list of block positions.
+    fn extract_blocks(&self, ids: Vec<i32>) -> PyResult<BlockSpace> {
+        if let Some(max) = ids.iter().max() {
+            if *max >= self.coords.len() as i32 {
+                return Err(exceptions::IndexError::py_err(
+                    format!("index out of range: {}", max)))
+            }
+            let coords: Vec<[i32; 3]> = self.coords.iter().enumerate()
+            .filter(
+                |(i, _)| ids.contains(&(*i as i32))
+            ).map(|(_, v)| *v ).collect();
+            Ok(BlockSpace{ coords })
+        } else {
+            Ok(BlockSpace{ coords: self.coords.clone() })
+        }
+    }
 
     /// remove(positions, /)
     /// --
     /// 
-    /// Removes points in linear space given based on a list of
-    /// current positions.
+    /// Removes points based on a list of relative positions.
     fn remove(&mut self, positions: Vec<i32>) -> PyResult<()> {
         // Check if positions list is empty or not using max()
         if let Some(max) = positions.iter().max() {
@@ -210,6 +230,25 @@ impl BlockSpace {
                 .collect();
             return self.retain(inverse_rel_positions)
         } 
+        Ok(())
+    }
+
+    /// remove_blocks(ids, /)
+    /// --
+    /// 
+    /// Removes blocks based on the given list of block positions.
+    fn remove_blocks(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        if let Some(max) = ids.iter().max() {
+            let length = self.coords.len() as i32;
+            if *max >= length {
+                return Err(exceptions::IndexError::py_err(
+                    format!("index out of range: {}", max)))
+            }
+            let inverse_rel_positions: Vec<i32> = (0..length)
+                .filter(|x| !ids.contains(x))
+                .collect();
+            return self.retain_blocks(inverse_rel_positions)
+        }
         Ok(())
     }
 
@@ -241,6 +280,27 @@ impl BlockSpace {
             // Replace coords
             self.coords = arrays_to_linspace(ext_coord_list, ext_id_list)
                 .unwrap().coords;
+        }
+        Ok(())
+    }
+
+    /// retain_blocks(ids, /)
+    /// --
+    /// 
+    /// Retains blocks based on the given list of block positions.
+    fn retain_blocks(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        if let Some(max) = ids.iter().max() {
+            if *max >= self.coords.len() as i32 {
+                return Err(exceptions::IndexError::py_err(
+                    format!("index out of range: {}", max)))
+            }
+            let coords: Vec<[i32; 3]> = self.coords.iter().enumerate()
+            .filter(
+                |(i, _)| ids.contains(&(*i as i32))
+            ).map(|(_, v)| *v ).collect();
+            self.coords = coords;
+        } else {
+            self.coords = Vec::new();
         }
         Ok(())
     }
