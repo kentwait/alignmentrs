@@ -907,7 +907,7 @@ lazy_static! {
 /// 
 /// Reads FASTA file and creates marker and sequence BaseAlignments.
 fn fasta_file_to_basealignments(path: &str, marker_kw: &str) -> 
-        PyResult<(BaseAlignment, BaseAlignment)> {
+        PyResult<(BaseAlignment, BaseAlignment, Vec<String>)> {
     // Open the path in read-only mode, returns `io::Result<File>`
     let f = match File::open(path) {
         Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while trying to open file {:?}: {:?}", path, x.kind()))),
@@ -923,6 +923,8 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
     let mut m_ids: Vec<String> = Vec::new();
     let mut m_descriptions: Vec<String> = Vec::new();
     let mut m_sequences: Vec<String> = Vec::new();
+
+    let mut comments: Vec<String> = Vec::new();
 
     let mut id = String::new();
     let mut description = String::new();
@@ -953,6 +955,8 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
                 l if l == 2 => matches[1].to_string(),
                 _ => String::new(),
             };
+        } else if line.starts_with(";") {
+            comments.push(line);
         } else {
             sequence.push_str(&line);
         }
@@ -979,7 +983,7 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
         descriptions: m_descriptions,
         sequences: m_sequences,
     };
-    Ok((sample_aln, marker_aln))
+    Ok((sample_aln, marker_aln, comments))
 }
 
 #[pyfunction]
