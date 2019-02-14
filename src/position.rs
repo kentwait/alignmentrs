@@ -1106,6 +1106,7 @@ fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_function!(blocks_to_linspace))?;
     m.add_function(wrap_function!(list_to_linspace))?;
     m.add_function(wrap_function!(arrays_to_linspace))?;
+    m.add_function(wrap_function!(blockspace_to_seqgap_str))?;
 
     Ok(())
 }
