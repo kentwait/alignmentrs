@@ -3,7 +3,7 @@ import os
 import random
 import warnings
 
-from alignmentrs.aln.classes import Alignment
+from alignmentrs.aln.classes import Alignment, CatAlignment
 from libalignmentrs.alignment import concat_basealignments
 from libalignmentrs.position import Block, list_to_linspace
 
@@ -179,10 +179,10 @@ class AlignmentSet:
             marker_alignment = None
 
         metadata = OrderedDict([
-            ('aln|{}|coords'.format(k), v.linspace.to_simple_block_str())
+            ('aln|{}|coords'.format(k), v._linspace.to_simple_block_str())
             for k, v in self._alignments.items()
         ])
-        return Alignment(
+        return CatAlignment(
             name, sample_alignment, marker_alignment,
             linspace=list_to_linspace(block_list),
             metadata=metadata

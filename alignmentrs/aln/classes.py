@@ -1,10 +1,11 @@
+from collections import OrderedDict
 import os
 from copy import deepcopy
 
 import numpy as np
 
 from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
-from libalignmentrs.position import BlockSpace
+from libalignmentrs.position import BlockSpace, simple_block_str_to_linspace
 from libalignmentrs.record import Record
 from alignmentrs.util import parse_comment_list
 
@@ -86,7 +87,7 @@ class Alignment:
         self.samples: BaseAlignment = sample_alignment
         self.markers: BaseAlignment = marker_alignment \
             if marker_alignment else BaseAlignment([], [], [])
-        self.metadata: dict = metadata if metadata is not None else {}
+        self.metadata: OrderedDict = metadata if metadata is not None else OrderedDict()
         if linspace is not None:
             self._linspace: BlockSpace = linspace
         else:
@@ -1590,7 +1591,7 @@ class CatAlignment(Alignment):
     def to_fasta(self, path, include_markers=True, 
                  include_headers=True,
                  include_metadata=True):
-        """Saves the alignment as a FASTA-formatted file.
+        """Saves the concatenated alignment as a FASTA-formatted file.
         Some metadata may not be lost.
 
         Parameters
@@ -1626,3 +1627,35 @@ class CatAlignment(Alignment):
             if include_markers:
                 print(self.markers, file=writer)
 
+    def split_alignment(self):
+        """Splits the concatenated alignment into a list of alignments.
+
+        Returns
+        -------
+        list of Alignment
+
+        """
+        aln_list = []
+        blockspace_list = [
+            simple_block_str_to_linspace(v) for k, v in self.metadata.items() 
+            if k.startswith('aln')]
+        for i, v in enumerate(self._linspace.to_list()):
+            name, start, stop = v
+
+            aln = self.get_sites(list(range(start, stop)))
+            aln.name = name
+            aln._linspace = blockspace_list[i]
+            aln.metadata = OrderedDict()
+
+            aln_list.append(aln)
+        return aln_list
+
+    def __str__(self):
+        parts = [
+            ';name\t' + str(self.name),
+            ';cat_coords\t{' + self._linspace.to_block_str() + '}',
+            str(self.samples),
+        ]
+        if self.markers:
+            return '\n'.join(parts + [str(self.markers)])
+        return '\n'.join(parts)

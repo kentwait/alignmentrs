@@ -88,6 +88,13 @@ def parse_comment_list(comment_list: list):
         if k == 'name':
             comments_d['name'] = v
         elif k == 'coords':
-            comments_d['_linspace'] = \
+            if 'linspace' in comments_d.keys():
+                raise ValueError('linspace already present.')
+            comments_d['linspace'] = \
+                simple_block_str_to_linspace(v)
+        elif k == 'cat_coords':
+            if 'linspace' in comments_d.keys():
+                raise ValueError('linspace already present.')
+            comments_d['linspace'] = \
                 simple_block_str_to_linspace(v)
     return comments_d
