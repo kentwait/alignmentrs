@@ -42,19 +42,29 @@ class AlignmentSet:
         """
         # Check
         for i in range(1, len(aln_list)):
-            if aln_list[0].samples and aln_list[i].samples:
-                pass
-            elif aln_list[0].markers and aln_list[i].markers:
-                pass
-            elif aln_list[0].samples.is_row_similar(aln_list[i].samples):
-                pass
-            elif aln_list[0].markers.is_row_similar(aln_list[i].markers):
-                pass
-            else:
+            passed = True
+            if not(aln_list[0].samples or aln_list[i].samples):
                 raise ValueError(
                     'Cannot create an AlignmentSet from a alignment with '
-                    'different number of samples/markers, or different '
-                    'sample/marker names.')
+                    'different number of samples')
+            else:
+                if not aln_list[0].samples.is_row_similar(aln_list[i].samples):
+                    raise ValueError(
+                        'Cannot create an AlignmentSet from a alignment with '
+                        'different sample names/differently ordered '
+                        'sample names.')
+
+            if not(aln_list[0].markers or aln_list[i].markers):
+                raise ValueError(
+                    'Cannot create an AlignmentSet from a alignment with '
+                    'different number of markers')
+            else:
+                if aln_list[0].markers.is_row_similar(aln_list[i].markers):
+                    raise ValueError(
+                        'Cannot create an AlignmentSet from a alignment with '
+                        'different marker names/differently ordered '
+                        'marker names.')
+
         self.name = name
         self._alignments = {aln.name: aln for aln in aln_list}
         self.metadata = metadata if metadata else dict()
