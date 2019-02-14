@@ -53,16 +53,17 @@ impl Block {
     ///
     /// Converts the block into a list of positions.
     fn to_array(&self) -> PyResult<Vec<i32>> {
-        Ok(self._to_array())
+        Ok((self.start..self.stop).collect::<Vec<i32>>())
     }
 
     // Formatting methods
 
     /// to_compressed_str()
     ///
-    /// Converts block into a compressed string representation.
+    /// Converts block into a compressed string representation containing
+    /// the id and the length of the block
     fn to_compressed_str(&self) -> PyResult<String> {
-        self.__str__()
+        Ok(format!("{}={}", self.id, self.stop - self.start))
     }
 
     /// to_extended_str()
@@ -81,16 +82,15 @@ impl Block {
     /// 
     /// Converts block into comma-separated list of positions.
     fn to_array_str(&self) -> PyResult<String> {
-        let v: Vec<String> = self._to_array().iter()
-                                .map(|x| format!("{}", x))
-                                .collect();
-        Ok(v.join(","))
-    }
-}
-
-impl Block {
-    fn _to_array(&self) -> Vec<i32> {
-        (self.start..self.stop).collect::<Vec<i32>>()
+        match self.to_array() {
+            Ok(res) => {
+                let v: Vec<String> = res.iter()
+                                        .map(|x| format!("{}", x))
+                                        .collect();
+                Ok(v.join(","))
+            },
+            Err(x) => Err(x)
+        }
     }
 }
 
@@ -102,7 +102,10 @@ impl PyObjectProtocol for Block {
     }
     
     fn __str__(&self) -> PyResult<String> {
-        Ok(format!("{}{}{}", self.start, self.id, self.stop))
+        match self.to_compressed_str() {
+            Ok(res) => Ok(res),
+            Err(x) => Err(x)
+        }
     }
 }
 

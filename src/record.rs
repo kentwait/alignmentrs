@@ -68,11 +68,11 @@ impl PyObjectProtocol for Record {
             return Ok(format!(">{id} {desc}\n{seq_len}",
                 id=self.id,
                 desc=self.description,
-                seq_len=self.sequence.len()))
+                seq_len=self.sequence.chars().count()))
         }
         return Ok(format!(">{id}\n{seq_len}",
                 id=self.id,
-                seq_len=self.sequence.len()))        
+                seq_len=self.sequence.chars().count()))        
     }
 }
 
@@ -140,4 +140,46 @@ fn record(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_function!(fasta_file_to_records))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::{PyObjectProtocol, Record};
+
+    #[test]
+    fn test_repr() {
+        let expected = "Record(id=\"test\", len=9, description=\"Test description\")";
+        let record = Record{
+            id: "test".to_string(),
+            description: "Test description".to_string(),
+            sequence: "ATGCGATTA".to_string()
+        };
+        let actual = record.__repr__().expect("__repr__ method failed");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_str() {
+        let expected = ">test Test description\nATGCGATTA";
+        let record = Record{
+            id: "test".to_string(),
+            description: "Test description".to_string(),
+            sequence: "ATGCGATTA".to_string()
+        };
+        let actual = record.__str__().expect("__str__ method failed");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_len() {
+        let expected = 9;
+        let record = Record{
+            id: "test".to_string(),
+            description: "Test description".to_string(),
+            sequence: "ATGCGATTA".to_string()
+        };
+        let actual = record.len().expect("len method failed");
+        assert_eq!(expected, actual);
+    }
 }
