@@ -139,7 +139,7 @@ impl PyObjectProtocol for BlockSpace {
     }
     
     fn __str__(&self) -> PyResult<String> {
-        self.to_extended_str()
+        self.to_block_str()
     }
 }
 
@@ -170,7 +170,8 @@ impl BlockSpace {
     /// based on the list of relative positions.
     fn extract(&self, positions: Vec<i32>) -> PyResult<BlockSpace> {
         if let Some(max) = positions.iter().max() {
-            if *max >= self.len().unwrap() as i32 {
+            let length = self.len()?;
+            if *max >= length {
                 return Err(exceptions::IndexError::py_err(
                     format!("index out of range: {}", max)))
             }
@@ -197,7 +198,8 @@ impl BlockSpace {
     /// given list of block positions.
     fn extract_blocks(&self, ids: Vec<i32>) -> PyResult<BlockSpace> {
         if let Some(max) = ids.iter().max() {
-            if *max >= self.coords.len() as i32 {
+            let length = self.len()?;
+            if *max >= length {
                 return Err(exceptions::IndexError::py_err(
                     format!("index out of range: {}", max)))
             }
@@ -220,7 +222,7 @@ impl BlockSpace {
         if let Some(max) = positions.iter().max() {
             // If largest relative position is larger than the total length
             // of the linear space, then return an error
-            let length = self.len().unwrap();
+            let length = self.len()?;
             if *max >= length {
                 return Err(exceptions::ValueError::py_err(
                     format!("index out of range: {}", max)))
@@ -261,7 +263,8 @@ impl BlockSpace {
         if let Some(max) = positions.iter().max() {
             // If largest relative position is larger than the total length
             // of the linear space, then return an error
-            if *max >= self.len().unwrap() {
+            let length = self.len()?;
+            if *max >= length {
                 return Err(exceptions::IndexError::py_err(
                     format!("index out of range: {}", max)))
             }
@@ -462,27 +465,12 @@ impl BlockSpace {
 
     // Formatting methods
 
-    /// to_compressed_str()
+    /// to_block_str()
     /// --
     /// 
-    /// Converts block into a compressed string representation.
-    fn to_compressed_str(&self) -> PyResult<String> {
-        if self.coords.len() == 0 {
-            return Ok(String::new())
-        }
-        let mut strings: Vec<String> = Vec::new();
-        for [start, stop, id] in self.coords.iter() {
-            strings.push(format!("{}={}", id, stop-start));
-        }
-        Ok(strings.join(";"))
-    }
-
-    /// to_extended_str()
-    /// --
-    /// 
-    /// Converts block into an extended (human-readable) string
+    /// Converts blocks into an extended (human-readable) string
     /// representation.
-    fn to_extended_str(&self) -> PyResult<String> {
+    fn to_block_str(&self) -> PyResult<String> {
         if self.coords.len() == 0 {
             return Ok(String::new())
         }
@@ -493,7 +481,11 @@ impl BlockSpace {
         Ok(strings.join(";"))
     }
 
-    /// Converts block into comma-separated list of positions.
+    /// to_array_str()
+    /// --
+    /// 
+    /// Expands blocks into comma-separated list of positions.
+    /// Blocks are delimited by semicolons.
     fn to_array_str(&self) -> PyResult<String> {
         if self.coords.len() == 0 {
             return Ok(String::new())
@@ -510,6 +502,54 @@ impl BlockSpace {
         Ok(strings.join(";"))  
     }
 
+    /// to_simple_block_str()
+    /// --
+    /// 
+    /// Converts blocks into a simple string representation.
+    /// Assumes that the block space is composed of a single block type.
+    fn to_simple_block_str(&self) -> PyResult<String> {
+        if self.coords.len() == 0 {
+            return Ok(String::new())
+        }
+        let mut strings: Vec<String> = Vec::new();
+        let mut curr_id = self.coords[0][2];
+        for [start, stop, id] in self.coords.iter() {
+            if curr_id != *id {
+                return Err(exceptions::ValueError::py_err(
+                    "cannot represent a linear space with 
+                    more than one block type"))
+            }
+            strings.push(format!("{}:{}", start, stop));
+            curr_id = *id;
+        }
+        Ok(strings.join(";"))
+    }
+
+    /// to_simple_array_str()
+    /// --
+    /// 
+    /// Expands blocks into comma-separated list of positions.
+    /// Assumes that the block space is composed of a single block type.
+    fn to_simple_array_str(&self) -> PyResult<String> {
+        if self.coords.len() == 0 {
+            return Ok(String::new())
+        }
+        let mut strings: Vec<String> = Vec::new();
+        let mut curr_id = self.coords[0][2];
+        for [start, stop, id] in self.coords.iter() {
+            if curr_id != *id {
+                return Err(exceptions::ValueError::py_err(
+                    "cannot represent a linear space with 
+                    more than one block type"))
+            }
+            for i in *start..*stop {
+                strings.push(format!("{}", i));
+            }
+            curr_id = *id;
+        }
+        Ok(strings.join(","))  
+    }
+
     /// copy()
     /// --
     /// 
@@ -519,7 +559,6 @@ impl BlockSpace {
         Ok(BlockSpace{ coords })
     }
 }
-
 
 #[pyfunction]
 /// blocks_to_linspace(blocks, /)
@@ -597,6 +636,24 @@ pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<i32>) -> PyResult<BlockSpac
     Ok(BlockSpace{ coords: new_coords })
 }
 
+// Special string formatters
+#[pyfunction]
+pub fn blockspace_to_seqgap_str(blockspace: &BlockSpace) -> PyResult<String> {
+    if blockspace.coords.len() == 0 {
+        return Ok(String::new())
+    }
+    let mut strings: Vec<String> = Vec::new();
+    for [start, stop, id] in blockspace.coords.iter() {
+        let id = match *id {
+            1 => "s",
+            0 => "g",
+            _ => return Err(exceptions::ValueError::py_err(
+                    format!("unexpected id: {}",id)))
+        };
+        strings.push(format!("{}={}:{}", id, start, stop));
+    }
+    Ok(strings.join(";"))
+}
 
 #[pyclass(subclass)]
 #[derive(Clone)]
