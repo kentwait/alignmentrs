@@ -1519,10 +1519,10 @@ class Alignment:
                 str(self.markers),
             ])
         return '\n'.join([
-                ';name\t' + self.name,
-                ';coords\t{' + self._linspace.to_simple_block_str() + '}',
-                str(self.samples),
-            ])
+            ';name\t' + self.name,
+            ';coords\t{' + self._linspace.to_simple_block_str() + '}',
+            str(self.samples),
+        ])
 
     def __len__(self):
         raise NotImplementedError(
