@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def mark_sites_with_chars(aln, target_list, size=1,
                           ignore_case=True, inverse=False,
                           copy=False, _sep='|'):
@@ -161,3 +162,40 @@ def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
 
     if copy:
         return aln
+
+def aln_to_sample_matrix(aln, size=1):
+    """Convert an alignment's sample sequences into a numpy matrix.
+
+    Parameters
+    ----------
+    size : int, optional
+        Defines the number of characters is in each cell.
+        For example, for single characters, set `size` = 1,
+        while for a codon-based matrix, set `size` = 3.
+
+    Returns
+    -------
+    np.array
+
+    """
+    return np.array([list(s) for s in aln.iter_sample_sites(size=size)]).T
+
+def aln_to_marker_matrix(aln, size=1):
+    """Converts an alignment's marker sequences into a numpy matrix.
+
+    Parameters
+    ----------
+    size : int, optional
+        Defines the number of characters is in each cell.
+        For example, for single characters, set `size` = 1,
+        while for a codon-based matrix, set `size` = 3.
+
+    Returns
+    -------
+    numpy.array
+        The multiple sequence alignment is converted into a numpy matrix
+        with a shape corresponding to the number of samples and sites,
+        respectively.
+
+    """
+    return np.array([list(s) for s in aln.iter_marker_sites(size=size)]).T

@@ -809,43 +809,6 @@ class Alignment:
             if include_markers:
                 print(self.markers, file=writer)
 
-    def to_sample_matrix(self, size=1):
-        """Converts sequences into a numpy matrix.
-
-        Parameters
-        ----------
-        size : int, optional
-            Defines the number of characters is in each cell.
-            For example, for single characters, set `size` = 1,
-            while for a codon-based matrix, set `size` = 3.
-
-        Returns
-        -------
-        np.array
-
-        """
-        return np.array([list(s) for s in self.iter_sample_sites(size=size)]).T
-
-    def to_marker_matrix(self, size=1):
-        """Converts sequences into a numpy matrix.
-
-        Parameters
-        ----------
-        size : int, optional
-            Defines the number of characters is in each cell.
-            For example, for single characters, set `size` = 1,
-            while for a codon-based matrix, set `size` = 3.
-
-        Returns
-        -------
-        numpy.array
-            The multiple sequence alignment is converted into a numpy matrix
-            with a shape corresponding to the number of samples and sites,
-            respectively.
-
-        """
-        return np.array([list(s) for s in self.iter_marker_sites(size=size)]).T
-
     # Iterators
 
     def iter_sites(self, start=0, stop=None, size=1):
