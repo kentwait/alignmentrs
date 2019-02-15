@@ -406,16 +406,16 @@ impl BaseAlignment {
         }
         ids.sort_unstable();
         ids.reverse();
-        for sequence in self.sequences.iter_mut() {
-            let mut sequence_chars: Vec<char> = sequence.chars().collect();
+        for i in 0..self.sequences.len() {
+            let mut sequence_chars: Vec<char> = self.sequences[i].chars()
+                .collect();
             for i in ids.iter().map(|x| *x as usize) {
                 if i >= sequence_chars.len() {
                     return Err(exceptions::IndexError::py_err("site index out of range"))
                 }
                 sequence_chars.remove(i);
             }
-            let sequence_str: String = sequence_chars.into_iter().collect();
-            *sequence = sequence_str;
+            self.sequences[i] = sequence_chars.iter().collect();
         }
         Ok(())
     }
