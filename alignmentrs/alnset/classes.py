@@ -380,9 +380,9 @@ class AlignmentSet:
                 test_aln = aln
                 continue
 
-            if not test_aln.samples.is_row_similar(aln.samples):
+            if test_aln.samples.nrows != aln.samples.nrows:
                 sample_mismatch += 1
-            if not test_aln.markers.is_row_similar(aln.markers):
+            if test_aln.markers.nrows != aln.markers.nrows:
                 marker_mismatch += 1
             
             test_aln = aln
@@ -396,7 +396,8 @@ class AlignmentSet:
             passed = False
 
         if sample_mismatch > 0:
-            msg = '{}/{} alignments do not have the same sample identifiers.'.format(
+            msg = '{}/{} alignments do not have the same number ' \
+                  'of samples.'.format(
                 sample_mismatch, len(self._alignments)-1
             )
             warnings.warn(msg, AlignmentMismatchWarning)
@@ -411,7 +412,8 @@ class AlignmentSet:
             passed = False
 
         if marker_mismatch > 0:
-            msg = '{}/{} alignments do not have the same markers identifiers.'.format(
+            msg = '{}/{} alignments do not have the same number ' \
+                  'of markers.'.format(
                 marker_mismatch, len(self._alignments)-1
             )
             warnings.warn(msg, AlignmentMismatchWarning)
@@ -429,14 +431,14 @@ class AlignmentSet:
             if not(test_aln.samples or aln.samples):
                 raise ValueError('Alignment is missing sample sequences.')
             else:
-                if not test_aln.samples.is_row_similar(aln.samples):
-                    raise ValueError('Sample identifiers do not match.')
+                if test_aln.samples.nrows != aln.samples.nrows:
+                    raise ValueError('Number of samples do not match.')
 
             if not(test_aln.markers ^ aln.markers):
                 raise ValueError('Presence/absence of markers is not consistent.')
             else:
-                if test_aln.markers.is_row_similar(aln.markers):
-                    raise ValueError('Marker identifiers do not match')
+                if test_aln.markers.nrows != aln.markers.nrows:
+                    raise ValueError('Number of markers do not match')
 
 
     # Special methods
