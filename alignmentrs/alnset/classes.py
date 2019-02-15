@@ -434,7 +434,7 @@ class AlignmentSet:
                 if test_aln.samples.nrows != aln.samples.nrows:
                     raise ValueError('Number of samples do not match.')
 
-            if not(test_aln.markers ^ aln.markers):
+            if not(test_aln.markers != aln.markers):
                 raise ValueError('Presence/absence of markers is not consistent.')
             else:
                 if test_aln.markers.nrows != aln.markers.nrows:
