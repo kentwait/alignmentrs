@@ -142,9 +142,7 @@ def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
         value is returned (None).
 
     """
-    aln = aln.__class__(
-        aln.name, aln.samples.copy(), aln.markers.copy()) if copy else \
-        aln
+    aln = aln.copy() if copy else aln
     # Get marker alignments and turn into a numpy array
     marker_matrix = np.array(
         [list(map(int, m))
@@ -158,7 +156,7 @@ def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
                   np.where(summed < len(marker_matrix))[0]
 
     # Edit alignment inplace
-    aln.remove_sites(remove_list, description_encoder)
+    aln.remove_sites(remove_list)
 
     if copy:
         return aln
