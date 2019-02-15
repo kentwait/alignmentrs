@@ -1494,10 +1494,10 @@ class Alignment:
         with open(path, 'w') as writer:
             if include_headers:
                 for k, v in headers_d.items():
-                    print(';{k}\t{v}'.format(k=k, v=v))
+                    print(';{k}\t{v}'.format(k=k, v=v), file=writer)
             if include_metadata:
                 for k, v in self.metadata.items():
-                    print(';{k}\t{v}'.format(k=k, v=v))
+                    print(';{k}\t{v}'.format(k=k, v=v), file=writer)
             print(self.samples, file=writer)
             if include_markers:
                 print(self.markers, file=writer)
@@ -1670,15 +1670,15 @@ class CatAlignment(Alignment):
         with open(path, 'w') as writer:
             if include_headers:
                 for k, v in headers_d.items():
-                    print(';{k}\t{v}'.format(k=k, v=v))
+                    print(';{k}\t{v}'.format(k=k, v=v), file=writer)
             if include_subspaces:
                 for k, subspace in self._subspaces.items():
                     k = 'subcoords:{}'.format(k)
                     v = '{' + subspace.to_simple_block_str() + '}'
-                    print(';{k}\t{v}'.format(k=k, v=v))
+                    print(';{k}\t{v}'.format(k=k, v=v), file=writer)
             if include_metadata:
                 for k, v in self.metadata.items():
-                    print(';{k}\t{v}'.format(k=k, v=v))
+                    print(';{k}\t{v}'.format(k=k, v=v), file=writer)
             print(self.samples, file=writer)
             if include_markers:
                 print(self.markers, file=writer)
