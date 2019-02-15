@@ -2,11 +2,8 @@ from collections import OrderedDict
 import os
 from copy import deepcopy
 
-import numpy as np
-
 from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
 from libalignmentrs.position import BlockSpace
-from libalignmentrs.position import simple_block_str_to_linspace
 from libalignmentrs.record import Record
 from alignmentrs.util import parse_comment_list, parse_cat_comment_list
 
@@ -1695,9 +1692,6 @@ class CatAlignment(Alignment):
 
         """
         aln_list = []
-        blockspace_list = [
-            simple_block_str_to_linspace(v) for k, v in self.metadata.items() 
-            if k.startswith('aln')]
         for name, start, stop in self._linspace.to_list():
             aln = self.get_sites(list(range(start, stop)))
             aln.name = name

@@ -59,7 +59,8 @@ class AlignmentSet:
         self._alignments: OrderedDict = OrderedDict()
         for aln in aln_list:
             if aln.name in self._alignments.keys():
-                warnings.warn('Alignment with the same name already exists: {}'.format(aln.name), DuplicateAlignmentWarning)
+                warnings.warn('Alignment with the same name already exists: {}'
+                    .format(aln.name), DuplicateAlignmentWarning)
             self._alignments[aln.name] = aln
         self.metadata: dict = metadata if metadata else dict()
         # Check alignments
@@ -377,7 +378,7 @@ class AlignmentSet:
         marker_mismatch = 0
 
         test_aln = None        
-        for name, aln in self._alignments.items():
+        for _, aln in self._alignments.items():
             if not aln.samples:
                 sample_missing += 1
             if aln.markers:
@@ -393,7 +394,7 @@ class AlignmentSet:
                 sample_mismatch += 1
             if test_aln.markers.nrows != aln.markers.nrows:
                 marker_mismatch += 1
-            
+
             test_aln = aln
 
         passed = True
@@ -406,9 +407,7 @@ class AlignmentSet:
 
         if sample_mismatch > 0:
             msg = '{}/{} alignments do not have the same number ' \
-                  'of samples.'.format(
-                sample_mismatch, len(self._alignments)-1
-            )
+                  'of samples.'.format(sample_mismatch, len(self._alignments)-1)
             warnings.warn(msg, AlignmentMismatchWarning)
             passed = False
 
@@ -422,9 +421,7 @@ class AlignmentSet:
 
         if marker_mismatch > 0:
             msg = '{}/{} alignments do not have the same number ' \
-                  'of markers.'.format(
-                marker_mismatch, len(self._alignments)-1
-            )
+                  'of markers.'.format(marker_mismatch, len(self._alignments)-1)
             warnings.warn(msg, AlignmentMismatchWarning)
             passed = False
 
@@ -432,7 +429,7 @@ class AlignmentSet:
 
     def _check_raise(self):
         test_aln = None
-        for name, aln in self._alignments.items():
+        for _, aln in self._alignments.items():
             if test_aln is None:
                 test_aln = aln
                 continue
