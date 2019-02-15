@@ -265,7 +265,7 @@ class Alignment:
         # Create new BaseAlignments for sample and marker,
         # if it exists in the original
         sample_aln = aln.samples.subset(sample_ids, sites)
-        marker_aln = aln.samples.subset(marker_ids, sites) if aln.markers else \
+        marker_aln = aln.markers.subset(marker_ids, sites) if aln.markers else \
                      None
         return cls(
             aln.name, sample_aln, marker_aln,
@@ -1523,14 +1523,14 @@ class Alignment:
 
     def __getitem__(self, key):
         if isinstance(key, str):
-            if key in self.samples.ids():
+            if key in self.samples.ids:
                 i = self.samples.row_names_to_ids([key])[0]
                 return self.samples.get_row(i)
-            elif key in self.markers.ids():
+            elif key in self.markers.ids:
                 i = self.markers.row_names_to_ids([key])[0]
                 return self.markers.get_row(i)
             raise KeyError('Key did not match any sample or marker ID')
-        elif isinstance(key, int):
+        elif isinstance(key, int):  # TODO: Fix bug
             return self.get_sites(key)
         raise TypeError('Key must be str or int.')
 
