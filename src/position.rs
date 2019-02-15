@@ -172,8 +172,8 @@ impl BlockSpace {
             let mut ext_id_list: Vec<String> = Vec::with_capacity(positions.len());
             for i in positions.iter() {
                 let i = *i as usize;
-                ext_coord_list[i].clone_from(&coord_list[i]);
-                ext_id_list[i].clone_from(&id_list[i]);
+                ext_coord_list.push(coord_list[i]);
+                ext_id_list.push(id_list[i].to_string());
             }
             // Reassemble to blocks
             arrays_to_linspace(ext_coord_list, ext_id_list)
@@ -270,8 +270,8 @@ impl BlockSpace {
             positions.sort_unstable();
             for i in positions.iter() {
                 let i = *i as usize;
-                ext_coord_list[i].clone_from(&coord_list[i]);
-                ext_id_list[i].clone_from(&id_list[i]);
+                ext_coord_list.push(coord_list[i]);
+                ext_id_list.push(id_list[i].to_string());
             }
             // Reassemble to blocks
             // Replace coords
@@ -563,8 +563,8 @@ impl BlockSpace {
 /// Returns a linear space created using the given list of blocks.
 pub fn blocks_to_linspace(blocks: Vec<&Block>) -> PyResult<BlockSpace> {
     let mut coords: Vec<(String, i32, i32)> = Vec::with_capacity(blocks.len());
-    for (i, Block{ id, start, stop }) in blocks.iter().enumerate() {
-        coords[i] = (id.to_string(), *start, *stop);
+    for Block{ id, start, stop } in blocks.iter() {
+        coords.push((id.to_string(), *start, *stop));
     }
     Ok(BlockSpace{ coords })
 }
