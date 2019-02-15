@@ -5,7 +5,7 @@ import warnings
 
 from alignmentrs.aln.classes import Alignment, CatAlignment
 from libalignmentrs.alignment import concat_basealignments
-from libalignmentrs.position import Block, list_to_linspace
+from libalignmentrs.position import Block, blocks_to_linspace
 
 
 
@@ -169,7 +169,7 @@ class AlignmentSet:
             samples.append(sample)
             markers.append(marker)
 
-            block_list.append([k, start, start + sample.nsites])
+            block_list.append(Block(str(k), start, start + sample.nsites))
             start += sample.nsites
 
         sample_alignment = concat_basealignments(samples)
@@ -183,7 +183,7 @@ class AlignmentSet:
         ])
         return CatAlignment(
             name, sample_alignment, marker_alignment,
-            linspace=list_to_linspace(block_list),
+            linspace=blocks_to_linspace(block_list),
             subspaces=subspaces,
         )
 
