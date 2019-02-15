@@ -5,12 +5,13 @@ from copy import deepcopy
 import numpy as np
 
 from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
-from libalignmentrs.position import BlockSpace, simple_block_str_to_linspace
+from libalignmentrs.position import BlockSpace
+from libalignmentrs.position import simple_block_str_to_linspace
 from libalignmentrs.record import Record
-from alignmentrs.util import parse_comment_list
+from alignmentrs.util import parse_comment_list, parse_cat_comment_list
 
 
-__all__ = ['Alignment']
+__all__ = ['Alignment', 'CatAlignment']
 
 
 class Alignment:
@@ -1588,8 +1589,58 @@ class Alignment:
 
 
 class CatAlignment(Alignment):
+    def __init__(self, name, sample_alignment, marker_alignment,
+                 linspace=None, subspaces=None, metadata=None, **kwargs):
+        super().__init__(name, sample_alignment, marker_alignment, linspace, metadata, **kwargs)
+        self._subspaces: OrderedDict = subspaces if subspaces else OrderedDict()
+
+    def subspace(self, name):
+        """Returns the linspace of the specified subalignment"""
+        return self._subspaces[name]
+
+    @classmethod
+    def from_fasta(cls, path, name=None, marker_kw=None, comment_parser=None):
+        """Create a CatAlignment object from a FASTA-formatted file.
+
+        Parameters
+        ----------
+        path : str
+            Path to FASTA file.
+        name : str, optional
+            Name of the new alignment.
+            (default is None, takes the name from the comments
+            or uses the filename)
+        marker_kw : str, optional
+            A sample is considered a marker if this keyword is found
+            in the identifier. (default is None, uses the built-in
+            comment parser)
+
+        Returns
+        -------
+        Alignment
+            Creates a new CatAlignment object based on the identifiers,
+            descriptions, and sequences in the FASTA file.
+
+        """
+        if marker_kw is None:
+            marker_kw = ''
+        # Create alignments
+        samples, markers, comment_list = \
+            fasta_file_to_basealignments(path, marker_kw)
+        comment_parser = \
+            comment_parser if comment_parser is not None else parse_cat_comment_list
+        kwargs = comment_parser(comment_list)
+        if name is not None:
+            name = name
+        elif 'name' in kwargs.keys():
+            name = kwargs['name']
+        else:
+            name = os.path.basename(path)
+        return cls(name, samples, markers, **kwargs)
+
     def to_fasta(self, path, include_markers=True, 
                  include_headers=True,
+                 include_subspaces=True,
                  include_metadata=True):
         """Saves the concatenated alignment as a FASTA-formatted file.
         Some metadata may not be lost.
@@ -1620,6 +1671,11 @@ class CatAlignment(Alignment):
             if include_headers:
                 for k, v in headers_d.items():
                     print(';{k}\t{v}'.format(k=k, v=v))
+            if include_subspaces:
+                for k, subspace in self._subspaces.items():
+                    k = 'subcoords:{}'.format(k)
+                    v = '{' + subspace.to_simple_block_str() + '}'
+                    print(';{k}\t{v}'.format(k=k, v=v))
             if include_metadata:
                 for k, v in self.metadata.items():
                     print(';{k}\t{v}'.format(k=k, v=v))
@@ -1639,13 +1695,11 @@ class CatAlignment(Alignment):
         blockspace_list = [
             simple_block_str_to_linspace(v) for k, v in self.metadata.items() 
             if k.startswith('aln')]
-        for i, v in enumerate(self._linspace.to_list()):
-            name, start, stop = v
-
+        for name, start, stop in self._linspace.to_list():
             aln = self.get_sites(list(range(start, stop)))
             aln.name = name
-            aln._linspace = blockspace_list[i]
-            aln.metadata = OrderedDict()
+            aln._linspace = self._subspaces[name]
+            aln.metadata = deepcopy(self.metadata)
 
             aln_list.append(aln)
         return aln_list

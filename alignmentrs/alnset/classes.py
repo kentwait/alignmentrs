@@ -163,13 +163,13 @@ class AlignmentSet:
         markers = []
         block_list = []
         start = 0
-        for i, k in enumerate((name for name in self.alignment_names)):
+        for k in (name for name in self.alignment_names):
             sample = self._alignments[k].samples
             marker = self._alignments[k].markers
             samples.append(sample)
             markers.append(marker)
 
-            block_list.append([start, start + sample.nsites, k])
+            block_list.append([k, start, start + sample.nsites])
             start += sample.nsites
 
         sample_alignment = concat_basealignments(samples)
@@ -178,14 +178,13 @@ class AlignmentSet:
         else:
             marker_alignment = None
 
-        metadata = OrderedDict([
-            ('aln|{}|coords'.format(k), v._linspace.to_simple_block_str())
-            for k, v in self._alignments.items()
+        subspaces = OrderedDict([
+            (k, v._linspace) for k, v in self._alignments.items()
         ])
         return CatAlignment(
             name, sample_alignment, marker_alignment,
             linspace=list_to_linspace(block_list),
-            metadata=metadata
+            subspaces=subspaces,
         )
 
     def drop_empty(self):

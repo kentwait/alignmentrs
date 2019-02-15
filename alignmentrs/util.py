@@ -1,4 +1,8 @@
+from collections import OrderedDict
 import os
+import re
+
+from libalignmentrs.position import block_str_to_linspace
 from libalignmentrs.position import simple_block_str_to_linspace
 
 
@@ -88,13 +92,24 @@ def parse_comment_list(comment_list: list):
         if k == 'name':
             comments_d['name'] = v
         elif k == 'coords':
-            if 'linspace' in comments_d.keys():
-                raise ValueError('linspace already present.')
             comments_d['linspace'] = \
                 simple_block_str_to_linspace(v)
+    return comments_d
+
+def parse_cat_comment_list(comment_list: list):
+    comments_d = dict()
+    subspaces = OrderedDict()
+    aln_id_regex = re.compile(r'^subcoords\:(\S+)')
+    for comment in comment_list:
+        k, v = comment[1:].strip().split('\t')
+        if k == 'name':
+            comments_d['name'] = v
         elif k == 'cat_coords':
-            if 'linspace' in comments_d.keys():
-                raise ValueError('linspace already present.')
             comments_d['linspace'] = \
-                simple_block_str_to_linspace(v)
+                block_str_to_linspace(v.lstrip('{').rstrip('}'))
+        elif aln_id_regex.match(k):
+            name = aln_id_regex.match(k).group(1)
+            subspaces[name] = \
+                simple_block_str_to_linspace(v.lstrip('{').rstrip('}'))
+    comments_d['subspaces'] = subspaces
     return comments_d
