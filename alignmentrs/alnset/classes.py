@@ -12,7 +12,7 @@ from libalignmentrs.position import Block, list_to_linspace
 __all__ = ['AlignmentSet']
 
 
-class AlignmentMismatchWarning(warnings.UserWarning):
+class AlignmentMismatchWarning(UserWarning):
     """Warning for mismatched/incompatible alignments.
     """
     pass
@@ -404,7 +404,8 @@ class AlignmentSet:
 
         if marker_present > 0 and marker_missing > 0:
             msg = '{}/{} alignments have markers, {}/{} alignments do not have markers.'.format(
-                sample_missing, len(self._alignments)
+                marker_present, len(self._alignments), 
+                marker_mismatch, len(self._alignments), 
             )
             warnings.warn(msg, AlignmentMismatchWarning)
             passed = False
@@ -415,7 +416,7 @@ class AlignmentSet:
             )
             warnings.warn(msg, AlignmentMismatchWarning)
             passed = False
-        
+
         return passed
 
     def _check_raise(self):
