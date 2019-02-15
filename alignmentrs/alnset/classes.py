@@ -183,7 +183,8 @@ class AlignmentSet:
 
     # Format converters
     # ==========================================================================
-    def to_fasta_files(self, path_mapping, include_markers=True):
+    def to_fasta_files(self, path_mapping, include_markers=True,
+                       include_headers=True, include_metadata=True):
         """Saves specified alignments as FASTA-formatted text files
         based on a dictionary of alignment names and their corresponding
         save paths.
@@ -196,6 +197,15 @@ class AlignmentSet:
         include_markers : bool, optional
             If True, markers are also written to the FASTA file.
             (default is True)
+        include_headers : bool, optional
+            Whether or not to output header infomation,
+            ie. alignment name and coordinates.
+            (default is True, include headers in the output as
+            comments)
+        include_metadata : bool, optional
+            Whether or not to output metadata as comments.
+            (default is True, include metadata in the output as
+            comments)
 
         Returns
         -------
@@ -208,11 +218,16 @@ class AlignmentSet:
             if key not in self._alignments.keys():
                 raise KeyError('path_mapping key "{}" does not match '
                                'any alignment name.'.format(key))
-            self._alignments[key].to_fasta(path, include_markers)
+            self._alignments[key].to_fasta(
+                path,
+                include_markers=include_markers,
+                include_headers=include_headers,
+                include_metadata=include_metadata)
             c += 1
         return c
 
     def to_fasta_dir(self, dirpath, include_markers=True,
+                     include_headers=True, include_metadata=True,
                      name_to_filename_encoder=None):
         """Saves all alignments as FASTA-formatted text files
         in a single directory.
@@ -224,6 +239,15 @@ class AlignmentSet:
         include_markers : bool, optional
             If True, markers are also written to the FASTA file.
             (default is True)
+        include_headers : bool, optional
+            Whether or not to output header infomation,
+            ie. alignment name and coordinates.
+            (default is True, include headers in the output as
+            comments)
+        include_metadata : bool, optional
+            Whether or not to output metadata as comments.
+            (default is True, include metadata in the output as
+            comments)
         name_to_filename_encoder : function or None, optional
             This function returns the alignment's filename
             given its name. The function receives one parater,
@@ -245,7 +269,11 @@ class AlignmentSet:
         path_mapping = {
             name: os.path.join(dirpath, name_to_filename_encoder(name))
             for name in self._alignments.keys()}
-        return self.to_fasta_files(path_mapping, include_markers)
+        return self.to_fasta_files(
+            path_mapping,
+            include_markers=include_markers,
+            include_headers=include_headers,
+            include_metadata=include_metadata)
 
     @classmethod
     def from_fasta_files(cls, paths, name, marker_kw=None,
