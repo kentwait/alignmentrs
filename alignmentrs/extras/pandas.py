@@ -1,5 +1,5 @@
 import pandas as pd
-from libalignmentrs.alignment import Block, BlockSpace
+from libalignmentrs.position import Block, BlockSpace
 from alignmentrs.aln.classes import Alignment, CatAlignment
 
 
