@@ -630,13 +630,34 @@ pub fn arrays_to_linspace(coords: Vec<i32>, ids: Vec<String>) -> PyResult<BlockS
 // Special string formatters
 
 lazy_static! {
-    static ref BLOCK_REGEX: Regex = Regex::new(r"(\x2D*\d+)\3A(\x2D*\d+)").unwrap();
+    static ref BLOCK_REGEX: Regex = Regex::new(r"([A-Za-z0-9]+?)\x3D(\x2D*\d+)\3A(\x2D*\d+)").unwrap();
+    static ref SIMPLE_BLOCK_REGEX: Regex = Regex::new(r"(\x2D*\d+)\x3A(\x2D*\d+)").unwrap();
+}
+
+#[pyfunction]
+pub fn block_str_to_linspace(blocks_str: &str) -> PyResult<BlockSpace> {
+    let mut coords: Vec<(String, i32, i32)> = Vec::new();
+    for cap in BLOCK_REGEX.captures_iter(blocks_str) {
+        let id: String = cap[1].to_string();
+        let start = match &cap[2].parse::<i32>() {
+            Ok(v) => *v,
+            Err(_) => return Err(exceptions::ValueError::py_err(
+                "error converting block start to i32"))
+        };
+        let stop = match &cap[3].parse::<i32>() {
+            Ok(v) => *v,
+            Err(_) => return Err(exceptions::ValueError::py_err(
+                "error converting block stop to i32"))
+        };
+        coords.push((id, start, stop));
+    }
+    Ok(BlockSpace{ coords })
 }
 
 #[pyfunction]
 pub fn simple_block_str_to_linspace(blocks_str: &str) -> PyResult<BlockSpace> {
     let mut coords: Vec<(String, i32, i32)> = Vec::new();
-    for cap in BLOCK_REGEX.captures_iter(blocks_str) {
+    for cap in SIMPLE_BLOCK_REGEX.captures_iter(blocks_str) {
         let start = match &cap[1].parse::<i32>() {
             Ok(v) => *v,
             Err(_) => return Err(exceptions::ValueError::py_err(
@@ -1115,6 +1136,7 @@ fn position(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_function!(blocks_to_linspace))?;
     m.add_function(wrap_function!(list_to_linspace))?;
     m.add_function(wrap_function!(arrays_to_linspace))?;
+    m.add_function(wrap_function!(block_str_to_linspace))?;
     m.add_function(wrap_function!(simple_block_str_to_linspace))?;
 
     Ok(())
