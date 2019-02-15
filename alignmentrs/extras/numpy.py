@@ -100,7 +100,7 @@ def mark_sites_with_chars(aln, target_list, size=1,
 
 def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
                                     match_prefix=False, match_suffix=False,
-                                    description_encoder=None, copy=False):
+                                    copy=False):
     """Removes sites that failed to pass all of the markers in a given
     list of markers.
 
@@ -125,12 +125,6 @@ def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
         Whether to interpret `i` as a suffix to match against
         the list of markers names. This parameter is considered
         only if match_prefix is False. (default is False)
-    description_encoder : function, optional
-        Function that uses the sample's name and list of blocks
-        to generate a string representation of the sample's block data.
-        If not specified, but site tracking is enabled, block data are
-        updated but the string representation in the description is not
-        updated. (default is None)
     copy : bool, optional
         Returns a new copy instead of performing dropping inplace.
         (default is False, operation is done inplace)
@@ -146,7 +140,9 @@ def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
     # Get marker alignments and turn into a numpy array
     marker_matrix = np.array(
         [list(map(int, m))
-         for m in aln.get_markers(marker_ids, match_prefix, match_suffix)
+         for m in aln.get_markers(marker_ids,
+                                  match_prefix=match_prefix,
+                                  match_suffix=match_suffix)
          .sequences])
     # Sum the values down each column
     # Columns whose sum is less than the number of rows have failed
