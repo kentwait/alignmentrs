@@ -18,6 +18,12 @@ class AlignmentMismatchWarning(UserWarning):
     pass
 
 
+class DuplicateAlignmentWarning(UserWarning):
+    """Warning for mismatched/incompatible alignments.
+    """
+    pass
+
+
 class AlignmentSet:
     """A container to group Alignments that share the same samples/markers.
 
@@ -50,7 +56,11 @@ class AlignmentSet:
 
         """
         self.name = name
-        self._alignments: OrderedDict = OrderedDict([(aln.name, aln) for aln in aln_list])
+        self._alignments: OrderedDict = OrderedDict()
+        for aln in aln_list:
+            if aln.name in self._alignments.keys():
+                warnings.warn('Alignment with the same name already exists: {}'.format(aln.name), DuplicateAlignmentWarning)
+            self._alignments[aln.name] = aln
         self.metadata: dict = metadata if metadata else dict()
         # Check alignments
         self._consistent: bool = True
@@ -83,18 +93,13 @@ class AlignmentSet:
 
     # Methods
     # ==========================================================================
-    def resample(self, name, k, copy_metadata=True,
-                 with_replacement=False):
+    def resample(self, k, with_replacement=False):
         """Takes a sample of alignments from the set and returns a new AlignmentSet. 
 
         Parameters
         ----------
-        name : str
-            Name of resampled alignment set.
         k : int
             Number of alignments to sample.
-        copy_metadata : bool, optional
-            Copies existing metadata to the resampled set if True.
         with_replacement : bool, optional
             Whether to resample with or without replacement.
             If True, resampled alignments may be picked more than once.
@@ -103,39 +108,15 @@ class AlignmentSet:
 
         Returns
         -------
-        AlignmentSet
-            Creates a new AlignmentSet grouping. Note that the alignments
-            are not deep copies as AlignmentSet a grouping construct only.
-
-        Notes
-        -----
-        The resampled alignment set will have an additional metadata entry
-        with the key "resampling", if it is not present already.
-        This entry will have a dictionary containing the following
-        resampling information:
-        - number of original items as `nalns`
-        - number of sampled alignments as `k`
-        - with/without replacement as `with_replacement`
-
-        If resampling already exists, it will be overwritten by the new
-        values.
+        list of Alignment
+            Note that the alignments are not deep copies of Alignment objects.
 
         """
         if with_replacement:
             keys = random.choices(self.alignment_names, k=k)
         else:
             keys = random.sample(self.alignment_names, k)
-        aln_list = [aln for k, aln in self._alignments.items() if k in keys]
-        if copy_metadata:
-            new_metadata = {k: v for k, v in self.metadata.items()}
-        else:
-            new_metadata = dict()
-        new_metadata['resampling'] = {
-            'nalns': len(self._alignments),
-            'k': k,
-            'with_replacement': with_replacement,
-        }
-        return self.__class__(name, aln_list, metadata=new_metadata)
+        return [aln for k, aln in self._alignments.items() if k in keys]
 
     def concatenate(self, name, keys=None):
         """Returns an concatenated alignment from the alignment set.
@@ -149,7 +130,7 @@ class AlignmentSet:
             determines the order of concatenation.
             (default is None, alignments are concatenated arbitrarily)
 
-        Returns 
+        Returns
         -------
         Alignment
 
@@ -178,9 +159,9 @@ class AlignmentSet:
         else:
             marker_alignment = None
 
-        subspaces = OrderedDict([
-            (k, v._linspace) for k, v in self._alignments.items()
-        ])
+        subspaces = OrderedDict({
+            str(k): v._linspace for k, v in self._alignments.items()
+        })
         return CatAlignment(
             name, sample_alignment, marker_alignment,
             linspace=blocks_to_linspace(block_list),
