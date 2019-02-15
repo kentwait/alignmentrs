@@ -1461,6 +1461,9 @@ class Alignment:
             name = kwargs['name']
         else:
             name = os.path.basename(path)
+        # Prevent multiple name inputs
+        if 'name' in kwargs.keys():
+            del kwargs['name']
         return cls(name, samples, markers, **kwargs)
 
     def to_fasta(self, path, include_markers=True, 
