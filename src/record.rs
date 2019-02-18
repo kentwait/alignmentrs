@@ -1,9 +1,5 @@
 use pyo3::prelude::*;
-use pyo3::{PyObjectProtocol, exceptions};
-
-use std::fs::File;
-use std::io::{BufReader, BufRead};
-use regex::Regex;
+use pyo3::PyObjectProtocol;
 
 
 #[pyclass(subclass)]
@@ -76,68 +72,11 @@ impl PyObjectProtocol for Record {
     }
 }
 
-lazy_static! {
-    static ref WS: Regex = Regex::new(r"\s+").unwrap();
-}
-
-#[pyfunction]
-/// fasta_file_to_records(data_str)
-/// 
-/// Reads FASTA file and creates a list of Record objects.
-fn fasta_file_to_records(path: &str) -> 
-        PyResult<Vec<Record>> {
-    // Open the path in read-only mode, returns `io::Result<File>`
-    let f = match File::open(path) {
-        Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while trying to open file {:?}: {:?}", path, x.kind()))),
-        Ok(x) => x
-    };
-    let f = BufReader::new(f);
-
-    // Declare variables
-    let mut records: Vec<Record> = Vec::new();
-
-    let mut id = String::new();
-    let mut description = String::new();
-    let mut sequence = String::new();
-
-    // Match regexp
-    for line in f.lines() {
-        let line = match line {
-            Err(x) => return Err(exceptions::IOError::py_err(format!("encountered an error while reading file {:?}: {:?}", path, x.kind()))),
-            Ok(x) => x.trim().to_string()
-        };
-        if line.starts_with(">") {
-            if sequence.len() > 0 {
-                let id = id.clone();
-                let description = description.clone();
-                let sequence = sequence.clone();
-                records.push(Record { id, description, sequence });
-            }
-            let matches: Vec<&str> = WS.splitn(line.trim_start_matches(">"), 2).collect();
-            id = matches[0].to_string();
-            description = match matches.len() {
-                l if l == 2 => matches[1].to_string(),
-                _ => String::new(),
-            };
-            sequence.clear();
-        } else {
-            sequence.push_str(&line);
-        }
-    }
-    if sequence.len() > 0 {
-        let id = id.clone();
-        let description = description.clone();
-        let sequence = sequence.clone();
-        records.push(Record { id, description, sequence });
-    }
-    Ok(records)
-}
 
 // Register python functions to PyO3
 #[pymodinit]
 fn record(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Record>()?;
-    m.add_function(wrap_function!(fasta_file_to_records))?;
 
     Ok(())
 }
