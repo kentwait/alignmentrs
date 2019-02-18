@@ -2,7 +2,8 @@ from collections import OrderedDict
 import os
 from copy import deepcopy
 
-from libalignmentrs.alignment import BaseAlignment, fasta_file_to_basealignments
+from libalignmentrs.alignment import BaseAlignment
+from libalignmentrs.readers import fasta_file_to_basealignments
 from libalignmentrs.position import BlockSpace
 from libalignmentrs.record import Record
 from alignmentrs.util import parse_comment_list, parse_cat_comment_list

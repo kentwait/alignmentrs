@@ -26,12 +26,15 @@ setup(
                       'Cargo.toml', binding=Binding.PyO3),
         RustExtension('libalignmentrs.position',
                       'Cargo.toml', binding=Binding.PyO3),
+        RustExtension('libalignmentrs.readers',
+                      'Cargo.toml', binding=Binding.PyO3),
     ],
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     package_data={
         'alignmentrs': ['lib/libalignmentrs/alignment.cpython-37m-darwin.so',
                         'lib/libalignmentrs/record.cpython-37m-darwin.so',
                         'lib/libalignmentrs/position.cpython-37m-darwin.so',
+                        'lib/libalignmentrs/readers.cpython-37m-darwin.so',
                         ]},
     install_requires=['numpy'],
     zip_safe=False,  # Rust extensions are not zip safe, like C-extensions.
