@@ -1,24 +1,285 @@
 from collections import OrderedDict
+import itertools
 import os
 from copy import deepcopy
 
 from libalignmentrs.alignment import BaseAlignment
-from libalignmentrs.readers import fasta_file_to_basealignments
+from libalignmentrs.readers import (fasta_file_to_basealignment, 
+                                    fasta_file_to_basealignments)
 from libalignmentrs.position import BlockSpace
 from libalignmentrs.record import Record
 from alignmentrs.util import parse_comment_list, parse_cat_comment_list
+from .mixins import PropsMixin, SamplePropsMixin
 
 
 __all__ = ['Alignment', 'CatAlignment']
 
 
 # TODO: Create an alignment with no marker  but with position information
-class SimpleAlignment:
-    pass
+class SampleAlignment(SamplePropsMixin, PropsMixin, object):
+    """Reperesents a multiple sequence alignment of samples.
+
+    The Alignment object encapsulates information generally
+    included in the FASTA format:
+    - sequence names/ids
+    - descriptions
+    - sequences
+
+    Additionally, the Alignment object also stores comments
+    (lines prefixed by a semicolon ";") as metadata.
+
+    Attributes
+    ----------
+    name : str
+        Name of the alignment.
+    samples : BaseAlignment
+        Alignment of sample sequences.
+    metadata : dict
+        Other information related to the alignment.
+    """
+
+    members = ['samples']
+
+    def __init__(self, name, sample_alignment: BaseAlignment, 
+                 linspace: BlockSpace=None, metadata: dict=None,
+                 **kwargs):
+        """Creates a new Alignment object from a sample BaseAlignment.
+
+        Parameters
+        ----------
+        name : str
+            Name of the alignment.
+        sample_alignment : BaseAlignment
+            Alignment of sample sequences.
+        linspace : BlockSpace, optional
+            Linear space that assigns coordinate values to alignment
+            columns. (default is None, the constructor will create a new
+            linear space starting from 0).
+        metadata : dict, optional
+            Other information related to the alignment. (default is None,
+            which creates a blank dictionary)
+        **kwargs
+            Other keyword arguments used to initialize states in the
+            Alignment object.
+
+        Raises
+        ------
+        ValueError
+            Alignment is instantiated with an empty sample alignment, or
+            instantiated with sample and marker alingments of unequal number of
+            sites.
+
+        """
+        if not sample_alignment:
+            raise ValueError(
+                'Cannot create an Alignment using an empty '
+                'sample_alignment BaseAlignment.')
+        self.name = name
+        self.samples: BaseAlignment = sample_alignment
+
+        # Use given metadata
+        if metadata is not None:
+            if isinstance(metadata, dict):
+                self.metadata: OrderedDict = OrderedDict(metadata)
+            else:
+                raise TypeError('metadata is not a dictionary.')
+        else:
+            self.metadata: OrderedDict = OrderedDict()
+
+        # Use given linspace
+        if linspace is not None:
+            if isinstance(linspace, BlockSpace):
+                self._linspace: BlockSpace = linspace
+            else:
+                raise TypeError('linspace is not a BlockSpace object.')
+        else:
+            start = kwargs['linspace_default_start'] \
+                    if 'linspace_default_start' in kwargs.keys() else 0
+            stop = kwargs['linspace_default_stop'] \
+                    if 'linspace_default_stop' in kwargs.keys() else \
+                    start + self.samples.ncols
+            state = kwargs['linspace_default_state'] \
+                    if 'linspace_default_state' in kwargs.keys() else \
+                    "1"
+            self._linspace: BlockSpace = BlockSpace(start, stop, state)
+
+    # Format converters
+    # ==========================================================================
+    @classmethod
+    def from_fasta(cls, path, name=None, comment_parser=None):
+        """Create an Alignment object from a FASTA-formatted file.
+
+        Parameters
+        ----------
+        path : str
+            Path to FASTA file.
+        name : str, optional
+            Name of the new alignment.
+            (default is None, takes the name from the comments
+            or uses the filename)
+        comment_parser : function, optional
+            Function that takes a list of comment lines as input
+            and outputs a dictionary that organizes comments into
+            keys and values. (default is None, lines starting with 
+            a semicolon ";" are ignored.)
+
+        Returns
+        -------
+        Alignment
+            Creates a new Alignment object based on the identifiers,
+            descriptions, and sequences in the FASTA file.
+
+        """
+        if marker_kw is None:
+            marker_kw = ''
+        # Create alignments
+        samples, comment_list = fasta_file_to_basealignment(path)
+
+        # Parse comment if parser is provided
+        # Ignore otherwise
+        if comment_parser is not None and callable(comment_parser):
+            metadata = comment_parser(comment_list)
+
+        # Name the alignment object
+        if name is not None:
+            name = name
+        elif 'name' in metadata.keys():
+            name = metadata['name']
+        else:
+            name = os.path.basename(path)
+
+        # Check if linspace in metadata
+        if 'linspace' in metadata.keys() and \
+            isinstance(metadata['linspace'], BlockSpace):
+            linspace = metadata['linspace']
+
+        # Removes name and linspace from metadata if present
+        if metadata:
+            for k in ['name', 'linspace']:
+                del metadata[k]
+        
+        # Create a new Alignment object
+        return cls(name, samples, linspace=linspace, metadata=metadata)
+
+    def to_fasta(self, path, include_info=False, include_metadata=False):
+        """Saves the alignment as a FASTA-formatted file.
+        Some metadata may not be lost.
+
+        Parameters
+        ----------
+        path : str
+            Path to save the alignment to.
+        include_info : bool, optional
+            Whether or not to output alignment infomation,
+            ie. alignment name and coordinates.
+            (default is False, information are not written as FASTA comments
+            to ensure maximum compatibility)
+        include_metadata : bool, optional
+            Whether or not to output metadata as comments.
+            (default is False, information are not written as FASTA comments
+            to ensure maximum compatibility)
+
+        """
+        with open(path, 'w') as writer:
+            fasta_str = self.to_fasta_str(
+                include_info=include_info, include_metadata=include_metadata)
+            print(fasta_str, file=writer)
+
+    def to_fasta_str(self, include_info=False, include_metadata=False):
+        parts = []
+        if include_info:
+            parts += [
+                ';name\t' + str(self.name),
+                ';coords\t{' + self._linspace.to_simple_block_str() + '}',
+            ]
+        if include_metadata:
+            parts += [';{}\t{}'.format(k, v) for k, v in self.metadata.items()]
+        # Adds samples last
+        parts.append(str(self.samples))
+        return '\n'.join(parts)
+
+    # TODO: create a to_json_str method
+
+
+    # Special methods
+    # ==========================================================================
+    def copy(self):
+        """Creates a new deep copy of the alignment.
+
+        Returns
+        -------
+        Alignment
+            The new alignment object is a deep copy of the original alignment.
+
+        """
+        return self.__class__(
+            self.name,
+            self.samples.copy(),
+            self.markers.copy(),
+            metadata=deepcopy(self.metadata),
+            linspace=self._linspace.copy())
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            if key in self.samples.ids:
+                i = self.samples.row_names_to_ids([key])[0]
+                return self.samples.get_row(i)
+            raise KeyError('Key did not match any sample name/identifier')
+        elif isinstance(key, int):  # TODO: Fix bug
+            return self.samples.get_col(key)
+        raise TypeError('Key must be str or int.')
+
+    def __delitem__(self, key):
+        if isinstance(key, str):
+            if key in self.samples.ids():
+                i = self.samples.row_names_to_ids([key])
+                return self.samples.remove_rows(i)
+            raise KeyError('Key did not match any sample name/identifier')
+        elif isinstance(key, int):
+            return self.remove_cols(key)
+        raise TypeError('Key must be str or int.')
+
+    def __iter__(self):
+        raise NotImplementedError(
+            'Iteration over alignment is ambiguous.\n'
+            'Use .iter_samples, .iter_markers, or .iter_rows '
+            'to iterate across samples, markers or all entries, respectively.\n'
+            'Use .iter_sample_sites, .iter_marker_sites, .iter_sites '
+            'to iterate across sites in samples, markers or '
+            'sites across both samples and markers, respectively.')
+
+    def __repr__(self):
+        return '{}(nsamples={}, ncols={})'.format(
+            self.__class__.__name__,
+            self.nsamples,
+            self.ncols,
+        )
+
+    def __str__(self):
+        return self.to_fasta_str()
+
+    def __len__(self):
+        raise NotImplementedError(
+            'len() is not implemented for Alignment.\n'
+            'Use .ncols to get the number of columns, '
+            '.nsamples to get the number of samples, '
+            '.nmarkers to get the number of markers, or '
+            '.nrows to get all the number of alignment rows.')
+
+    def __bool__(self):
+        if self.ncols == 0 or self.nrows == 0:
+            return False
+        return True
+
+
+
+
+
+
 
 
 # TODO: Use SimpleAlignment as base class and add refactor marker-related methods as s mixin
-class Alignment:
+class FullAlignment:
     """Represents a multiple sequence alignment.
 
     The Alignment object encapsulates information generally
@@ -1424,6 +1685,7 @@ class Alignment:
                 self.markers.descriptions[i],
                 self.markers.sequences[i],
             )
+
 
     # Format converters
     # ==========================================================================
