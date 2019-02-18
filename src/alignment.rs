@@ -593,6 +593,29 @@ impl BaseAlignment {
     // TODO: Insert and append sites
     // TODO: Insert/append ONE sample using Record object
 
+    /// insert_row(position, id, description, sequence)
+    /// --
+    /// 
+    /// Inserts one entry into the multiple sequence alignment
+    /// at the specified position.
+    fn insert_row(&mut self, i: i32, id: &str, description: &str, sequence: &str) -> PyResult<()> {
+        let ids = vec![id];
+        let descriptions = vec![description];
+        let sequences = vec![sequence];
+        self.insert_rows(i, ids, descriptions, sequences)
+    }
+
+    /// append_row(id, description, sequence)
+    /// --
+    /// 
+    /// Appends one entry at the end of the multiple sequence alignment.
+    fn append_row(&mut self, id: &str, description: &str, sequence: &str) -> PyResult<()> {
+        let ids = vec![id];
+        let descriptions = vec![description];
+        let sequences = vec![sequence];
+        self.append_rows(ids, descriptions, sequences)
+    }
+
     /// insert_rows(position, ids, descriptions, sequences)
     /// 
     /// Inserts one or more samples at the specified position.
