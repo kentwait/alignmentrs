@@ -12,6 +12,12 @@ from alignmentrs.util import parse_comment_list, parse_cat_comment_list
 __all__ = ['Alignment', 'CatAlignment']
 
 
+# TODO: Create an alignment with no marker  but with position information
+class SimpleAlignment:
+    pass
+
+
+# TODO: Use SimpleAlignment as base class and add refactor marker-related methods as s mixin
 class Alignment:
     """Represents a multiple sequence alignment.
 
