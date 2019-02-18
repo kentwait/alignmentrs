@@ -360,6 +360,69 @@ impl BaseAlignment {
         Ok(())
     }
 
+    /// replace_col(coordinate, sequence)
+    /// --
+    /// 
+    /// Replaces the all the characters in an alignment column.
+    fn replace_col(&mut self, col: i32, sequence: &str) -> PyResult<()> {
+        if self.ids.len() != sequence.len() {
+            return Err(exceptions::ValueError::py_err(
+                "sequence and the number of entries in the alignment \
+                must have the same length"))
+        }
+        let col = col as usize;
+        let replace_chars_vec: Vec<char> = sequence.chars().collect();
+        for row in 0..self.sequences.len() {
+            let sequence_vec: String = self.sequences[row].char_indices()
+                .map(|(i, y)| {
+                    if col == i {
+                        replace_chars_vec[row]
+                    } else {
+                        y
+                    }
+                }).collect();
+            self.sequences[row] = sequence_vec;
+        }
+        Ok(())
+    }
+
+    /// replace_cols(coordinates, sequences)
+    /// --
+    /// 
+    /// Replaces the all the characters in each specified column from a list of
+    /// alignment columns.
+    fn replace_cols(&mut self, cols: Vec<i32>, values: Vec<&str>)
+    -> PyResult<()> {
+        if cols.len() != values.len() {
+            return Err(exceptions::ValueError::py_err(
+                "coordinate and sequence lists must have the same length"))
+        }
+        if self._nrows() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        // TODO: Get max col value and check if it is less than num of columns
+        let replace_chars_vec: Vec<Vec<char>> = values.iter().map(|v| {
+            v.chars().collect()
+        }).collect();
+        let mut cols = cols;
+        cols.sort_unstable();
+        for row in 0..self.sequences.len() {
+            let mut cnt = 0;
+            let sequence_vec: String = self.sequences[row].char_indices()
+                .map(|(col,y)| {
+                    if cols.contains(&(col as i32)) {
+                        cnt += 1;
+                        replace_chars_vec[cnt-1][row]
+                    } else {
+                        y
+                    }
+                }).collect();
+            self.sequences[row] = sequence_vec;
+        }        
+        Ok(())
+    }
+
+
     // Deleters
     // remove_rows and remove_sites are the main methods for deleting
     // contents of BaseAlignment
