@@ -9,14 +9,16 @@ from libalignmentrs.readers import (fasta_file_to_basealignment,
 from libalignmentrs.position import BlockSpace
 from libalignmentrs.record import Record
 from alignmentrs.util import parse_comment_list, parse_cat_comment_list
-from .mixins import PropsMixin, SamplePropsMixin
+from .mixins import PropsMixin, AlnMixin
+from .mixins import SamplePropsMixin, SampleAlnMixin
+from .mixins import MarkerPropsMixin, MarkerAlnMixin
 
 
 __all__ = ['Alignment', 'CatAlignment']
 
 
 # TODO: Create an alignment with no marker  but with position information
-class SampleAlignment(SamplePropsMixin, PropsMixin, object):
+class Alignment(AlnMixin, PropsMixin, object):
     """Reperesents a multiple sequence alignment of samples.
 
     The Alignment object encapsulates information generally
@@ -102,6 +104,8 @@ class SampleAlignment(SamplePropsMixin, PropsMixin, object):
                     if 'linspace_default_state' in kwargs.keys() else \
                     "1"
             self._linspace: BlockSpace = BlockSpace(start, stop, state)
+
+    # TODO: subset and get_subset
 
     # Format converters
     # ==========================================================================
@@ -215,7 +219,6 @@ class SampleAlignment(SamplePropsMixin, PropsMixin, object):
         return self.__class__(
             self.name,
             self.samples.copy(),
-            self.markers.copy(),
             metadata=deepcopy(self.metadata),
             linspace=self._linspace.copy())
 
@@ -251,7 +254,7 @@ class SampleAlignment(SamplePropsMixin, PropsMixin, object):
     def __repr__(self):
         return '{}(nsamples={}, ncols={})'.format(
             self.__class__.__name__,
-            self.nsamples,
+            self.nrows,
             self.ncols,
         )
 
@@ -272,9 +275,75 @@ class SampleAlignment(SamplePropsMixin, PropsMixin, object):
         return True
 
 
+class SampleAlignment(SampleAlnMixin, SamplePropsMixin, Alignment):
+    members = ['samples']
 
 
+class MarkerAlignment(MarkerAlnMixin, MarkerPropsMixin, Alignment):
+    members = ['markers']
 
+    def __init__(self, name, marker_alignment: BaseAlignment, 
+                 linspace: BlockSpace=None, metadata: dict=None,
+                 **kwargs):
+        """Creates a new MarkerAlignment object from a marker BaseAlignment.
+
+        Parameters
+        ----------
+        name : str
+            Name of the alignment.
+        marker_alignment : BaseAlignment
+            Alignment of marker sequences.
+        linspace : BlockSpace, optional
+            Linear space that assigns coordinate values to alignment
+            columns. (default is None, the constructor will create a new
+            linear space starting from 0).
+        metadata : dict, optional
+            Other information related to the alignment. (default is None,
+            which creates a blank dictionary)
+        **kwargs
+            Other keyword arguments used to initialize states in the
+            Alignment object.
+
+        Raises
+        ------
+        ValueError
+            Alignment is instantiated with an empty sample alignment, or
+            instantiated with sample and marker alingments of unequal number of
+            sites.
+
+        """
+        if not marker_alignment:
+            raise ValueError(
+                'Cannot create an Alignment using an empty '
+                'marker_alignment BaseAlignment.')
+        self.name = name
+        self.markers: BaseAlignment = marker_alignment
+
+        # Use given metadata
+        if metadata is not None:
+            if isinstance(metadata, dict):
+                self.metadata: OrderedDict = OrderedDict(metadata)
+            else:
+                raise TypeError('metadata is not a dictionary.')
+        else:
+            self.metadata: OrderedDict = OrderedDict()
+
+        # Use given linspace
+        if linspace is not None:
+            if isinstance(linspace, BlockSpace):
+                self._linspace: BlockSpace = linspace
+            else:
+                raise TypeError('linspace is not a BlockSpace object.')
+        else:
+            start = kwargs['linspace_default_start'] \
+                    if 'linspace_default_start' in kwargs.keys() else 0
+            stop = kwargs['linspace_default_stop'] \
+                    if 'linspace_default_stop' in kwargs.keys() else \
+                    start + self.samples.ncols
+            state = kwargs['linspace_default_state'] \
+                    if 'linspace_default_state' in kwargs.keys() else \
+                    "1"
+            self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
 
 
