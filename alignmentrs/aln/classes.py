@@ -305,7 +305,7 @@ class Alignment:
         """
         return self.subset(self, sample_ids, marker_ids, sites)
 
-    def get_sites(self, i):
+    def get_cols(self, i):
         """Returns a new alignment containing only the sites specified
         by the given list of column numbers.
 
@@ -1531,7 +1531,7 @@ class Alignment:
                 return self.markers.get_row(i)
             raise KeyError('Key did not match any sample or marker ID')
         elif isinstance(key, int):  # TODO: Fix bug
-            return self.get_sites(key)
+            return self.get_cols(key)
         raise TypeError('Key must be str or int.')
 
     def __delitem__(self, key):
@@ -1693,7 +1693,7 @@ class CatAlignment(Alignment):
         """
         aln_list = []
         for name, start, stop in self._linspace.to_list():
-            aln = self.get_sites(list(range(start, stop)))
+            aln = self.get_cols(list(range(start, stop)))
             aln.name = name
             aln._linspace = self._subspaces[name]
             aln.metadata = deepcopy(self.metadata)

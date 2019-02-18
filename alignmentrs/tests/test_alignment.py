@@ -248,7 +248,7 @@ class TestAlignmentGetters:
                 pass
             
 #----------------------------------------------------     
-    #def test_get_sites(self): # row error
+    #def test_get_cols(self): # row error
            # """Returns a new alignment containing only the sites specified
            # #by the given list of column numbers."""
 #----------------------------------------------------  

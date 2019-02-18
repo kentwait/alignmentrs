@@ -48,7 +48,7 @@ impl BaseAlignment {
 
     // Sequence getters
 
-    /// get_row(index)
+    /// get_row(row_index)
     /// --
     /// 
     /// Returns a new Record object containing the id, description,
@@ -67,7 +67,7 @@ impl BaseAlignment {
         })
     }
 
-    /// get_rows(indices)
+    /// get_rows(row_indices)
     /// --
     /// 
     /// Returns a new BaseAlignment object containing the sequences
@@ -151,12 +151,11 @@ impl BaseAlignment {
         }
     }
 
-    /// get_site(index)
+    /// get_col(col_index)
     /// --
     /// 
-    /// Returns the given site as a Sample object. Uses the given site number
-    /// as the sample id of Sample.
-    fn get_site(&self, i: usize) -> PyResult<Record> {
+    /// Returns the specified alignment column as a new Record object.
+    fn get_col(&self, i: usize) -> PyResult<Record> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -175,11 +174,12 @@ impl BaseAlignment {
         })
     }
 
-    /// get_sites(indices)
+    /// get_cols(col_indices)
+    /// --
     /// 
-    /// Returns a new BaseAlignment object containing only the specified
-    /// sites.
-    fn get_sites(&self, sites: Vec<i32>) -> PyResult<BaseAlignment> {
+    /// Returns a new BaseAlignment object containing the specific
+    /// alignment columns based on a list of indices. 
+    fn get_cols(&self, sites: Vec<i32>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -203,8 +203,9 @@ impl BaseAlignment {
     }
 
     /// subset(row_indices, column_indices)
+    /// --
     /// 
-    /// Returns the subset of samples and sites of the alignment as a new
+    /// Returns the subset of rows and columns in the alignment as a new
     /// BaseAlignment.
     fn subset(&self, ids: Vec<i32>, sites: Vec<i32>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
