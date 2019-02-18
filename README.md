@@ -29,7 +29,7 @@ Alignment(nsamples=10, ncols=40, nmarkers=0)
 ### Select sites to retain in the alignment
 ```python
 >>> sites_to_retain = list(range(2, 3, 120))  # third position in codon triplet
->>> aln.retain_sites(sites_to_retain, copy=False)  # manipulate inplace, copy=True returns a new copy
+>>> aln.retain_cols(sites_to_retain, copy=False)  # manipulate inplace, copy=True returns a new copy
 Alignment(nsamples=10, ncols=40, nmarkers=0)
 ```
 

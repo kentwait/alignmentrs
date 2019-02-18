@@ -951,7 +951,7 @@ class Alignment:
     # ------------------------------
     def remove_cols(self, i, copy=False):
         """Removes sites based on a list of column numbers.
-        This is the opposite of the `retain_sites` method.
+        This is the opposite of the `retain_cols` method.
 
         Parameters
         ----------
@@ -982,7 +982,7 @@ class Alignment:
         if copy:
             return aln
 
-    def retain_sites(self, i, copy=False):
+    def retain_cols(self, i, copy=False):
         """Keeps sites based on a list of column numbers.
         This is the opposite of the `remove_cols` method.
 
@@ -1006,9 +1006,9 @@ class Alignment:
         if isinstance(i, int):
             i = [i]
         # Perform removal inplace
-        aln.samples.retain_sites(i)
+        aln.samples.retain_cols(i)
         if aln.markers:
-            aln.markers.retain_sites(i)
+            aln.markers.retain_cols(i)
             assert aln.samples.ncols == aln.markers.ncols, \
                 "Sample and marker ncols are not equal."
         aln._linspace.retain(i)

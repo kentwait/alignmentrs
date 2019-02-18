@@ -495,12 +495,12 @@ impl BaseAlignment {
         }
     }
 
-    /// retain_sites(indices)
+    /// retain_cols(indices)
     /// 
     /// Keep samples at the specified column positions and remove
     /// other sites inplace.
     /// This is the opposite of `remove_cols(ids)`.
-    fn retain_sites(&mut self, ids: Vec<i32>) -> PyResult<()> {
+    fn retain_cols(&mut self, ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }

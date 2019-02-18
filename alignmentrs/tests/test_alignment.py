@@ -325,10 +325,10 @@ class TestAlignmentGetters:
         self.aln_file.remove_cols([2])
         assert self.aln_file.ncols == (25)  # TODO: Text shown when assertion fails
 
-    def test_retain_sites(self):
-        """tests if aln.obj.retain_sites all sequences
+    def test_retain_cols(self):
+        """tests if aln.obj.retain_cols all sequences
         apart from specified sequences in alignment sequences"""
-        self.aln_file.retain_sites([0,1,2])
+        self.aln_file.retain_cols([0,1,2])
         assert self.aln_file.ncols == 3  # TODO: Text shown when assertion fails
         #TODO- should assert to that the positions are not ATG once 
         # get samples sequences is fixes
