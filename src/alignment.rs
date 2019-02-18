@@ -427,6 +427,14 @@ impl BaseAlignment {
     // remove_rows and remove_cols are the main methods for deleting
     // contents of BaseAlignment
 
+    /// remove_row(index)
+    /// --
+    /// 
+    /// Removes one entry corresponding to the specified row index.
+    fn remove_row(&mut self, id: i32) -> PyResult<()> {
+        self.remove_rows(vec![id])
+    }
+
     /// remove_rows(indices)
     /// --
     /// 
@@ -447,6 +455,14 @@ impl BaseAlignment {
             self.sequences.remove(i);
         }
         Ok(())
+    }
+
+    /// remove_col(index)
+    /// --
+    /// 
+    /// Removes one column corresponding to the specified column index.
+    fn remove_col(&mut self, id: i32) -> PyResult<()> {
+        self.remove_cols(vec![id])
     }
 
     /// remove_cols(indices)
@@ -474,11 +490,19 @@ impl BaseAlignment {
         Ok(())
     }
 
+    /// retain_row(index)
+    /// --
+    /// 
+    /// Keeps one entry according to the given row index and
+    /// removes everything else.
+    fn retain_row(&mut self, id: i32) -> PyResult<()> {
+        self.retain_rows(vec![id])
+    }
+
     /// retain_rows(indices)
     /// 
-    /// Keep samples at the given index positions, and remove
-    /// non-matching samples inplace.
-    /// This is the opposite of `remove_rows(ids)`.
+    /// Keep entries at the specified row indices, and removes
+    /// everything else.
     fn retain_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -495,11 +519,19 @@ impl BaseAlignment {
         }
     }
 
+    /// retain_col(index)
+    /// --
+    /// 
+    /// Keeps one alignment column according to the given column index and
+    /// removes everything else.
+    fn retain_col(&mut self, id: i32) -> PyResult<()> {
+        self.retain_cols(vec![id])
+    }
+
     /// retain_cols(indices)
     /// 
-    /// Keep samples at the specified column positions and remove
-    /// other sites inplace.
-    /// This is the opposite of `remove_cols(ids)`.
+    /// Keep  alignment columns at the specified column indices and
+    /// removes everything else.
     fn retain_cols(&mut self, ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -650,21 +682,7 @@ impl BaseAlignment {
     /// Inserts one entry into the multiple sequence alignment
     /// at the specified position.
     fn insert_row(&mut self, i: i32, id: &str, description: &str, sequence: &str) -> PyResult<()> {
-        let ids = vec![id];
-        let descriptions = vec![description];
-        let sequences = vec![sequence];
-        self.insert_rows(i, ids, descriptions, sequences)
-    }
-
-    /// append_row(id, description, sequence)
-    /// --
-    /// 
-    /// Appends one entry at the end of the multiple sequence alignment.
-    fn append_row(&mut self, id: &str, description: &str, sequence: &str) -> PyResult<()> {
-        let ids = vec![id];
-        let descriptions = vec![description];
-        let sequences = vec![sequence];
-        self.append_rows(ids, descriptions, sequences)
+        self.insert_rows(i, vec![id], vec![description], vec![sequence])
     }
 
     /// insert_rows(position, ids, descriptions, sequences)
@@ -693,6 +711,14 @@ impl BaseAlignment {
             self.sequences.insert(i + offset, sequences[offset].to_string());
         }
         Ok(())
+    }
+
+    /// append_row(id, description, sequence)
+    /// --
+    /// 
+    /// Appends one entry at the end of the multiple sequence alignment.
+    fn append_row(&mut self, id: &str, description: &str, sequence: &str) -> PyResult<()> {
+        self.append_rows(vec![id], vec![description], vec![sequence])
     }
 
     /// append_rows(ids, descriptions, sequences)
