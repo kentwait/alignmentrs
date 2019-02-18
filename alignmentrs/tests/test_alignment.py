@@ -318,11 +318,11 @@ class TestAlignmentGetters:
 
         # TODO: Other than count, test whether the correct sample was retained
 
-    def test_remove_sites(self):
-        """tests if aln.obj.remove_sites removes all one or more
+    def test_remove_cols(self):
+        """tests if aln.obj.remove_cols removes all one or more
         sequences from the alignment sequences"""
         
-        self.aln_file.remove_sites([2])
+        self.aln_file.remove_cols([2])
         assert self.aln_file.ncols == (25)  # TODO: Text shown when assertion fails
 
     def test_retain_sites(self):

@@ -22,7 +22,7 @@ Alignment(nsamples=10, ncols=120, nmarkers=0)
 ### Select sites to remove from the alignment
 ```python
 >>> sites_to_remove = [i for i in range(120) if (i-2) % 3 != 0]  # remove 1st and 2nd position in codon triplet
->>> aln.remove_sites(sites_to_remove, copy=False)  # manipulate inplace, copy=True returns a new copy
+>>> aln.remove_cols(sites_to_remove, copy=False)  # manipulate inplace, copy=True returns a new copy
 Alignment(nsamples=10, ncols=40, nmarkers=0)
 ```
 

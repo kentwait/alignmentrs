@@ -949,7 +949,7 @@ class Alignment:
 
     # General deleters
     # ------------------------------
-    def remove_sites(self, i, copy=False):
+    def remove_cols(self, i, copy=False):
         """Removes sites based on a list of column numbers.
         This is the opposite of the `retain_sites` method.
 
@@ -973,9 +973,9 @@ class Alignment:
         if isinstance(i, int):
             i = [i]
         # Perform removal inplace
-        aln.samples.remove_sites(i)
+        aln.samples.remove_cols(i)
         if aln.markers:
-            aln.markers.remove_sites(i)
+            aln.markers.remove_cols(i)
             assert aln.samples.ncols == aln.markers.ncols, \
                 "Sample and marker ncols are not equal."
         aln._linspace.remove(i)
@@ -984,7 +984,7 @@ class Alignment:
 
     def retain_sites(self, i, copy=False):
         """Keeps sites based on a list of column numbers.
-        This is the opposite of the `remove_sites` method.
+        This is the opposite of the `remove_cols` method.
 
         Parameters
         ----------
@@ -1544,7 +1544,7 @@ class Alignment:
                 return self.markers.remove_rows(i)
             raise KeyError('Key did not match any sample or marker ID')
         elif isinstance(key, int):
-            return self.remove_sites(key)
+            return self.remove_cols(key)
         raise TypeError('Key must be str or int.')
 
     def __iter__(self):

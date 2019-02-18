@@ -424,7 +424,7 @@ impl BaseAlignment {
 
 
     // Deleters
-    // remove_rows and remove_sites are the main methods for deleting
+    // remove_rows and remove_cols are the main methods for deleting
     // contents of BaseAlignment
 
     /// remove_rows(indices)
@@ -449,12 +449,12 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// remove_sites(indices)
+    /// remove_cols(indices)
     /// --
     /// 
     /// Removes many alignment columns simulatenously based on a
     /// list of column indices.
-    fn remove_sites(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
+    fn remove_cols(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -499,7 +499,7 @@ impl BaseAlignment {
     /// 
     /// Keep samples at the specified column positions and remove
     /// other sites inplace.
-    /// This is the opposite of `remove_sites(ids)`.
+    /// This is the opposite of `remove_cols(ids)`.
     fn retain_sites(&mut self, ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -510,7 +510,7 @@ impl BaseAlignment {
                 remove_ids.push(i as i32);
             }
         }
-        match self.remove_sites(remove_ids) {
+        match self.remove_cols(remove_ids) {
             Err(x) => Err(x),
             Ok(x) => Ok(x)
         }

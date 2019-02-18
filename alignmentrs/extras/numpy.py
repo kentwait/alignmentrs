@@ -152,7 +152,7 @@ def drop_sites_using_binary_markers(aln, marker_ids, inverse=False,
                   np.where(summed < len(marker_matrix))[0]
 
     # Edit alignment inplace
-    aln.remove_sites(remove_list)
+    aln.remove_cols(remove_list)
 
     if copy:
         return aln
