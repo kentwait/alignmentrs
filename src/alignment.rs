@@ -249,27 +249,27 @@ impl BaseAlignment {
 
     // Metadata setters
 
-    /// set_id(row_index, value)
+    /// replace_id(row_index, value)
     /// --
     /// 
-    /// Sets the name/identifier of an existing entry in the
+    /// Replaces the name/identifier of an existing entry in the
     /// multiple sequence alignment.
-    fn set_id(&mut self, i: i32, value: &str) -> PyResult<()> {
+    fn replace_id(&mut self, i: i32, value: &str) -> PyResult<()> {
         let ids: Vec<i32> = vec![i];
         let values: Vec<&str> = vec![value];
-        match self.set_ids(ids, values) {
+        match self.replace_ids(ids, values) {
             Err(x) => Err(x),
             _ => Ok(()),
         }
     }
 
-    /// set_ids(row_indices, values)
+    /// replace_ids(row_indices, values)
     /// --
     /// 
     /// Set the names/identifiers of many entries simultaneously.
     /// Each name/identifier will be set to an entry based on the
     /// corresponding list of row indices.
-    fn set_ids(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
+    fn replace_ids(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
             return Err(exceptions::ValueError::py_err(
                 "index and id lists must have the same length"))
@@ -286,27 +286,27 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// set_description(index, value)
+    /// replace_description(index, value)
     /// --
     /// 
-    /// Sets the description of an existing entry in the
+    /// Replaces the description of an existing entry in the
     /// multiple sequence alignment.
-    fn set_description(&mut self, i: i32, description: &str) -> PyResult<()> {
+    fn replace_description(&mut self, i: i32, description: &str) -> PyResult<()> {
         let ids: Vec<i32> = vec![i];
         let values: Vec<&str> = vec![description];
-        match self.set_descriptions(ids, values) {
+        match self.replace_descriptions(ids, values) {
             Err(x) => Err(x),
             _ => Ok(()),
         }
     }    
 
-    /// set_descriptions(indices, values)
+    /// replace_descriptions(indices, values)
     /// --
     /// 
     /// Set the description of many entries simultaneously.
     /// Each description will be set to an entry based on the
     /// corresponding list of row indices.
-    fn set_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
+    fn replace_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
             return Err(exceptions::ValueError::py_err(
                 "index and description lists must have the same length"))
@@ -325,23 +325,23 @@ impl BaseAlignment {
 
     // Sequence setters
 
-    /// set_sequence(index, value)
+    /// replace_sequence(index, value)
     /// --
     ///
-    /// Sets the sequence of an existing sample
-    fn set_sequence(&mut self, i: i32, seqeunce: &str) -> PyResult<()> {
+    /// Replaces the sequence of an existing sample
+    fn replace_sequence(&mut self, i: i32, seqeunce: &str) -> PyResult<()> {
         let ids: Vec<i32> = vec![i];
         let values: Vec<&str> = vec![seqeunce];
-        match self.set_sequences(ids, values) {
+        match self.replace_sequences(ids, values) {
             Err(x) => Err(x),
             _ => Ok(()),
         }
     }
 
-    /// set_sequences(indices, values)
+    /// replace_sequences(indices, values)
     /// 
-    /// Sets many sample sequences simulateneously using a list of indices.
-    fn set_sequences(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
+    /// Replaces many sample sequences simulateneously using a list of indices.
+    fn replace_sequences(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
             return Err(exceptions::ValueError::py_err(
                 "index and sequence lists must have the same length"))
@@ -361,11 +361,11 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// set_sequences_by_name(names, values)
+    /// replace_sequences_by_name(names, values)
     /// 
-    /// Sets many sample sequences simulateneously using a list of corresponding
+    /// Replaces many sample sequences simulateneously using a list of corresponding
     /// sample IDs.
-    fn set_sequences_by_name(&mut self, names: Vec<&str>, values: Vec<&str>) -> PyResult<()> {
+    fn replace_sequences_by_name(&mut self, names: Vec<&str>, values: Vec<&str>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }

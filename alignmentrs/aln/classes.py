@@ -540,7 +540,7 @@ class Alignment:
 
         """
         aln = self.copy() if copy else self
-        # Calls specific set_sequence setter depending on the
+        # Calls specific replace_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
                sum((isinstance(j, str) for j in ids))):
@@ -586,7 +586,7 @@ class Alignment:
 
         """
         aln = self.copy() if copy else self
-        # Calls specific set_sequence setter depending on the
+        # Calls specific replace_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
                sum((isinstance(j, str) for j in ids))):
@@ -702,7 +702,7 @@ class Alignment:
 
         """
         aln = self.copy() if copy else self
-        # Calls specific set_sequence setter depending on the
+        # Calls specific replace_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
                sum((isinstance(j, str) for j in ids))):
@@ -748,7 +748,7 @@ class Alignment:
 
         """
         aln = self.copy() if copy else self
-        # Calls specific set_sequence setter depending on the
+        # Calls specific replace_sequence setter depending on the
         # type if i
         if not(isinstance(ids, list) and
                sum((isinstance(j, str) for j in ids))):
@@ -797,18 +797,18 @@ class Alignment:
 
         """
         aln = self.copy() if copy else self
-        # Calls specific set_sequence setter depending on the
+        # Calls specific replace_sequence setter depending on the
         # type if i
         if isinstance(i, int) and isinstance(sequences, str):
-            aln.samples.set_sequences([i], [sequences])
+            aln.samples.replace_sequences([i], [sequences])
         elif isinstance(i, str) and isinstance(sequences, str):
             ids = aln.samples.row_names_to_ids([i])
-            aln.samples.set_sequences([ids], [sequences])
+            aln.samples.replace_sequences([ids], [sequences])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            aln.samples.set_sequences(i, sequences)
+            aln.samples.replace_sequences(i, sequences)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             ids = aln.samples.row_names_to_ids(i)
-            aln.samples.set_sequences(ids, sequences)
+            aln.samples.replace_sequences(ids, sequences)
         else:
             raise TypeError('i must be an int, str, list of int, or list of str.')
         if copy:
@@ -845,18 +845,18 @@ class Alignment:
 
         """
         aln = self.copy() if copy else self
-        # Calls specific set_sequence setter depending on the
+        # Calls specific replace_sequence setter depending on the
         # type if i
         if isinstance(i, int) and isinstance(sequences, str):
-            aln.markers.set_sequences([i], [sequences])
+            aln.markers.replace_sequences([i], [sequences])
         elif isinstance(i, str) and isinstance(sequences, str):
             ids = aln.markers.row_names_to_ids([i])
-            aln.markers.set_sequences([ids], [sequences])
+            aln.markers.replace_sequences([ids], [sequences])
         elif isinstance(i, list) and sum((isinstance(j, int) for j in i)):
-            aln.markers.set_sequences(i, sequences)
+            aln.markers.replace_sequences(i, sequences)
         elif isinstance(i, list) and sum((isinstance(j, str) for j in i)):
             ids = aln.markers.row_names_to_ids(i)
-            aln.markers.set_sequences(ids, sequences)
+            aln.markers.replace_sequences(ids, sequences)
         else:
             raise TypeError('i must be an int, str, list of int, or list of str.')
         if copy:
