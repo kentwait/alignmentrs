@@ -748,8 +748,7 @@ impl BaseAlignment {
     /// reorder_rows(ids, /)
     /// --
     /// 
-    /// Reorders the sequences inplace based on a list of their 
-    /// existing positions.
+    /// Reorders the sequences inplace based on a list of current row indices.
     fn reorder_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         if let Some(max) = ids.iter().max() {
             let length = self.ids.len();
@@ -774,6 +773,26 @@ impl BaseAlignment {
             self.ids = new_ids;
             self.descriptions = new_descriptions;
             self.sequences = new_sequences;
+        }
+        Ok(())
+    }
+
+    /// reorder_cols(ids, /)
+    /// --
+    /// 
+    /// Reorders the alignment columns inplace based on a list of current
+    /// column indices.
+    fn reorder_cols(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        if self._nrows() == 0 {
+            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+        }
+        // TODO: Get max of ids and check if it is less than the number of columns
+        for i in 0..self.sequences.len() {
+            let sequence_vec: Vec<char> = self.sequences[i].chars().collect();
+            let new_sequence: String = ids.iter().map(|j| {
+                    sequence_vec[*j as usize]
+            }).collect();
+            self.sequences[i] = new_sequence;
         }
         Ok(())
     }
