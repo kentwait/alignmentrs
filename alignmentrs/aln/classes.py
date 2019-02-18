@@ -117,7 +117,7 @@ class Alignment:
 
     @property
     def coordinates(self):
-        """list of int: Returns the list of coordinates 
+        """list of int: Returns the list of coordinates
         associated to each column in the alignment."""
         return self._linspace.to_arrays()[0]
 
@@ -266,7 +266,7 @@ class Alignment:
                      None
         return cls(
             aln.name, sample_aln, marker_aln,
-            linspace=aln._linspace.extract(sites),
+            linspace=aln.__getattribute__('_linspace').extract(sites),
             metadata=deepcopy(aln.metadata))
 
     def get_subset(self, sample_ids=None, marker_ids=None, sites=None):
