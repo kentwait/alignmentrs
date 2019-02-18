@@ -48,7 +48,7 @@ impl BaseAlignment {
 
     // Sequence getters
 
-    /// get_row(row_index)
+    /// get_row(row_index, /)
     /// --
     /// 
     /// Returns a new Record object containing the id, description,
@@ -67,7 +67,7 @@ impl BaseAlignment {
         })
     }
 
-    /// get_rows(row_indices)
+    /// get_rows(row_indices, /)
     /// --
     /// 
     /// Returns a new BaseAlignment object containing the sequences
@@ -94,7 +94,7 @@ impl BaseAlignment {
         })
     }
 
-    /// get_rows_by_name(names)
+    /// get_rows_by_name(names, /)
     /// --
     /// 
     /// Returns a new BaseAlignment object containing the sequences
@@ -113,7 +113,7 @@ impl BaseAlignment {
         }
     }
 
-    /// get_rows_by_prefix(prefixes)
+    /// get_rows_by_prefix(prefixes, /)
     /// --
     /// 
     /// Returns a new BaseAlignment object containing the sequences
@@ -132,7 +132,7 @@ impl BaseAlignment {
         }
     }
 
-    /// get_rows_by_suffix(suffixes)
+    /// get_rows_by_suffix(suffixes, /)
     /// --
     /// 
     /// Returns a new BaseAlignment object containing the sequences
@@ -151,7 +151,7 @@ impl BaseAlignment {
         }
     }
 
-    /// get_col(col_index)
+    /// get_col(col_index, /)
     /// --
     /// 
     /// Returns the specified alignment column as a new Record object.
@@ -174,7 +174,7 @@ impl BaseAlignment {
         })
     }
 
-    /// get_cols(col_indices)
+    /// get_cols(col_indices, /)
     /// --
     /// 
     /// Returns a new BaseAlignment object containing the specific
@@ -202,7 +202,7 @@ impl BaseAlignment {
         })
     }
 
-    /// subset(row_indices, column_indices)
+    /// subset(row_indices, column_indices, /)
     /// --
     /// 
     /// Returns the subset of rows and columns in the alignment as a new
@@ -250,7 +250,7 @@ impl BaseAlignment {
 
     // Metadata setters
 
-    /// replace_id(row_index, value)
+    /// replace_id(row_index, value, /)
     /// --
     /// 
     /// Replaces the name/identifier of an existing entry in the
@@ -261,7 +261,7 @@ impl BaseAlignment {
         self.replace_ids(ids, values)
     }
 
-    /// replace_ids(row_indices, values)
+    /// replace_ids(row_indices, values, /)
     /// --
     /// 
     /// Replace the names/identifiers of many entries simultaneously.
@@ -285,7 +285,7 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// replace_description(index, value)
+    /// replace_description(index, value, /)
     /// --
     /// 
     /// Replaces the description of an existing entry in the
@@ -297,7 +297,7 @@ impl BaseAlignment {
         self.replace_descriptions(ids, values)
     }    
 
-    /// replace_descriptions(indices, values)
+    /// replace_descriptions(indices, values, /)
     /// --
     /// 
     /// Replace the descriptions of many entries simultaneously.
@@ -323,7 +323,7 @@ impl BaseAlignment {
 
     // Sequence setters
 
-    /// replace_sequence(index, value)
+    /// replace_sequence(index, value, /)
     /// --
     ///
     /// Replaces the sequence of an existing entry in the multiple
@@ -334,7 +334,7 @@ impl BaseAlignment {
         self.replace_sequences(ids, values)
     }
 
-    /// replace_sequences(indices, values)
+    /// replace_sequences(indices, values, /)
     /// --
     /// 
     /// Replaces many sequences simulateneously.
@@ -360,7 +360,7 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// replace_col(coordinate, sequence)
+    /// replace_col(coordinate, sequence, /)
     /// --
     /// 
     /// Replaces the all the characters in an alignment column.
@@ -386,7 +386,7 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// replace_cols(coordinates, sequences)
+    /// replace_cols(coordinates, sequences, /)
     /// --
     /// 
     /// Replaces the all the characters in each specified column from a list of
@@ -427,7 +427,7 @@ impl BaseAlignment {
     // remove_rows and remove_cols are the main methods for deleting
     // contents of BaseAlignment
 
-    /// remove_row(index)
+    /// remove_row(index, /)
     /// --
     /// 
     /// Removes one entry corresponding to the specified row index.
@@ -435,7 +435,7 @@ impl BaseAlignment {
         self.remove_rows(vec![id])
     }
 
-    /// remove_rows(indices)
+    /// remove_rows(indices, /)
     /// --
     /// 
     /// Removes many entries simulatenously based on a
@@ -457,7 +457,7 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// remove_col(index)
+    /// remove_col(index, /)
     /// --
     /// 
     /// Removes one column corresponding to the specified column index.
@@ -465,7 +465,7 @@ impl BaseAlignment {
         self.remove_cols(vec![id])
     }
 
-    /// remove_cols(indices)
+    /// remove_cols(indices, /)
     /// --
     /// 
     /// Removes many alignment columns simulatenously based on a
@@ -490,7 +490,7 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// retain_row(index)
+    /// retain_row(index, /)
     /// --
     /// 
     /// Keeps one entry according to the given row index and
@@ -499,7 +499,7 @@ impl BaseAlignment {
         self.retain_rows(vec![id])
     }
 
-    /// retain_rows(indices)
+    /// retain_rows(indices, /)
     /// 
     /// Keep entries at the specified row indices, and removes
     /// everything else.
@@ -519,7 +519,7 @@ impl BaseAlignment {
         }
     }
 
-    /// retain_col(index)
+    /// retain_col(index, /)
     /// --
     /// 
     /// Keeps one alignment column according to the given column index and
@@ -528,7 +528,7 @@ impl BaseAlignment {
         self.retain_cols(vec![id])
     }
 
-    /// retain_cols(indices)
+    /// retain_cols(indices, /)
     /// 
     /// Keep  alignment columns at the specified column indices and
     /// removes everything else.
@@ -553,7 +553,7 @@ impl BaseAlignment {
     // These are convenience functions that simply do a lookup on the
     // ids vector to get the row ids to use with the remove_row method.
 
-    /// remove_rows_by_name(names)
+    /// remove_rows_by_name(names, /)
     /// 
     /// Removes samples matching the given sample ID's inplace.
     fn remove_rows_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
@@ -570,7 +570,7 @@ impl BaseAlignment {
         }
     }
 
-    /// remove_rows_by_prefix(prefixes)
+    /// remove_rows_by_prefix(prefixes, /)
     /// 
     /// Removes samples matching at least one of the given prefixes inplace.
     fn remove_rows_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
@@ -587,7 +587,7 @@ impl BaseAlignment {
         }
     }
 
-    /// remove_rows_by_suffix(suffixes)
+    /// remove_rows_by_suffix(suffixes, /)
     /// 
     /// Removes samples matching at least one of the given suffixes inplace.
     fn remove_rows_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
@@ -604,7 +604,7 @@ impl BaseAlignment {
         }
     }
 
-    /// retain_rows_by_name(names)
+    /// retain_rows_by_name(names, /)
     /// 
     /// Keep samples matching the given sample ID's and remove
     /// non-matching samples inplace.
@@ -628,7 +628,7 @@ impl BaseAlignment {
         }
     }
 
-    /// retain_rows_by_prefix(prefixes)
+    /// retain_rows_by_prefix(prefixes, /)
     /// 
     /// Keep samples matching at least one of the given prefixes and remove
     /// non-matching samples inplace.
@@ -652,7 +652,7 @@ impl BaseAlignment {
         }
     }
 
-    /// retain_rows_by_suffix(suffixes)
+    /// retain_rows_by_suffix(suffixes, /)
     /// 
     /// Keep samples matching at least one of the given suffixes and remove
     /// non-matching samples inplace.
@@ -676,7 +676,7 @@ impl BaseAlignment {
         }
     }
 
-    /// insert_row(position, id, description, sequence)
+    /// insert_row(position, id, description, sequence, /)
     /// --
     /// 
     /// Inserts one entry into the multiple sequence alignment
@@ -685,7 +685,7 @@ impl BaseAlignment {
         self.insert_rows(i, vec![id], vec![description], vec![sequence])
     }
 
-    /// insert_rows(position, ids, descriptions, sequences)
+    /// insert_rows(position, ids, descriptions, sequences, /)
     /// 
     /// Inserts one or more samples at the specified position.
     fn insert_rows(&mut self, i: i32, ids: Vec<&str>, descriptions: Vec<&str>,
@@ -713,7 +713,7 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// append_row(id, description, sequence)
+    /// append_row(id, description, sequence, /)
     /// --
     /// 
     /// Appends one entry at the end of the multiple sequence alignment.
@@ -721,7 +721,7 @@ impl BaseAlignment {
         self.append_rows(vec![id], vec![description], vec![sequence])
     }
 
-    /// append_rows(ids, descriptions, sequences)
+    /// append_rows(ids, descriptions, sequences, /)
     /// 
     /// Appends one or more samples at the end of the list.
     fn append_rows(&mut self, ids: Vec<&str>, descriptions: Vec<&str>,
@@ -797,9 +797,10 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// row_names_to_ids(names)
+    /// row_names_to_ids(names, /)
+    /// --
     /// 
-    /// Converts a list of sample names to its corresponding sample indices.
+    /// Converts a list of names to corresponding row indices.
     fn row_names_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -819,10 +820,11 @@ impl BaseAlignment {
         Ok(ids)
     }
 
-    /// row_prefix_to_ids(prefixes)
+    /// row_prefix_to_ids(prefixes, /)
+    /// --
     /// 
-    /// Matches a list of sample prefixes to sample names and returns
-    /// the indices of matching samples.
+    /// Matches a list of prefixes to entry names/identifiers and returns
+    /// the row indices of matched.
     fn row_prefix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -840,10 +842,11 @@ impl BaseAlignment {
         Ok(ids)
     }
 
-    /// row_suffix_to_ids(suffixes)
+    /// row_suffix_to_ids(suffixes, /)
+    /// --
     /// 
-    /// Matches a list of sample suffixes to sample names and returns
-    /// the indices of matching samples.
+    /// Matches a list of suffixes to entry names/identifiers and returns
+    /// the row indices of matched.
     fn row_suffix_to_ids(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -862,6 +865,7 @@ impl BaseAlignment {
     }
 
     /// transpose()
+    /// --
     /// 
     /// Transposes the alignment making columns rows and rows columns.
     fn transpose(&self) -> PyResult<BaseAlignment> {
@@ -896,10 +900,12 @@ impl BaseAlignment {
         })
     }
 
-    /// concat(aln_list)
+    /// concat(aln_list, /)
+    /// --
     /// 
-    /// Concatenates a list of alignments to the current alignment side-by-site
-    /// on the site (column) axis.
+    /// Concatenates a list of alignments to the current alignment side-by-side.
+    /// Assumes that the number of rows and the order of rows matches the
+    /// current alignment.
     fn concat(&self, aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignment> {
         let ids = self.ids.clone();
         let descriptions = self.descriptions.clone();
@@ -922,6 +928,7 @@ impl BaseAlignment {
     }
 
     /// copy()
+    /// --
     /// 
     /// Creates a deep copy of itself.
     fn copy(&self) -> PyResult<BaseAlignment> {
@@ -931,7 +938,7 @@ impl BaseAlignment {
         Ok(BaseAlignment { ids, descriptions, sequences })
     }
 
-    /// is_row_similar(other)
+    /// is_row_similar(other, /)
     /// 
     /// Checks if the other alignment has the same number of rows.
     fn is_row_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
@@ -943,7 +950,7 @@ impl BaseAlignment {
         Ok(true)
     }
 
-    /// is_col_similar(other)
+    /// is_col_similar(other, /)
     /// 
     /// Checks if the other alignment has the same number of columns.
     fn is_col_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
@@ -1022,7 +1029,7 @@ lazy_static! {
 }
 
 #[pyfunction]
-/// fasta_file_to_basealignments(data_str)
+/// fasta_file_to_basealignments(data_str, /)
 /// 
 /// Reads FASTA file and creates marker and sequence BaseAlignments.
 fn fasta_file_to_basealignments(path: &str, marker_kw: &str) -> 
@@ -1111,7 +1118,7 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
 }
 
 #[pyfunction]
-/// concat_basealignments(aln_list)
+/// concat_basealignments(aln_list, /)
 /// 
 /// Concatenates a list of alignments over the site (column) axis.
 fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignment> {
