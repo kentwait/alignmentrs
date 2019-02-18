@@ -10,6 +10,7 @@ use crate::record::Record;
 #[pyclass(subclass)]
 #[derive(Clone)]
 /// BaseAlignment(ids, descriptions, sequences)
+/// --
 /// 
 /// BaseAlignment represents a multiple sequence alignment.
 pub struct BaseAlignment {
@@ -48,9 +49,10 @@ impl BaseAlignment {
     // Sequence getters
 
     /// get_row(index)
+    /// --
     /// 
-    /// Returns the sample id, description, and sequence at the given index as
-    /// as a Sample object.
+    /// Returns a new Record object containing the id, description,
+    /// and sequence at the specified index.
     fn get_row(&self, i: usize) -> PyResult<Record> {
         // TODO: Change this to Record to generalize Sample and Marker records
         if self._nrows() == 0 {
@@ -66,9 +68,10 @@ impl BaseAlignment {
     }
 
     /// get_rows(indices)
+    /// --
     /// 
-    /// Returns a new BaseAlignment object containing the specified
-    /// sample sequences by index.
+    /// Returns a new BaseAlignment object containing the sequences
+    /// specified by a list of indices.
     fn get_rows(&self, ids: Vec<i32>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -92,9 +95,10 @@ impl BaseAlignment {
     }
 
     /// get_rows_by_name(names)
+    /// --
     /// 
-    /// Returns a new BaseAlignment object containing the specified
-    /// sample sequences by ID.
+    /// Returns a new BaseAlignment object containing the sequences
+    /// specified using a list of names/ids.
     fn get_rows_by_name(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -110,9 +114,10 @@ impl BaseAlignment {
     }
 
     /// get_rows_by_prefix(prefixes)
+    /// --
     /// 
-    /// Returns a new BaseAlignment object containing the specified
-    /// sample sequences match the given list of prefixes.
+    /// Returns a new BaseAlignment object containing the sequences
+    /// that match the given list of prefixes.
     fn get_rows_by_prefix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -128,9 +133,10 @@ impl BaseAlignment {
     }
 
     /// get_rows_by_suffix(suffixes)
+    /// --
     /// 
-    /// Returns a new BaseAlignment object containing the specified
-    /// sample sequences match the given list of suffixes.
+    /// Returns a new BaseAlignment object containing the sequences
+    /// that match the given list of suffixes.
     fn get_rows_by_suffix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -146,6 +152,7 @@ impl BaseAlignment {
     }
 
     /// get_site(index)
+    /// --
     /// 
     /// Returns the given site as a Sample object. Uses the given site number
     /// as the sample id of Sample.
