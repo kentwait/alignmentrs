@@ -249,9 +249,11 @@ impl BaseAlignment {
 
     // Metadata setters
 
-    /// set_id(index, value)
+    /// set_id(row_index, value)
+    /// --
     /// 
-    /// Sets the ID of an existing sample.
+    /// Sets the name/identifier of an existing entry in the
+    /// multiple sequence alignment.
     fn set_id(&mut self, i: i32, value: &str) -> PyResult<()> {
         let ids: Vec<i32> = vec![i];
         let values: Vec<&str> = vec![value];
@@ -261,10 +263,12 @@ impl BaseAlignment {
         }
     }
 
-    /// set_ids(indices, values)
+    /// set_ids(row_indices, values)
+    /// --
     /// 
-    /// Sets many sample IDs simulateneously using a list of
-    /// corresponding indices.
+    /// Set the names/identifiers of many entries simultaneously.
+    /// Each name/identifier will be set to an entry based on the
+    /// corresponding list of row indices.
     fn set_ids(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
             return Err(exceptions::ValueError::py_err(
@@ -283,8 +287,10 @@ impl BaseAlignment {
     }
 
     /// set_description(index, value)
+    /// --
     /// 
-    /// Sets the description of an existing sample.
+    /// Sets the description of an existing entry in the
+    /// multiple sequence alignment.
     fn set_description(&mut self, i: i32, description: &str) -> PyResult<()> {
         let ids: Vec<i32> = vec![i];
         let values: Vec<&str> = vec![description];
@@ -295,8 +301,11 @@ impl BaseAlignment {
     }    
 
     /// set_descriptions(indices, values)
+    /// --
     /// 
-    /// Sets many sample descriptions simulateneously using a list of indices.
+    /// Set the description of many entries simultaneously.
+    /// Each description will be set to an entry based on the
+    /// corresponding list of row indices.
     fn set_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
             return Err(exceptions::ValueError::py_err(
@@ -317,6 +326,7 @@ impl BaseAlignment {
     // Sequence setters
 
     /// set_sequence(index, value)
+    /// --
     ///
     /// Sets the sequence of an existing sample
     fn set_sequence(&mut self, i: i32, seqeunce: &str) -> PyResult<()> {
