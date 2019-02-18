@@ -846,7 +846,7 @@ impl BaseAlignment {
     }
 
     #[getter]
-    fn nsites(&self) -> PyResult<i32> {
+    fn ncols(&self) -> PyResult<i32> {
         Ok(self._ncols() as i32)
     }
 
@@ -860,8 +860,8 @@ impl BaseAlignment {
 #[pyproto]
 impl PyObjectProtocol for BaseAlignment {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("BaseAlignment(nsamples={nsamples}, nsites={nsites})",
-                   nsamples=self._nrows(), nsites=self._ncols()))
+        Ok(format!("BaseAlignment(nsamples={nsamples}, ncols={ncols})",
+                   nsamples=self._nrows(), ncols=self._ncols()))
     }
 
     fn __str__(&self) -> PyResult<String> {

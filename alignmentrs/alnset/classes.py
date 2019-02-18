@@ -151,8 +151,8 @@ class AlignmentSet:
             samples.append(sample)
             markers.append(marker)
 
-            block_list.append(Block(str(k), start, start + sample.nsites))
-            start += sample.nsites
+            block_list.append(Block(str(k), start, start + sample.ncols))
+            start += sample.ncols
 
         sample_alignment = concat_basealignments(samples)
         if markers[0]:

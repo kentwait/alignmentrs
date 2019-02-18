@@ -76,11 +76,11 @@ class Alignment:
                 'Cannot create an Alignment using an empty '
                 'sample_alignment BaseAlignment.')
         if marker_alignment and \
-           sample_alignment.nsites != marker_alignment.nsites:
+           sample_alignment.ncols != marker_alignment.ncols:
             raise ValueError(
                 'Number of sites in sample and marker alignments are '
                 'not equal: {} != {}'.format(
-                    sample_alignment.nsites, marker_alignment.nsites))
+                    sample_alignment.ncols, marker_alignment.ncols))
         self.name = name
         self.samples: BaseAlignment = sample_alignment
         self.markers: BaseAlignment = marker_alignment \
@@ -93,7 +93,7 @@ class Alignment:
                     if 'linspace_default_start' in kwargs.keys() else 0
             stop = kwargs['linspace_default_stop'] \
                     if 'linspace_default_stop' in kwargs.keys() else \
-                    start + self.samples.nsites
+                    start + self.samples.ncols
             state = kwargs['linspace_default_state'] \
                     if 'linspace_default_state' in kwargs.keys() else \
                     "1"
@@ -111,9 +111,9 @@ class Alignment:
         return self.samples.nrows + nmarkers
 
     @property
-    def nsites(self):
+    def ncols(self):
         """int: Returns the number of sites in the alignment."""
-        return self.samples.nsites
+        return self.samples.ncols
 
     @property
     def coordinates(self):
@@ -235,7 +235,7 @@ class Alignment:
             raise ValueError('Markers are not present in this alignment.')
         # Checks the value of marker_ids and converts if necessary.
         if marker_ids is None:
-            marker_ids = list(range(0, aln.nsites))
+            marker_ids = list(range(0, aln.ncols))
         elif isinstance(marker_ids, int):
             marker_ids = [marker_ids]
         elif isinstance(marker_ids, str):
@@ -251,7 +251,7 @@ class Alignment:
                             'or list of str.')
         # Checks the value of sites and converts if necessary.
         if sites is None:
-            sites = list(range(0, aln.nsites))
+            sites = list(range(0, aln.ncols))
         elif isinstance(sites, int):
             sites = [sites]
         elif (isinstance(sites, list) and
@@ -939,7 +939,7 @@ class Alignment:
 
         """
         start = start if start is not None else 0
-        stop = stop if stop is not None else start + self.samples.nsites
+        stop = stop if stop is not None else start + self.samples.ncols
         state = state if state is not None else 1
         self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
@@ -976,8 +976,8 @@ class Alignment:
         aln.samples.remove_sites(i)
         if aln.markers:
             aln.markers.remove_sites(i)
-            assert aln.samples.nsites == aln.markers.nsites, \
-                "Sample and marker nsites are not equal."
+            assert aln.samples.ncols == aln.markers.ncols, \
+                "Sample and marker ncols are not equal."
         aln._linspace.remove(i)
         if copy:
             return aln
@@ -1009,8 +1009,8 @@ class Alignment:
         aln.samples.retain_sites(i)
         if aln.markers:
             aln.markers.retain_sites(i)
-            assert aln.samples.nsites == aln.markers.nsites, \
-                "Sample and marker nsites are not equal."
+            assert aln.samples.ncols == aln.markers.ncols, \
+                "Sample and marker ncols are not equal."
         aln._linspace.retain(i)
         if copy:
             return aln
@@ -1266,7 +1266,7 @@ class Alignment:
         ------
         ValueError
             If the alignment cannot be cleanly cut up into the specified
-            chunk size (`nsites` not divisible be `size`),
+            chunk size (`ncols` not divisible be `size`),
             a ValueError is raised.
 
         Yields
@@ -1276,7 +1276,7 @@ class Alignment:
 
         """
         if stop is None:
-            stop = self.nsites
+            stop = self.ncols
         if (stop - start) % size != 0:
             raise ValueError('Alignment cannot be completely divided into '
                              'chucks of size {}'.format(size))
@@ -1308,7 +1308,7 @@ class Alignment:
         ------
         ValueError
             If the alignment cannot be cleanly cut up into the specified
-            chunk size (`nsites` not divisible be `size`),
+            chunk size (`ncols` not divisible be `size`),
             a ValueError is raised.
 
         Yields
@@ -1318,7 +1318,7 @@ class Alignment:
 
         """
         if stop is None:
-            stop = self.nsites
+            stop = self.ncols
         if (stop - start) % size != 0:
             raise ValueError('Alignment cannot be completely divided into '
                              'chucks of size {}'.format(size))
@@ -1345,7 +1345,7 @@ class Alignment:
         ------
         ValueError
             If the alignment cannot be cleanly cut up into the specified
-            chunk size (`nsites` not divisible be `size`),
+            chunk size (`ncols` not divisible be `size`),
             a ValueError is raised.
 
         Yields
@@ -1357,7 +1357,7 @@ class Alignment:
         if self.markers is None or self.markers.nrows == 0:
             return
         if stop is None:
-            stop = self.nsites
+            stop = self.ncols
         if (stop - start) % size != 0:
             raise ValueError('Alignment cannot be completely divided into '
                              'chucks of size {}'.format(size))
@@ -1557,10 +1557,10 @@ class Alignment:
             'sites across both samples and markers, respectively.')
 
     def __repr__(self):
-        return '{}(nsamples={}, nsites={}, nmarkers={})'.format(
+        return '{}(nsamples={}, ncols={}, nmarkers={})'.format(
             self.__class__.__name__,
             self.nsamples,
-            self.nsites,
+            self.ncols,
             self.nmarkers
         )
 
@@ -1577,13 +1577,13 @@ class Alignment:
     def __len__(self):
         raise NotImplementedError(
             'len() is not implemented for Alignment.\n'
-            'Use .nsites to get the number of columns, '
+            'Use .ncols to get the number of columns, '
             '.nsamples to get the number of samples, '
             '.nmarkers to get the number of markers, or '
             '.nrows to get all the number of alignment rows.')
 
     def __bool__(self):
-        if self.nsites == 0 or self.nrows == 0:
+        if self.ncols == 0 or self.nrows == 0:
             return False
         return True
 

@@ -49,7 +49,7 @@ def mark_sites_with_chars(aln, target_list, size=1,
     aln = aln.__class__(
         aln.name, aln.samples.copy(), aln.markers.copy()) if copy else \
         aln
-    if aln.nsites % size != 0:
+    if aln.ncols % size != 0:
         raise  ValueError('Alignment cannot be completely divided into '
                           'chucks of size {}'.format(size))
 
@@ -58,7 +58,7 @@ def mark_sites_with_chars(aln, target_list, size=1,
     t_c, f_c = ('0', '1') if inverse else ('1', '0')
     for target in target_list:
         # Create an initial filter array of 1
-        filter_array = np.ones(int(aln.nsites/size))
+        filter_array = np.ones(int(aln.ncols/size))
 
         # Determine sites with char in within the site
         if isinstance(target, list):

@@ -75,14 +75,14 @@ class TestAlignmentGetters:
         assert  isinstance(nmarkers, int)  # TODO: Text shown when assertion fails
         assert  nmarkers == expected_nmarkers  # TODO: Text shown when assertion fails
 
-    def test_nsites(self):
-        """checks if aln.obj.nsites output matches expected number
+    def test_ncols(self):
+        """checks if aln.obj.ncols output matches expected number
         of sites in alignment(i.e sequence length) file
         """
-        nsites = self.aln_file.nsites
-        expected_nsites = 26
-        assert isinstance(nsites, int)  # TODO: Text shown when assertion fails
-        assert nsites == expected_nsites  # TODO: Text shown when assertion fails
+        ncols = self.aln_file.ncols
+        expected_ncols = 26
+        assert isinstance(ncols, int)  # TODO: Text shown when assertion fails
+        assert ncols == expected_ncols  # TODO: Text shown when assertion fails
 
     def test_sample_ids(self):
         """Checks if all aln.obj.sample_ids match output
@@ -171,11 +171,11 @@ class TestAlignmentGetters:
         # TODO: Do not make compound tests!
         # Each assertion should be a separate test so that it will fail for 
         # that specific test.
-        # For example, test.nsites == expected_sites is unnecessary because it
-        # duplicates an existing test - test_nsites
+        # For example, test.ncols == expected_sites is unnecessary because it
+        # duplicates an existing test - test_ncols
         for test in test_sample_list:
             assert isinstance(test, object)
-            assert test.nsites ==  expected_sites
+            assert test.ncols ==  expected_sites
             assert test.nsamples ==  expected_samples
             assert test.nmarkers ==  expected_markers
             assert test.sample_sequences == expected_sequence
@@ -227,7 +227,7 @@ class TestAlignmentGetters:
             for test in tests:
                 assert isinstance(test, object)
                 assert test.sequences == ['CCCCCCCCCCCCCCCCCCCCCCCCCC']
-                assert test.nsites == 26
+                assert test.ncols == 26
                 #assert test.nsamples == 1  # attribute error
             
             # What is VI, IVI, IVT??
@@ -323,20 +323,20 @@ class TestAlignmentGetters:
         sequences from the alignment sequences"""
         
         self.aln_file.remove_sites([2])
-        assert self.aln_file.nsites == (25)  # TODO: Text shown when assertion fails
+        assert self.aln_file.ncols == (25)  # TODO: Text shown when assertion fails
 
     def test_retain_sites(self):
         """tests if aln.obj.retain_sites all sequences
         apart from specified sequences in alignment sequences"""
         self.aln_file.retain_sites([0,1,2])
-        assert self.aln_file.nsites == 3  # TODO: Text shown when assertion fails
+        assert self.aln_file.ncols == 3  # TODO: Text shown when assertion fails
         #TODO- should assert to that the positions are not ATG once 
         # get samples sequences is fixes
 
     def test_from_fasta(cls):
         """Create an Alignment object from a FASTA-formatted file."""
         aln_obj = Alignment.from_fasta('test_alignment_b.txt', 'test_align', 'marker')
-        assert aln_obj.nsites == 26  # TODO: Text shown when assertion fails
+        assert aln_obj.ncols == 26  # TODO: Text shown when assertion fails
         assert aln_obj.nsamples == 3  # TODO: Text shown when assertion fails
         assert aln_obj.nmarkers == 1  # TODO: Text shown when assertion fails
 
