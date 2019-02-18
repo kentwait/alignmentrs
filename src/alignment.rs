@@ -32,7 +32,7 @@ impl BaseAlignment {
     /// Creates a new BaseAlignment object from a list of ids, descriptions,
     /// and sequences.
     fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>,
-               sequences: Vec<&str>) -> PyResult<()> {
+    sequences: Vec<&str>) -> PyResult<()> {
         if (ids.len() != descriptions.len()) ||
            (ids.len() != sequences.len()) {
             return Err(exceptions::ValueError::py_err(
@@ -207,7 +207,8 @@ impl BaseAlignment {
     /// 
     /// Returns the subset of rows and columns in the alignment as a new
     /// BaseAlignment.
-    fn subset(&self, ids: Vec<i32>, sites: Vec<i32>) -> PyResult<BaseAlignment> {
+    fn subset(&self, ids: Vec<i32>, sites: Vec<i32>)
+    -> PyResult<BaseAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -257,19 +258,17 @@ impl BaseAlignment {
     fn replace_id(&mut self, i: i32, value: &str) -> PyResult<()> {
         let ids: Vec<i32> = vec![i];
         let values: Vec<&str> = vec![value];
-        match self.replace_ids(ids, values) {
-            Err(x) => Err(x),
-            _ => Ok(()),
-        }
+        self.replace_ids(ids, values)
     }
 
     /// replace_ids(row_indices, values)
     /// --
     /// 
-    /// Set the names/identifiers of many entries simultaneously.
-    /// Each name/identifier will be set to an entry based on the
+    /// Replace the names/identifiers of many entries simultaneously.
+    /// Each name/identifier will replace an existing identifier based on the
     /// corresponding list of row indices.
-    fn replace_ids(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
+    fn replace_ids(&mut self, ids: Vec<i32>, values: Vec<&str>)
+    -> PyResult<()> {
         if ids.len() != values.len() {
             return Err(exceptions::ValueError::py_err(
                 "index and id lists must have the same length"))
@@ -291,22 +290,21 @@ impl BaseAlignment {
     /// 
     /// Replaces the description of an existing entry in the
     /// multiple sequence alignment.
-    fn replace_description(&mut self, i: i32, description: &str) -> PyResult<()> {
+    fn replace_description(&mut self, i: i32, description: &str)
+    -> PyResult<()> {
         let ids: Vec<i32> = vec![i];
         let values: Vec<&str> = vec![description];
-        match self.replace_descriptions(ids, values) {
-            Err(x) => Err(x),
-            _ => Ok(()),
-        }
+        self.replace_descriptions(ids, values)
     }    
 
     /// replace_descriptions(indices, values)
     /// --
     /// 
-    /// Set the description of many entries simultaneously.
-    /// Each description will be set to an entry based on the
+    /// Replace the descriptions of many entries simultaneously.
+    /// Each description will replace an existing description based on the
     /// corresponding list of row indices.
-    fn replace_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
+    fn replace_descriptions(&mut self, ids: Vec<i32>, values: Vec<&str>) 
+    -> PyResult<()> {
         if ids.len() != values.len() {
             return Err(exceptions::ValueError::py_err(
                 "index and description lists must have the same length"))
@@ -328,19 +326,20 @@ impl BaseAlignment {
     /// replace_sequence(index, value)
     /// --
     ///
-    /// Replaces the sequence of an existing sample
+    /// Replaces the sequence of an existing entry in the multiple
+    /// sequence alignment.
     fn replace_sequence(&mut self, i: i32, seqeunce: &str) -> PyResult<()> {
         let ids: Vec<i32> = vec![i];
         let values: Vec<&str> = vec![seqeunce];
-        match self.replace_sequences(ids, values) {
-            Err(x) => Err(x),
-            _ => Ok(()),
-        }
+        self.replace_sequences(ids, values)
     }
 
     /// replace_sequences(indices, values)
+    /// --
     /// 
-    /// Replaces many sample sequences simulateneously using a list of indices.
+    /// Replaces many sequences simulateneously.
+    /// Each sequence will replace an existing sequence based on the
+    /// corresponding list of row indices.
     fn replace_sequences(&mut self, ids: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         if ids.len() != values.len() {
             return Err(exceptions::ValueError::py_err(
@@ -348,35 +347,6 @@ impl BaseAlignment {
         }
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
-            if self._nrows() <= i {
-                return Err(exceptions::IndexError::py_err("sample index out of range"))
-            }
-            if values[c].chars().count() != self.sequences[i].chars().count() {
-                return Err(exceptions::ValueError::py_err("sequence length is not the same"))
-            }
-            self.sequences[i] = values[c].to_string();
-        }
-        Ok(())
-    }
-
-    /// replace_sequences_by_name(names, values)
-    /// 
-    /// Replaces many sample sequences simulateneously using a list of corresponding
-    /// sample IDs.
-    fn replace_sequences_by_name(&mut self, names: Vec<&str>, values: Vec<&str>) -> PyResult<()> {
-        if self._nrows() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
-        }
-        let ids = match self.row_names_to_ids(names) {
-            Ok(x) => x,
-            Err(x) => return Err(x)
-        };
-        if ids.len() != values.len() {
-            return Err(exceptions::ValueError::py_err(
-                format!("number of matched rows is not equal to the length \
-                         of the given sequence list: {} != {}", ids.len(), values.len())))
         }
         for (c, i) in ids.into_iter().map(|x| x as usize).enumerate() {
             if self._nrows() <= i {
@@ -879,11 +849,6 @@ impl BaseAlignment {
     #[getter]
     fn nrows(&self) -> PyResult<i32> {
         Ok(self._nrows() as i32)
-    }
-
-    #[getter]
-    fn ncols(&self) -> PyResult<i32> {
-        Ok(self._ncols() as i32)
     }
 
     #[getter]
