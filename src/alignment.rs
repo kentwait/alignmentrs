@@ -52,9 +52,11 @@ impl BaseAlignment {
     fn get_row(&self, i: usize) -> PyResult<Record> {
         // TODO: Change this to Record to generalize Sample and Marker records
         if self._nrows() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+            return Err(exceptions::ValueError::py_err(
+                "alignment has no sequences"))
         } else if self._nrows() <= i {
-            return Err(exceptions::IndexError::py_err("sample index out of range"))
+            return Err(exceptions::IndexError::py_err(
+                "row index out of range"))
         }
         Ok(Record {
             id: self.ids[i].to_string(),
@@ -68,26 +70,24 @@ impl BaseAlignment {
     /// 
     /// Returns a new BaseAlignment object containing the sequences
     /// specified by a list of indices.
-    fn get_rows(&self, ids: Vec<i32>) -> PyResult<BaseAlignment> {
+    fn get_rows(&self, ids: Vec<i32>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+            return Err(exceptions::ValueError::py_err(
+                "alignment has no sequences"))
         }
-        let mut new_ids: Vec<String> = Vec::new();
-        let mut new_descriptions: Vec<String> = Vec::new();
-        let mut new_sequences: Vec<String> = Vec::new();
+        let mut records: Vec<Record> = Vec::new();
         for i in ids.iter().map(|x| *x as usize) {
             if self._nrows() <= i {
-                return Err(exceptions::IndexError::py_err("sample index out of range"))
+                return Err(exceptions::IndexError::py_err(
+                    "row index out of range"))
             } 
-            new_ids.push(self.ids[i].to_string());
-            new_descriptions.push(self.descriptions[i].to_string());
-            new_sequences.push(self.sequences[i].to_string());
+            records.push(Record{ 
+                id: self.ids[i].to_string(),
+                description: self.descriptions[i].to_string(),
+                sequence: self.sequences[i].to_string(),
+            })
         }
-        Ok(BaseAlignment {
-            ids: new_ids,
-            descriptions: new_descriptions,
-            sequences: new_sequences,
-        })
+        Ok(records)
     }
 
     /// get_rows_by_name(names, /)
@@ -95,9 +95,10 @@ impl BaseAlignment {
     /// 
     /// Returns a new BaseAlignment object containing the sequences
     /// specified using a list of names/ids.
-    fn get_rows_by_name(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+    fn get_rows_by_name(&self, names: Vec<&str>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+            return Err(exceptions::ValueError::py_err(
+                "alignment has no sequences"))
         }
         let ids = match self.row_names_to_ids(names) {
             Ok(x) => x,
@@ -114,9 +115,10 @@ impl BaseAlignment {
     /// 
     /// Returns a new BaseAlignment object containing the sequences
     /// that match the given list of prefixes.
-    fn get_rows_by_prefix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+    fn get_rows_by_prefix(&self, names: Vec<&str>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+            return Err(exceptions::ValueError::py_err(
+                "alignment has no sequences"))
         }
         let ids = match self.row_prefix_to_ids(names) {
             Ok(x) => x,
@@ -133,9 +135,10 @@ impl BaseAlignment {
     /// 
     /// Returns a new BaseAlignment object containing the sequences
     /// that match the given list of suffixes.
-    fn get_rows_by_suffix(&self, names: Vec<&str>) -> PyResult<BaseAlignment> {
+    fn get_rows_by_suffix(&self, names: Vec<&str>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+            return Err(exceptions::ValueError::py_err(
+                "alignment has no sequences"))
         }
         let ids = match self.row_suffix_to_ids(names) {
             Ok(x) => x,
@@ -153,10 +156,12 @@ impl BaseAlignment {
     /// Returns the specified alignment column as a new Record object.
     fn get_col(&self, i: usize) -> PyResult<Record> {
         if self._nrows() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+            return Err(exceptions::ValueError::py_err(
+                "alignment has no sequences"))
         }
         if i >= self.sequences[0].chars().count() {
-            return Err(exceptions::IndexError::py_err("site index out of range"))
+            return Err(exceptions::IndexError::py_err(
+                "column index out of range"))
         }
         let mut site_sequence: Vec<String> = Vec::new();
         for s in self.sequences.iter() {
@@ -175,27 +180,29 @@ impl BaseAlignment {
     /// 
     /// Returns a new BaseAlignment object containing the specific
     /// alignment columns based on a list of indices. 
-    fn get_cols(&self, sites: Vec<i32>) -> PyResult<BaseAlignment> {
+    fn get_cols(&self, cols: Vec<i32>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
-            return Err(exceptions::ValueError::py_err("alignment has no sequences"))
+            return Err(exceptions::ValueError::py_err(
+                "alignment has no sequences"))
         }
-        let mut new_sequences: Vec<String> = Vec::new();
-        for seq in self.sequences.iter() {
-            let mut new_sequence: Vec<String> = Vec::new();
-            for i in sites.iter().map(|x| *x as usize) {
-                if i >= seq.chars().count() {
-                    return Err(exceptions::ValueError::py_err("site index out of range"))
-                }
-                let seq: Vec<char> = seq.chars().collect();
-                new_sequence.push(seq[i].to_string());
+        let length = self._ncols();
+        let mut records: Vec<Record> = Vec::new();
+        for col in cols.into_iter().map(|x| x as usize) {
+            if col >= length {
+                return Err(exceptions::ValueError::py_err(
+                    "column index out of range"))
             }
-            new_sequences.push(new_sequence.join(""))
+            let sequence: String = self.sequences.iter().map(|x| {
+                let char_vec: Vec<char> = x.chars().collect();
+                char_vec[col]
+            }).collect();
+            records.push(Record{
+                id: format!("{}", col),
+                description: String::new(),
+                sequence,
+            });
         }
-        Ok(BaseAlignment {
-            ids: self.ids.to_vec(),
-            descriptions:  self.ids.to_vec(),
-            sequences: new_sequences,
-        })
+        Ok(records)
     }
 
     /// subset(row_indices, column_indices, /)
