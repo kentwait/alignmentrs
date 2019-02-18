@@ -428,9 +428,10 @@ impl BaseAlignment {
     // contents of BaseAlignment
 
     /// remove_rows(indices)
+    /// --
     /// 
-    /// Removes samples at the given index positions inplace.
-    /// Index positions are specified by a list of integer ids.
+    /// Removes many entries simulatenously based on a
+    /// list of row indices.
     fn remove_rows(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -449,8 +450,10 @@ impl BaseAlignment {
     }
 
     /// remove_sites(indices)
+    /// --
     /// 
-    /// Removes sites at the specified column positions inplace.
+    /// Removes many alignment columns simulatenously based on a
+    /// list of column indices.
     fn remove_sites(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
@@ -640,9 +643,6 @@ impl BaseAlignment {
             Ok(x) => Ok(x)
         }
     }
-
-    // TODO: Insert and append sites
-    // TODO: Insert/append ONE sample using Record object
 
     /// insert_row(position, id, description, sequence)
     /// --
