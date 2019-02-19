@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import os
 
 from libalignmentrs.readers import fasta_file_to_basealignments
@@ -44,6 +45,8 @@ class FastaSerde:
         # Ignore otherwise
         if comment_parser is not None and callable(comment_parser):
             metadata = comment_parser(comment_list)
+        else:
+            metadata = OrderedDict()
 
         # Name the alignment object
         if name is not None:
@@ -57,6 +60,8 @@ class FastaSerde:
         if 'linspace' in metadata.keys() and \
             isinstance(metadata['linspace'], BlockSpace):
             linspace = metadata['linspace']
+        else:
+            linspace = None
 
         # Removes name and linspace from metadata if present
         if metadata:
