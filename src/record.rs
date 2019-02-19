@@ -56,7 +56,24 @@ impl PyObjectProtocol for Record {
             },
             _ => self.description.clone()
         };
-        Ok(format!("Record(id=\"{id}\", len={seq_len}, description=\"{desc}\")", id=self.id, seq_len=self.sequence.len(), desc=desc))
+        let seq: String = match self.sequence.chars().count() {
+            x if x >= 15 => {
+                let mut seq = String::new();
+                for (i, c) in self.sequence.char_indices() {
+                    if i < 6 || i >= x-6 {
+                        seq.push(c);
+                    } else if i >= 6 && i < 9 {
+                        seq.push('.');
+                    }
+                }
+                seq
+            },
+            _ => self.sequence.clone()
+        };
+        Ok(format!("Record(id=\"{id}\", sequence=\"{seq}\", len={seq_len}, \
+                   description=\"{desc}\")", 
+                   id=self.id, seq=seq,
+                   seq_len=self.sequence.len(), desc=desc))
     }
 
     fn __str__(&self) -> PyResult<String> {
