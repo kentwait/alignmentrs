@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from libalignmentrs.record import Record
 
 # Shared functions
@@ -278,3 +280,88 @@ def iter_aln_records(baln):
                     baln.sequences):
         yield Record(*vals)
 
+
+
+def subset(aln, cols, **kwargs):
+        """Returns a subset of a given alignment based on the
+        specified set of samples, markers and sites.
+
+        Parameters
+        ----------
+        aln : Alignment
+        cols : int, list of int, or None
+            An int/list specifying the sites to be included.
+            If None, all sites will be included in the subset.
+        **kwargs
+            An int/str/list specifying the samples to be included.
+            If None, all samples will be included in the subset.
+
+        Raises
+        ------
+        TypeError
+            Given parameter has the wrong parameter type.
+        ValueError
+            marker_ids is specified by aln.markers is empty.
+
+        Returns
+        -------
+        Alignment
+            New alignment object containing the subset of sample and
+            markers rows, and site columns.
+            This subset is a deep copy of the original alignment and
+            will not be affect by changes made in the original.
+
+        """
+        # Checks the value of sample_ids and converts if necessary.
+        new_alns = []
+        ro = 0
+        # Check if keywords in kwargs are all members
+        for key in kwargs.keys():
+            if key not in aln.__class__.members:
+                raise TypeError(
+                    'Member not found: {} is an invalid keyword.'.format(key))
+
+        # Checks the value of cols and converts if necessary.
+        if cols is None:
+            cols = list(range(0, aln.ncols))
+        elif isinstance(cols, int):
+            cols = [cols]
+        elif (isinstance(cols, list) and
+              sum((isinstance(j, int) for j in cols))):
+            pass
+        else:
+            raise TypeError('cols must be an int, or list of int.')
+
+        for member in aln.__class__.members:
+            if member in kwargs.keys():
+                rows = kwargs[member]
+                # Checks the value of rows and converts if necessary.
+                if rows is None:
+                    rows = list(range(0, self.nrows))
+                elif isinstance(rows, int):
+                    rows = [rows]
+                elif isinstance(rows, str):
+                    rows = aln.__getattribute__(member).row_names_to_ids([rows])
+                elif (isinstance(rows, list) and
+                    sum((isinstance(j, int) for j in rows))):
+                    pass
+                elif (isinstance(rows, list) and
+                    sum((isinstance(j, str) for j in rows))):
+                    rows = aln.__getattribute__(member).row_names_to_ids(rows)
+                else:
+                    raise TypeError('rows must be an int, str, list of int, '
+                                    'or list of str.')
+                rows = [row-ro for row in rows if row-ro > 0]
+                if rows:
+                    new_aln = aln.__getattribute__(member).subset(rows, cols)
+                else:
+                    new_aln = None
+            else:
+                new_aln = aln.__getattribute__(member).copy()
+            new_alns.append(new_aln)
+            ro += aln.__getattribute__(member).nrows
+        
+        return aln.__class__(
+            aln.name, *new_aln,
+            linspace=aln.__getattribute__('_linspace').extract(cols),
+            metadata=deepcopy(aln.metadata))

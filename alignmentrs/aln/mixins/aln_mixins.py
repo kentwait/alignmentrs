@@ -3,6 +3,7 @@ import itertools
 
 from libalignmentrs.record import Record
 from libalignmentrs.position import BlockSpace
+from .functions import subset
 
 
 __all__ = ['PropsMixin', 'AlnMixin']
@@ -177,100 +178,6 @@ class AlnMixin:
         stop = stop if stop is not None else start + self.samples.ncols
         state = state if state is not None else 1
         self._linspace: BlockSpace = BlockSpace(start, stop, state)
-
-    @classmethod
-    def subset(cls, aln, rows, cols):
-        """Returns a subset of a given alignment based on the
-        specified set of samples, markers and sites.
-
-        Parameters
-        ----------
-        aln : Alignment
-        sample_ids : int, list of int, or None
-            An int/str/list specifying the samples to be included.
-            If None, all samples will be included in the subset.
-        marker_ids : int, list of int, or None
-            An int/str/list specifying the markers to be included.
-            Row indices for markers in the alignment.
-            If None, all markers will be included in the subset.
-        sites : int, list of int, or None
-            An int/list specifying the sites to be included.
-            If None, all sites will be included in the subset.
-
-        Raises
-        ------
-        TypeError
-            Given parameter has the wrong parameter type.
-        ValueError
-            marker_ids is specified by aln.markers is empty.
-
-        Returns
-        -------
-        Alignment
-            New alignment object containing the subset of sample and
-            markers rows, and site columns.
-            This subset is a deep copy of the original alignment and
-            will not be affect by changes made in the original.
-
-        """
-        # Checks the value of sample_ids and converts if necessary.
-        new_alns = []
-        ro = 0
-        for member in aln.__class__.members:
-            if not (isinstance(rows, list) and
-                    sum((isinstance(j, int) for j in rows))):
-                raise TypeError('rows must be a list of int.')
-            if not (isinstance(cols, list) and
-                    sum((isinstance(j, int) for j in cols))):
-                raise TypeError('cols must be a list of int.')
-            rows = [row-ro for row in rows if row-ro > 0]
-            if rows:
-                new_aln = aln.__getattribute__(member).subset(rows, cols)
-            else:
-                new_aln = None
-            new_alns.append(new_aln)
-            ro += aln.__getattribute__(member).nrows
-                       
-        return cls(
-            aln.name, *new_aln,
-            linspace=aln.__getattribute__('_linspace').extract(cols),
-            metadata=deepcopy(aln.metadata))
-
-    def get_subset(self, rows, cols):
-        """Returns a subset of the alignment based on the given set of
-        samples, markers and sites.
-
-        Parameters
-        ----------
-        sample_ids : int, list of int, or None
-            An int/str/list specifying the samples to be included.
-            If None, all samples will be included in the subset.
-        marker_ids : int, list of int, or None
-            int, str or list specifying the markers to be included.
-            Row indices for markers in the alignment.
-            If None, all markers will be included in the subset.
-        sites : int, list of int, or None
-            int, or list specifying the sites to be included.
-            If None, all sites will be included in the subset.
-
-        Raises
-        ------
-        TypeError
-            Given parameter has the wrong parameter type.
-        ValueError
-            marker_ids is specified but the alignment has no
-            marker sequences.
-
-        Returns
-        -------
-        Alignment
-            New alignment object containing the subset of sample and
-            markers rows, and site columns.
-            This subset is a deep copy of the original alignment and
-            will not be affect by changes made in the original.
-
-        """
-        return self.subset(self, rows, cols)
 
 
     # Deleters
