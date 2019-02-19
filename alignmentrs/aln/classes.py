@@ -132,7 +132,7 @@ class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
     def __getitem__(self, key):
         if isinstance(key, str):
             for member in self.__class__.members:
-                if key in self.__getattribute__(member).ids():
+                if key in self.__getattribute__(member).ids:
                     i = self.__getattribute__(member).row_names_to_ids([key])
                     assert len(i) == 1, \
                         '{} matched multiple rows in the alignment.'.format(key)
@@ -145,7 +145,7 @@ class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
     def __delitem__(self, key):
         if isinstance(key, str):
             for member in self.__class__.members:
-                if key in self.__getattribute__(member).ids():
+                if key in self.__getattribute__(member).ids:
                     i = self.samples.row_names_to_ids([key])
                     assert len(i) == 1, \
                         '{} matched multiple rows in the alignment.'.format(key)
