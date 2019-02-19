@@ -3,6 +3,9 @@ from .functions import *
 
 __all__ = ['MarkerPropsMixin', 'MarkerAlnMixin']
 
+
+# TODO: Abstract this using the name of member at self.__class__.members
+# ie. n{member_name}, {member_name}_ids
 class MarkerPropsMixin:
     @property
     def nmarkers(self):
