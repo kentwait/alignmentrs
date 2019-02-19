@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 from libalignmentrs.record import Record
+from libalignmentrs.alignment import BaseAlignment
 
 # Shared functions
 
@@ -311,10 +312,7 @@ def subset(aln, cols, **kwargs):
             This subset is a deep copy of the original alignment and
             will not be affect by changes made in the original.
 
-        """
-        # Checks the value of sample_ids and converts if necessary.
-        new_alns = []
-        ro = 0
+        """        
         # Check if keywords in kwargs are all members
         for key in kwargs.keys():
             if key not in aln.__class__.members:
@@ -332,12 +330,14 @@ def subset(aln, cols, **kwargs):
         else:
             raise TypeError('cols must be an int, or list of int.')
 
+        new_alns = []
+        ro = 0
         for member in aln.__class__.members:
             if member in kwargs.keys():
                 rows = kwargs[member]
                 # Checks the value of rows and converts if necessary.
                 if rows is None:
-                    rows = list(range(0, self.nrows))
+                    rows = list(range(0, aln.nrows))
                 elif isinstance(rows, int):
                     rows = [rows]
                 elif isinstance(rows, str):
@@ -351,17 +351,19 @@ def subset(aln, cols, **kwargs):
                 else:
                     raise TypeError('rows must be an int, str, list of int, '
                                     'or list of str.')
-                rows = [row-ro for row in rows if row-ro > 0]
+                rows = [row-ro for row in rows if row-ro >= 0]
                 if rows:
                     new_aln = aln.__getattribute__(member).subset(rows, cols)
                 else:
-                    new_aln = None
+                    new_aln = BaseAlignment([], [], [])
             else:
-                new_aln = aln.__getattribute__(member).copy()
+                rows = list(range(0, aln.nrows))
+                new_aln = aln.__getattribute__(member).subset(rows, cols)
             new_alns.append(new_aln)
             ro += aln.__getattribute__(member).nrows
         
+        print(new_alns)
         return aln.__class__(
-            aln.name, *new_aln,
+            aln.name, *new_alns,
             linspace=aln.__getattribute__('_linspace').extract(cols),
             metadata=deepcopy(aln.metadata))

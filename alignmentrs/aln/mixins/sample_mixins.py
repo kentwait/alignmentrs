@@ -7,8 +7,6 @@ class SamplePropsMixin:
     @property
     def nsamples(self):
         """int: Returns the number of samples in the alignment."""
-        if not self.markers:
-            return []
         if not self.samples:
             return 0
         return self.samples.nrows
@@ -421,7 +419,7 @@ class SampleAlnMixin:
         for v in iter_aln_records(self.samples):
             yield v
 
-    def get_subset(self, rows, cols):
+    def get_subset(self, rows=None, cols=None):
         """Returns a subset of the alignment based on the given set of
         samples, markers and sites.
 
@@ -451,4 +449,6 @@ class SampleAlnMixin:
             will not be affect by changes made in the original.
 
         """
+        if rows is None:
+            return subset(self, cols)
         return subset(self, cols, samples=rows)
