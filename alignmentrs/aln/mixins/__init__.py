@@ -1,7 +1,7 @@
-from .aln_mixins import PropsMixin, AlnMixin
-from .sample_mixins import SamplePropsMixin, SampleAlnMixin
-from .marker_mixins import MarkerPropsMixin, MarkerAlnMixin
-from .serde_mixins import FastaSerde
+from .aln import PropsMixin, AlnMixin
+from .sample import SamplePropsMixin, SampleAlnMixin
+from .marker import MarkerPropsMixin, MarkerAlnMixin
+from .serde import FastaSerde
 
 __all__ = [
     'PropsMixin', 'AlnMixin',
