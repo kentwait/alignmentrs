@@ -4,6 +4,7 @@ use pyo3::exceptions;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use regex::Regex;
+use std::collections::HashMap;
 
 use crate::record::Record;
 use crate::alignment::BaseAlignment;
@@ -82,8 +83,10 @@ fn fasta_file_to_records(path: &str)
 /// Reads FASTA file and create a BaseAlignment object.
 fn fasta_file_to_basealignment(path: &str)
 -> PyResult<(BaseAlignment, Vec<String>)> {  // TODO: Add comments to BaseAlignment structure
-    match fasta_file_to_basealignments(path, "") {
-        Ok((aln, _, comments)) => Ok((aln, comments)),
+    match fasta_file_to_basealignments(path, Vec::new()) {
+        Ok((alns, comments)) => {
+            Ok((alns[0].clone(), comments))
+        },
         Err(x) => Err(x)
     }
 }
@@ -93,8 +96,8 @@ fn fasta_file_to_basealignment(path: &str)
 /// --
 /// 
 /// Reads FASTA file and creates marker and sequence BaseAlignments.
-fn fasta_file_to_basealignments(path: &str, marker_kw: &str) -> 
-        PyResult<(BaseAlignment, BaseAlignment, Vec<String>)> {
+fn fasta_file_to_basealignments(path: &str, keywords: Vec<&str>) -> 
+        PyResult<(Vec<BaseAlignment>, Vec<String>)> {
     // Open the path in read-only mode, returns `io::Result<File>`
     let f = match File::open(path) {
         Err(x) => return Err(exceptions::IOError::py_err(
@@ -109,9 +112,13 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
     let mut s_descriptions: Vec<String> = Vec::new();
     let mut s_sequences: Vec<String> = Vec::new();
 
-    let mut m_ids: Vec<String> = Vec::new();
-    let mut m_descriptions: Vec<String> = Vec::new();
-    let mut m_sequences: Vec<String> = Vec::new();
+    let mut mapping: HashMap<&str, (Vec<String>, Vec<String>, Vec<String>)> = 
+        HashMap::new();
+
+    // Init maps
+    for k in keywords.iter() {
+        mapping.insert(k, (Vec::new(), Vec::new(), Vec::new()));
+    }
 
     let mut comments: Vec<String> = Vec::new();
 
@@ -131,10 +138,27 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
         // Handle identifier line \>
         if line.starts_with(">") {
             if sequence.len() > 0 {
-                if marker_kw != "" && id.contains(marker_kw) {
-                    m_ids.push(id.clone());
-                    m_descriptions.push(description.clone());
-                    m_sequences.push(sequence.clone());
+                let mut found = false;
+                let mut found_kw: &str = "";
+                if keywords.len() > 0 {
+                    for kw in keywords.iter() {
+                        if id.contains(kw) {
+                            found = true;
+                            found_kw = kw;
+                            break;
+                        }
+                    }
+                }
+                if found == true {
+                    match mapping.get_mut(found_kw) {
+                        Some((ids, descs, seqs)) => {
+                            ids.push(id.clone());
+                            descs.push(description.clone());
+                            seqs.push(sequence.clone());
+                        },
+                        _ => return Err(exceptions::KeyError::py_err(
+                            format!("unexpected keyword error while reading fasta")))
+                    };
                 } else {
                     s_ids.push(id.clone());
                     s_descriptions.push(description.clone());
@@ -159,28 +183,54 @@ fn fasta_file_to_basealignments(path: &str, marker_kw: &str) ->
     }
     // Append last sequence line
     if sequence.len() > 0 {
-        if marker_kw != "" && id.contains(marker_kw) {
-            m_ids.push(id);
-            m_descriptions.push(description);
-            m_sequences.push(sequence.clone());
+        let mut found = false;
+        let mut found_kw: &str = "";
+        if keywords.len() > 0 {
+            for kw in keywords.iter() {
+                if id.contains(kw) {
+                    found = true;
+                    found_kw = kw;
+                    break;
+                }
+            }
+        }
+        if found == true {
+            match mapping.get_mut(found_kw) {
+                Some((ids, descs, seqs)) => {
+                    ids.push(id.clone());
+                    descs.push(description.clone());
+                    seqs.push(sequence.clone());
+                },
+                _ => return Err(exceptions::KeyError::py_err(
+                    format!("unexpected keyword error while reading fasta")))
+            };
         } else {
-            s_ids.push(id);
-            s_descriptions.push(description);
+            s_ids.push(id.clone());
+            s_descriptions.push(description.clone());
             s_sequences.push(sequence.clone());
         }
         sequence.clear();
     }
-    let sample_aln = BaseAlignment {
-        ids: s_ids,
-        descriptions: s_descriptions,
-        sequences: s_sequences,
-    };
-    let marker_aln = BaseAlignment {
-        ids: m_ids,
-        descriptions: m_descriptions,
-        sequences: m_sequences,
-    };
-    Ok((sample_aln, marker_aln, comments))
+    let mut balns: Vec<BaseAlignment> = vec![
+        BaseAlignment {
+            ids: s_ids,
+            descriptions: s_descriptions,
+            sequences: s_sequences,
+        }
+    ];
+    for kw in keywords.iter() {
+        let baln = match mapping.get(kw) {
+            Some((ids, descs, seqs)) => BaseAlignment {
+                ids: ids.to_vec(),
+                descriptions: descs.to_vec(),
+                sequences: seqs.to_vec(),
+            },
+            _ => return Err(exceptions::KeyError::py_err(
+                format!("unexpected keyword error while writing BaseAlignment")))
+        };
+        balns.push(baln);
+    }
+    Ok((balns, comments))
 }
 
 // TODO: Make readers for other file types: PHYLIP, NEXUS
