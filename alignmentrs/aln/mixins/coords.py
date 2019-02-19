@@ -1,9 +1,10 @@
 import re
 from libalignmentrs.position import Block, BlockSpace
+from libalignmentrs.position import simple_block_str_to_linspace
 
 
 class CoordsMixin:
-    _description_re = re.compile(r'\s*coords\=\{.+\}\s*')
+    _description_re = re.compile(r'\s*coords\=\{(.+)\}\s*')
 
     @property
     def coordinates(self):
@@ -32,6 +33,42 @@ class CoordsMixin:
         state = state if state is not None else 1
         self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
+    def reset_coords_from_description(self, description_decoder: callable=None,
+                                      read_from: int=None):
+        if description_decoder is None:
+            description_decoder = self._default_description_decoder
+        if read_from is not None:
+            if isinstance(read_from, int):
+                if read_from >= self.nrows:
+                    raise IndexError('read_from value is invalid.')
+                read_from_ids = [read_from]
+            else:
+                raise ValueError('read_from must be an int.')
+        else:
+            read_from_ids = range(self.nrows)
+        
+        linspace = None
+        for i in read_from_ids:
+            linspace = description_decoder(self.descriptions[i])
+            # Break once a linspace was sucessfully read
+            if linspace is not None:
+                break
+
+        if linspace is None:
+            raise ValueError(
+                'Coordinates could not be parsed from the description')
+        # Make a setter to check type and if length == ncols
+        self._linspace = linspace
+
+    @staticmethod
+    def _default_description_decoder(description):
+        match = CoordsMixin._description_re.search(description)
+        try:
+            linspace = simple_block_str_to_linspace(match.group(1))
+        except AttributeError:
+            linspace = None
+        return linspace
+
     def write_coords_to_description(self, description_encoder: callable=None,
                                     write_to: int=None):
         if description_encoder is None:
@@ -58,16 +95,23 @@ class CoordsMixin:
         else:
             regex = re.compile(coords_pattern)
 
-        new_descriptions = [regex.sub(' ', desc) for desc in self.descriptions]
+        new_descriptions = [regex.sub(' ', desc).strip()
+                            for desc in self.descriptions]
         self.replace_descriptions(
             list(range(len(self.descriptions))), new_descriptions)
 
     @staticmethod
     def _default_description_encoder(current_description: str, blocks: list):
-        current_description = \
-            CoordsMixin._description_re.sub(' ', current_description)
+        parts = []
         blocks_str = \
             'coords={' + \
             ';'.join(['{}:{}'.format(b.start, b.stop) for b in blocks]) + \
             '}'
-        return ' '.join([current_description, blocks_str])
+        parts.append(blocks_str)
+
+        if current_description:
+            current_description = \
+                CoordsMixin._description_re.sub(' ', current_description)
+            parts.append(current_description)
+            
+        return ' '.join(parts)
