@@ -152,6 +152,34 @@ class AlnMixin:
         return records
 
 
+    # Replacers
+    # ------------------------------
+    def replace_ids(self, rows, ids):
+        self._replace_values('ids', rows, ids)
+
+    def replace_descriptions(self, rows, descriptions):
+        self._replace_values('descriptions', rows, descriptions)
+
+    def replace_sequences(self, rows, sequences):
+        self._replace_values('sequences', rows, sequences)
+
+    def _replace_values(self, attr, rows, vals):
+        ro = 0
+        # Sort rows and vals together
+        rv = sorted((
+            (row if row >= 0 else (self.nrows+row), val)
+            for row, val in zip(rows, vals)), key=lambda x: x[0])
+        for member in self.__class__.members:
+            nrows = self.__getattribute__(member).nrows
+            rv_generator = (
+                (row-ro, val) for row, val in rv
+                if row-ro >= 0 and row-ro < nrows)
+            for row, val in rv_generator:
+                # exec('self.{}.{}[{}] = {}'.format(member, attr, row, val))
+                self.__getattribute__(member) \
+                    .__getattribute__('replace_{}'.format(attr))([row], [val])
+            ro += self.__getattribute__(member).nrows
+
     # Deleters
     # ------------------------------
     def remove_cols(self, cols, copy=False):
