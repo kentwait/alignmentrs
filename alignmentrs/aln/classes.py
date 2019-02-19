@@ -108,7 +108,44 @@ class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
             self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
 
-    # TODO: create a to_json_str method
+    @classmethod
+    def _from_basealignment(cls, name: str, sample_alignment: BaseAlignment,
+                            linspace: BlockSpace=None, metadata: dict=None,
+                            **kwargs):
+        obj = super(Alignment, cls).__new__(cls)
+        if not sample_alignment:
+            raise ValueError(
+                'Cannot create an Alignment using an empty '
+                'sample_alignment BaseAlignment.')
+        obj.name = name
+        obj.samples: BaseAlignment = sample_alignment
+
+        # Use given metadata
+        if metadata is not None:
+            if isinstance(metadata, dict):
+                obj.metadata: OrderedDict = OrderedDict(metadata)
+            else:
+                raise TypeError('metadata is not a dictionary.')
+        else:
+            obj.metadata: OrderedDict = OrderedDict()
+
+        # Use given linspace
+        if linspace is not None:
+            if isinstance(linspace, BlockSpace):
+                obj._linspace: BlockSpace = linspace
+            else:
+                raise TypeError('linspace is not a BlockSpace object.')
+        else:
+            start = kwargs['linspace_default_start'] \
+                    if 'linspace_default_start' in kwargs.keys() else 0
+            stop = kwargs['linspace_default_stop'] \
+                    if 'linspace_default_stop' in kwargs.keys() else \
+                    start + obj.samples.ncols
+            state = kwargs['linspace_default_state'] \
+                    if 'linspace_default_state' in kwargs.keys() else \
+                    "1"
+            obj._linspace: BlockSpace = BlockSpace(start, stop, state)
+        return obj
 
 
     # Special methods
@@ -124,7 +161,7 @@ class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
         """
         new_alns = (self.__getattribute__(member).copy()
                     for member in self.__class__.members)
-        return self.__class__(
+        return self.__class__._from_basealignment(
             self.name, *new_alns,
             metadata=deepcopy(self.metadata),
             linspace=self._linspace.copy())
@@ -212,56 +249,31 @@ class SampleAlignment(JsonSerde, FastaSerde, SampleAlnMixin, SamplePropsMixin, A
 class MarkerAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin, Alignment):
     members = ['markers']
 
-    def __init__(self, name, marker_alignment: BaseAlignment, 
-                 linspace: BlockSpace=None, metadata: dict=None,
-                 **kwargs):
-        """Creates a new MarkerAlignment object from a marker BaseAlignment.
-
-        Parameters
-        ----------
-        name : str
-            Name of the alignment.
-        marker_alignment : BaseAlignment
-            Alignment of marker sequences.
-        linspace : BlockSpace, optional
-            Linear space that assigns coordinate values to alignment
-            columns. (default is None, the constructor will create a new
-            linear space starting from 0).
-        metadata : dict, optional
-            Other information related to the alignment. (default is None,
-            which creates a blank dictionary)
-        **kwargs
-            Other keyword arguments used to initialize states in the
-            Alignment object.
-
-        Raises
-        ------
-        ValueError
-            Alignment is instantiated with an empty sample alignment, or
-            instantiated with sample and marker alingments of unequal number of
-            sites.
-
-        """
+    @classmethod
+    def _from_basealignment(cls, name, marker_alignment: BaseAlignment, 
+                            linspace: BlockSpace=None, metadata: dict=None,
+                            **kwargs):
+        obj = super(MarkerAlignment, cls).__new__(cls)
         if not marker_alignment:
             raise ValueError(
                 'Cannot create an Alignment using an empty '
                 'marker_alignment BaseAlignment.')
-        self.name = name
-        self.markers: BaseAlignment = marker_alignment
+        obj.name = name
+        obj.markers: BaseAlignment = marker_alignment
 
         # Use given metadata
         if metadata is not None:
             if isinstance(metadata, dict):
-                self.metadata: OrderedDict = OrderedDict(metadata)
+                obj.metadata: OrderedDict = OrderedDict(metadata)
             else:
                 raise TypeError('metadata is not a dictionary.')
         else:
-            self.metadata: OrderedDict = OrderedDict()
+            obj.metadata: OrderedDict = OrderedDict()
 
         # Use given linspace
         if linspace is not None:
             if isinstance(linspace, BlockSpace):
-                self._linspace: BlockSpace = linspace
+                obj._linspace: BlockSpace = linspace
             else:
                 raise TypeError('linspace is not a BlockSpace object.')
         else:
@@ -269,11 +281,12 @@ class MarkerAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin, A
                     if 'linspace_default_start' in kwargs.keys() else 0
             stop = kwargs['linspace_default_stop'] \
                     if 'linspace_default_stop' in kwargs.keys() else \
-                    start + self.samples.ncols
+                    start + obj.samples.ncols
             state = kwargs['linspace_default_state'] \
                     if 'linspace_default_state' in kwargs.keys() else \
                     "1"
-            self._linspace: BlockSpace = BlockSpace(start, stop, state)
+            obj._linspace: BlockSpace = BlockSpace(start, stop, state)
+        return obj
 
 
 class FullAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
@@ -305,61 +318,34 @@ class FullAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
     """
     members = ['samples', 'markers']
 
-    def __init__(self, name, 
-                 sample_alignment: BaseAlignment,
-                 marker_alignment: BaseAlignment, 
-                 linspace: BlockSpace=None, metadata: dict=None,
-                 **kwargs):
-        """Creates a new MarkerAlignment object from a marker BaseAlignment.
-
-        Parameters
-        ----------
-        name : str
-            Name of the alignment.
-        sample_alignment : BaseAlignment
-            Alignment of sample sequences.
-        marker_alignment : BaseAlignment
-            Alignment of marker sequences.
-        linspace : BlockSpace, optional
-            Linear space that assigns coordinate values to alignment
-            columns. (default is None, the constructor will create a new
-            linear space starting from 0).
-        metadata : dict, optional
-            Other information related to the alignment. (default is None,
-            which creates a blank dictionary)
-        **kwargs
-            Other keyword arguments used to initialize states in the
-            Alignment object.
-
-        Raises
-        ------
-        ValueError
-            Alignment is instantiated with an empty sample alignment, or
-            instantiated with sample and marker alingments of unequal number of
-            sites.
-
-        """
+    @classmethod
+    def _from_basealignment(cls, name, 
+                            sample_alignment: BaseAlignment,
+                            marker_alignment: BaseAlignment, 
+                            linspace: BlockSpace=None, metadata: dict=None,
+                            **kwargs):
+        obj = super(MarkerAlignment, cls).__new__(cls)        
         if not sample_alignment:
             raise ValueError(
                 'Cannot create a FullAlignment object using an empty '
                 'sample_alignment BaseAlignment.')
-        self.name = name
-        self.samples: BaseAlignment = sample_alignment
-        self.markers: BaseAlignment = marker_alignment
+        obj.name = name
+        obj.samples: BaseAlignment = sample_alignment
+        obj.markers: BaseAlignment = marker_alignment
 
         # Use given metadata
         if metadata is not None:
             if isinstance(metadata, dict):
-                self.metadata: OrderedDict = OrderedDict(metadata)
+                obj.metadata: OrderedDict = OrderedDict(metadata)
             else:
                 raise TypeError('metadata is not a dictionary.')
         else:
-            self.metadata: OrderedDict = OrderedDict()
+            obj.metadata: OrderedDict = OrderedDict()
 
         # Use given linspace
         if linspace is not None:
             if isinstance(linspace, BlockSpace):
-                self._linspace: BlockSpace = linspace
+                obj._linspace: BlockSpace = linspace
             else:
                 raise TypeError('linspace is not a BlockSpace object.')
         else:
@@ -367,11 +353,12 @@ class FullAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
                     if 'linspace_default_start' in kwargs.keys() else 0
             stop = kwargs['linspace_default_stop'] \
                     if 'linspace_default_stop' in kwargs.keys() else \
-                    start + self.samples.ncols
+                    start + obj.samples.ncols
             state = kwargs['linspace_default_state'] \
                     if 'linspace_default_state' in kwargs.keys() else \
                     "1"
-            self._linspace: BlockSpace = BlockSpace(start, stop, state)
+            obj._linspace: BlockSpace = BlockSpace(start, stop, state)
+        return obj
 
     # Override from_fasta classmethod
     @classmethod
@@ -415,6 +402,8 @@ class FullAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
         """
         return subset(self, cols, samples=samples, markers=markers)
 
+
+# TODO: Refactor CatAlignmnet to use mixins
 class CatAlignment(Alignment):
     def __init__(self, name, sample_alignment, marker_alignment,
                  linspace=None, subspaces=None, metadata=None, **kwargs):
