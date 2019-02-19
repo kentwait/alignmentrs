@@ -18,7 +18,6 @@ from .mixins import FastaSerde
 __all__ = ['Alignment', 'CatAlignment']
 
 
-# TODO: Create an alignment with no marker  but with position information
 class Alignment(AlnMixin, PropsMixin, object):
     """Reperesents a multiple sequence alignment of samples.
 
@@ -265,8 +264,6 @@ class MarkerAlignment(FastaSerde, MarkerAlnMixin, MarkerPropsMixin, Alignment):
             self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
 
-
-# TODO: Use SimpleAlignment as base class and add refactor marker-related methods as s mixin
 class FullAlignment(FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
                     SampleAlnMixin, SamplePropsMixin, Alignment):
     """Represents a multiple sequence alignment.
@@ -373,6 +370,7 @@ class FullAlignment(FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
         return super().from_fasta(
             path, name,comment_parser=comment_parser, keywords=[marker_kw], 
             **kwargs)
+
 
 class CatAlignment(Alignment):
     def __init__(self, name, sample_alignment, marker_alignment,
