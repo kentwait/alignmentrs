@@ -2,7 +2,6 @@ from copy import deepcopy
 import itertools
 
 from libalignmentrs.record import Record
-from .functions import subset
 
 
 __all__ = ['PropsMixin', 'AlnMixin']

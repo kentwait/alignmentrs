@@ -14,6 +14,7 @@ from .mixins import SamplePropsMixin, SampleAlnMixin
 from .mixins import MarkerPropsMixin, MarkerAlnMixin
 from .mixins import FastaSerde, JsonSerde
 from .mixins import CoordsMixin
+from .mixins.functions import subset
 
 
 __all__ = ['Alignment', 'CatAlignment']
@@ -382,6 +383,37 @@ class FullAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
             path, name,comment_parser=comment_parser, keywords=[marker_kw], 
             **kwargs)
 
+    def get_subset(self, samples=None, markers=None, cols=None):
+        """Returns a subset of the alignment based on the given set of
+        samples, markers and sites.
+
+        Parameters
+        ----------
+        rows : int, list of int, or None
+            An int/str/list specifying the samples to be included.
+            If None, all samples will be included in the subset.
+        cols : int, list of int, or None
+            int, or list specifying the sites to be included.
+            If None, all sites will be included in the subset.
+
+        Raises
+        ------
+        TypeError
+            Given parameter has the wrong parameter type.
+        ValueError
+            marker_ids is specified but the alignment has no
+            marker sequences.
+
+        Returns
+        -------
+        Alignment
+            New alignment object containing the subset of sample and
+            markers rows, and site columns.
+            This subset is a deep copy of the original alignment and
+            will not be affect by changes made in the original.
+
+        """
+        return subset(self, cols, samples=samples, markers=markers)
 
 class CatAlignment(Alignment):
     def __init__(self, name, sample_alignment, marker_alignment,

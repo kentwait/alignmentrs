@@ -331,11 +331,9 @@ def subset(aln, cols, **kwargs):
             raise TypeError('cols must be an int, or list of int.')
 
         new_alns = []
-        ro = 0
         for member in aln.__class__.members:
             if member in kwargs.keys():
                 rows = kwargs[member]
-                nrows = aln.__getattribute__(member).nrows
                 # Checks the value of rows and converts if necessary.
                 if rows is None:
                     rows = list(range(0, aln.nrows))
@@ -352,18 +350,11 @@ def subset(aln, cols, **kwargs):
                 else:
                     raise TypeError('rows must be an int, str, list of int, '
                                     'or list of str.')
-                rows = (row if row > 0 else nrows+row for row in rows)
-                rows = [row-ro for row in rows
-                        if row-ro >= 0 and row-ro < nrows]
-                if rows:
-                    new_aln = aln.__getattribute__(member).subset(rows, cols)
-                else:
-                    new_aln = BaseAlignment([], [], [])
+                new_aln = aln.__getattribute__(member).subset(rows, cols)
             else:
-                rows = list(range(0, aln.nrows))
+                rows = list(range(aln.__getattribute__(member).nrows))
                 new_aln = aln.__getattribute__(member).subset(rows, cols)
             new_alns.append(new_aln)
-            ro += aln.__getattribute__(member).nrows
         
         print(new_alns)
         return aln.__class__(
