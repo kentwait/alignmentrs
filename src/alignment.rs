@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
+// use pyo3::class::gc::{PyGCProtocol, PyVisit, PyTraverseError};
 
 use crate::record::{Record, BaseRecord};
 
@@ -19,11 +20,35 @@ impl RecordAlignment {
     fn __new__(obj: &PyRawObject, records: Vec<&BaseRecord>) -> PyResult<()> {
         obj.init(|_| {
             RecordAlignment { 
-                records: records.into_iter().map(|x| *x).collect()
+                records: records.iter().map(|x| (*x).clone()).collect()
             }
         })
     }
+
+    #[getter]
+    fn records(&self) -> PyResult<Vec<BaseRecord>> {
+        Ok(self.records.clone())
+    }
 }
+
+// #[pyproto]
+// impl PyGCProtocol for RecordAlignment {
+//     fn __traverse__(&self, visit: PyVisit) -> Result<(), PyTraverseError> {
+//         if self.records.len() > 0 {
+//             for obj_ref in self.records.iter() {
+//                 visit.call(obj_ref)?
+//             }
+//         }
+//         Ok(())
+//     }
+
+//     fn __clear__(&mut self) {
+//         if let Some(obj) = self.obj.take() {
+//           // Release reference, this decrements ref counter.
+//           self.py().release(obj);
+//         }
+//     }
+// }
 
 
 #[pyclass(subclass)]
@@ -1083,6 +1108,7 @@ fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignmen
 #[pymodinit]
 fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<BaseAlignment>()?;
+    m.add_class::<RecordAlignment>()?;
     m.add_function(wrap_function!(concat_basealignments))?;
 
     Ok(())
