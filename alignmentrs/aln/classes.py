@@ -13,12 +13,13 @@ from .mixins import PropsMixin, AlnMixin
 from .mixins import SamplePropsMixin, SampleAlnMixin
 from .mixins import MarkerPropsMixin, MarkerAlnMixin
 from .mixins import FastaSerde
+from .mixins import CoordsMixin
 
 
 __all__ = ['Alignment', 'CatAlignment']
 
 
-class Alignment(AlnMixin, PropsMixin, object):
+class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
     """Reperesents a multiple sequence alignment of samples.
 
     The Alignment object encapsulates information generally
