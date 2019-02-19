@@ -335,6 +335,7 @@ def subset(aln, cols, **kwargs):
         for member in aln.__class__.members:
             if member in kwargs.keys():
                 rows = kwargs[member]
+                nrows = aln.__getattribute__(member).nrows
                 # Checks the value of rows and converts if necessary.
                 if rows is None:
                     rows = list(range(0, aln.nrows))
@@ -351,7 +352,9 @@ def subset(aln, cols, **kwargs):
                 else:
                     raise TypeError('rows must be an int, str, list of int, '
                                     'or list of str.')
-                rows = [row-ro for row in rows if row-ro >= 0]
+                rows = (row if row > 0 else nrows+row for row in rows)
+                rows = [row-ro for row in rows
+                        if row-ro >= 0 and row-ro < nrows]
                 if rows:
                     new_aln = aln.__getattribute__(member).subset(rows, cols)
                 else:

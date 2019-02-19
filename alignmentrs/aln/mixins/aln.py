@@ -76,8 +76,10 @@ class AlnMixin:
         # Offsets the int indices
         ro = 0
         for member in self.__class__.members:
+            nrows = self.__getattribute__(member).nrows
             if isinstance(rows, int):
-                rows = [row-ro for row in rows if row-ro > 0]
+                row = rows if rows > 0 else nrows+rows
+                rows = [row-ro]
                 records += self.__getattribute__(member).get_rows(rows)
             elif isinstance(rows, str):
                 if match_prefix:
@@ -91,7 +93,9 @@ class AlnMixin:
                         .get_rows_by_name([rows])
             elif isinstance(rows, list) and \
                 sum((isinstance(j, int) for j in rows)):
-                rows = [row-ro for row in rows if row-ro > 0]
+                rows = (row if row > 0 else nrows+row for row in rows)
+                rows = [row-ro for row in rows
+                        if row-ro >= 0 and row-ro < nrows]
                 records +=  self.__getattribute__(member).get_rows(rows)
             elif isinstance(rows, list) and \
                 sum((isinstance(j, str) for j in rows)):
@@ -106,7 +110,7 @@ class AlnMixin:
                         .get_rows_by_name(rows)
             else:
                 raise TypeError('rows must be an int, str, list of int, or list of str.')
-            ro += self.__getattribute__(member).nrows()
+            ro += self.__getattribute__(member).nrows
         return records
 
     def get_cols(self, cols):
@@ -132,13 +136,13 @@ class AlnMixin:
         for member in self.__class__.members:
             records = []
             if isinstance(cols, int):
-                records += self.__getattribute__(member).get_cols([cols])
+                cols = [cols]
             elif isinstance(cols, list) and \
                 sum((isinstance(j, int) for j in cols)):
-                cols = [row-ro for row in cols if row-ro > 0]
-                records +=  self.__getattribute__(member).get_cols(cols)
+                pass
             else:
                 raise TypeError('cols must be an int, or list of int.')
+            records += self.__getattribute__(member).get_cols(cols) 
             member_records.append(records)
         # Combine results
         records = []
