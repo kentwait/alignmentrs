@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use pyo3::PyObjectProtocol;
+use pyo3::{PyObjectProtocol, exceptions};
 
 
 #[pyclass(subclass)]
@@ -162,7 +162,7 @@ impl BaseRecord {
             i += 1;
             // Add chunk to list and reset temp variables and counter
             if i == self.chunk_size {
-                chunks.push(chunk);
+                chunks.push(chunk.to_string());
                 chunk.clear();
                 i = 0;
             }
