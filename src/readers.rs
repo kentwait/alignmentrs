@@ -138,11 +138,13 @@ fn fasta_file_to_basealignments(path: &str, keywords: Vec<&str>) ->
         // Handle identifier line \>
         if line.starts_with(">") {
             if sequence.len() > 0 {
+                // TODO: Make this into a function so that you dont have
+                // to change things twice
                 let mut found = false;
                 let mut found_kw: &str = "";
                 if keywords.len() > 0 {
                     for kw in keywords.iter() {
-                        if id.contains(kw) {
+                        if kw.len() > 0 && id.contains(kw) {
                             found = true;
                             found_kw = kw;
                             break;
@@ -187,7 +189,7 @@ fn fasta_file_to_basealignments(path: &str, keywords: Vec<&str>) ->
         let mut found_kw: &str = "";
         if keywords.len() > 0 {
             for kw in keywords.iter() {
-                if id.contains(kw) {
+                if kw.len() > 0 && id.contains(kw) {
                     found = true;
                     found_kw = kw;
                     break;
