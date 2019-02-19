@@ -83,6 +83,7 @@ class AlnMixin:
         # Offsets the int indices
         ro = 0
         for member in self.__class__.members:
+            print(rows)
             if isinstance(rows, str):
                 if match_prefix:
                     records += self.__getattribute__(member) \
@@ -95,10 +96,10 @@ class AlnMixin:
                         .get_rows_by_name([rows])
             elif isinstance(rows, list) and \
                 sum((isinstance(j, int) for j in rows)):
-                rows = [row-ro for row in rows
+                _rows = [row-ro for row in rows
                         if row-ro >= 0 and
                         row-ro < self.__getattribute__(member).nrows]
-                records +=  self.__getattribute__(member).get_rows(rows)
+                records +=  self.__getattribute__(member).get_rows(_rows)
             elif isinstance(rows, list) and \
                 sum((isinstance(j, str) for j in rows)):
                 if match_prefix:
