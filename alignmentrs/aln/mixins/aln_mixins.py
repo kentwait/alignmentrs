@@ -179,7 +179,6 @@ class AlnMixin:
         state = state if state is not None else 1
         self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
-
     # Deleters
     # ------------------------------
     def remove_cols(self, cols, copy=False):
