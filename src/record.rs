@@ -101,10 +101,9 @@ pub struct BaseRecord {
     #[prop(get,set)]
     pub description: String,
     
-    #[prop(get,set)]
-    pub sequence: String,
+    pub sequence: Vec<String>,
 
-    #[prop(get,set)]
+    #[prop(get)]
     pub chunk_size: i32,
 
 }
@@ -115,12 +114,19 @@ impl BaseRecord {
     /// Creates a new BaseRecord object from sequence_id, sequence_description
     /// and sequence_str.
     fn __new__(obj: &PyRawObject, id: &str, description: &str, sequence_str: &str, chunk_size: i32) -> PyResult<()> {
-        let sequence_str = String::from(sequence_str);
+        if sequence_str.chars().count() % (chunk_size as usize) != 0 {
+            return Err(exceptions::IndexError::py_err(
+                "invalid chunk_size: sequence cannot be cleanly divided into substrings"))
+        }
         obj.init(|_| {
+            let chars: Vec<char> = sequence_str.chars().collect();
+            let sequence: Vec<String> = chars.chunks(chunk_size as usize)
+                .map(|chunk| chunk.iter().collect::<String>())
+                .collect();
             BaseRecord {
                 id: id.to_string(),
                 description: description.to_string(),
-                sequence: sequence_str.to_string(),
+                sequence: sequence,
                 chunk_size: chunk_size,
             }
         })
@@ -128,46 +134,46 @@ impl BaseRecord {
 
     #[getter]
     fn len(&self) -> PyResult<i32> {
-        Ok(self.sequence.chars().count() as i32)
+        Ok((self.sequence.len() as i32)  * self.chunk_size)
     }
 
     #[getter]
-    fn chunklen(&self) -> PyResult<i32> {
-        let nchunks = self.sequence.chars().count() % self.chunk_size as usize;
-        if nchunks != 0 {
-            return Err(exceptions::ValueError::py_err(
-                "sequence cannot be cleanly divided into chunks."))
-        }
-        return Ok((self.sequence.chars().count() / self.chunk_size as usize) as i32)
+    fn chunked_len(&self) -> PyResult<i32> {
+        return Ok(self.sequence.len() as i32)
     }
 
-    fn chunked(&self) -> PyResult<Vec<String>> {
-        if self.sequence.len() == 0 {
-            return Ok(Vec::new())
+    #[setter(chunk_size)]
+    fn set_chunk_size(&mut self, chunk_size: i32) -> PyResult<()> {
+        if self.len()? % chunk_size != 0 {
+            return Err(exceptions::IndexError::py_err(
+                "invalid chunk_size: sequence cannot be cleanly divided into substrings"))
         }
-        let nchunks = self.sequence.chars().count() % self.chunk_size as usize;
-        if nchunks != 0 {
-            return Err(exceptions::ValueError::py_err(
-                "sequence cannot be cleanly divided into chunks."))
-        }
-        let mut chunks: Vec<String> = Vec::with_capacity(nchunks);
-        // temp variables and counter
-        let mut chunk: String = String::new();
-        let mut i = 0;
-        // iterate over characters
-        for c in self.sequence.chars() {
-            if i < self.chunk_size {
-                chunk.push(c);
-            }
-            i += 1;
-            // Add chunk to list and reset temp variables and counter
-            if i == self.chunk_size {
-                chunks.push(chunk.to_string());
-                chunk.clear();
-                i = 0;
-            }
-        }
-        Ok(chunks)
+        let chars: Vec<char> = self.sequence.join("").chars().collect();
+        let sequence: Vec<String> = chars.chunks(chunk_size as usize)
+            .map(|chunk| chunk.iter().collect::<String>())
+            .collect();
+        self.sequence = sequence;
+        Ok(())
+    }
+
+    #[getter(sequence)]
+    fn get_sequence(&self) -> PyResult<String> {
+        Ok(self.sequence.join(""))
+    }
+
+    #[setter(sequence)]
+    fn set_sequence(&mut self, sequence_str: &str) -> PyResult<()> {
+        let chars: Vec<char> = sequence_str.chars().collect();
+        let sequence: Vec<String> = chars.chunks(self.chunk_size as usize)
+            .map(|chunk| chunk.iter().collect::<String>())
+            .collect();
+        self.sequence = sequence;
+        Ok(())
+    }
+
+    #[getter]
+    fn chunked_sequence(&self) -> PyResult<Vec<String>> {
+        Ok(self.sequence.clone())
     }
 }
 
@@ -175,10 +181,12 @@ impl BaseRecord {
 #[pyproto]
 impl PyObjectProtocol for BaseRecord {
     fn __repr__(&self) -> PyResult<String> {
+        // threshold cols is 80
         let desc:String = match self.description.chars().count() {
-            x if x > 20 => {
+            // 80 - 13
+            x if x > 67 => {
                 let mut desc:String = self.description.char_indices()
-                                        .filter(|(i, _)| *i < 17)
+                                        .filter(|(i, _)| *i < 67 - 3)
                                         .map(|(_, c)| c)
                                         .collect();
                 desc.push_str("...");
@@ -186,24 +194,35 @@ impl PyObjectProtocol for BaseRecord {
             },
             _ => self.description.clone()
         };
-        let seq: String = match self.sequence.chars().count() {
-            x if x >= 15 => {
+        let seq: String = match self.len() {
+            // 80 - 10
+            Ok(x) if x >= 70 => {
+                let sequence = self.get_sequence()?;
                 let mut seq = String::new();
-                for (i, c) in self.sequence.char_indices() {
-                    if i < 6 || i >= x-6 {
+                for (i, c) in sequence.char_indices() {
+                    if i < 30 {
                         seq.push(c);
-                    } else if i >= 6 && i < 9 {
+                    } else if i >= 30 && i < 33 {
                         seq.push('.');
+                    } else if i >= 70 - 30 && i < 70 {
+                        seq.push(c);
                     }
                 }
                 seq
             },
-            _ => self.sequence.clone()
+            _ => self.get_sequence()?.clone()
         };
-        Ok(format!("BaseRecord(id=\"{id}\", sequence=\"{seq}\", len={seq_len}, \
-                   chunk_size={chunk_size}, description=\"{desc}\")", 
-                   id=self.id, seq=seq, seq_len=self.sequence.len(),
-                   chunk_size=self.chunk_size, desc=desc))
+        Ok(format!(
+            "[BaseRecord]\n\
+            id = {id}\n\
+            description = \"{desc}\"\n\
+            sequence = \"{seq}\"\n\
+            length = {len}\n\
+            chunk_size = {chunk_size}\n\
+            chunked_len = {chunked_len}",
+            id=self.id, desc=desc, seq=seq, len=self.len()?, chunk_size=self.chunk_size,
+            chunked_len=self.chunked_len()?
+        ))
     }
 
     // default is to output as fasta format
@@ -212,11 +231,11 @@ impl PyObjectProtocol for BaseRecord {
             return Ok(format!(">{id} {desc}\n{seq_len}",
                 id=self.id,
                 desc=self.description,
-                seq_len=self.sequence.chars().count()))
+                seq_len=self.len()?))
         }
         return Ok(format!(">{id}\n{seq_len}",
                 id=self.id,
-                seq_len=self.sequence.chars().count()))        
+                seq_len=self.len()?))
     }
 }
 
