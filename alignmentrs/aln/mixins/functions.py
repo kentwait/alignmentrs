@@ -329,22 +329,19 @@ def subset(aln, cols, **kwargs):
             pass
         else:
             raise TypeError('cols must be an int, or list of int.')
+
         new_alns = []
-        nrows = aln.nrows
-        if rows is None:
-            rows = list(range(0, nrows))
-        elif isinstance(rows, int):
-            rows = [rows if rows >= 0 else nrows+rows]
-        elif (isinstance(rows, list) and
-              sum((isinstance(j, int) for j in rows))):
-            rows = [row if row >= 0 else nrows+row for row in rows]
         ro = 0
         for member in aln.__class__.members:
             if member in kwargs.keys():
                 rows = kwargs[member]
                 nrows = aln.__getattribute__(member).nrows
                 # Checks the value of rows and converts if necessary.
-                if isinstance(rows, str):
+                if rows is None:
+                    rows = list(range(0, aln.nrows))
+                elif isinstance(rows, int):
+                    rows = [rows]
+                elif isinstance(rows, str):
                     rows = aln.__getattribute__(member).row_names_to_ids([rows])
                 elif (isinstance(rows, list) and
                     sum((isinstance(j, int) for j in rows))):
@@ -355,6 +352,9 @@ def subset(aln, cols, **kwargs):
                 else:
                     raise TypeError('rows must be an int, str, list of int, '
                                     'or list of str.')
+                rows = (row if row > 0 else nrows+row for row in rows)
+                rows = [row-ro for row in rows
+                        if row-ro >= 0 and row-ro < nrows]
                 if rows:
                     new_aln = aln.__getattribute__(member).subset(rows, cols)
                 else:
