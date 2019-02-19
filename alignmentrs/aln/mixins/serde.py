@@ -1,8 +1,11 @@
 from collections import OrderedDict
 import os
+import json
 
-from libalignmentrs.readers import fasta_file_to_basealignments
+from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.position import BlockSpace
+from libalignmentrs.position import simple_block_str_to_linspace
+from libalignmentrs.readers import fasta_file_to_basealignments
 
 
 __all__ = ['FastaSerde']
@@ -85,6 +88,7 @@ class FastaSerde:
             parts.append(str(self.__getattribute__(member)))
         return '\n'.join(parts)
 
+
     def to_fasta(self, path, include_info=False, include_metadata=False):
         """Saves the alignment as a FASTA-formatted file.
         Some metadata may not be lost.
@@ -109,3 +113,51 @@ class FastaSerde:
                 include_info=include_info, include_metadata=include_metadata)
             print(fasta_str, file=writer)
 
+
+class JsonSerde:
+    @classmethod
+    def from_json(cls, path):
+        with open(path, 'r') as reader:
+            d = json.load(reader)
+        
+        # Create BaseAlignments
+        balns = []
+        for member in cls.members:
+            # TODO: Warn if member is not found.
+            baln = BaseAlignment(
+                d[member]['ids'],
+                d[member]['descriptions'],
+                d[member]['sequences']
+            )
+            balns.append(baln)
+
+        # Check if linspace exists, then create linspace
+        if 'linspace' in d.keys():
+            linspace = simple_block_str_to_linspace(d['linspace'])
+        else:
+            linspace = None
+        
+        # Check if metadata exists
+        if 'metadata' in d.keys():
+            metadata = d['metadata']
+        else:
+            metadata = None
+
+        return cls(d['name'], *balns, metadata=metadata, linspace=linspace)
+
+    def to_json_str(self):
+        d = OrderedDict()
+        d['name'] = self.name
+        for member in self.__class__.members:
+            d[member] = {
+                'ids': self.__getattribute__(member).ids,
+                'descriptions': self.__getattribute__(member).descriptions,
+                'sequences': self.__getattribute__(member).sequences,
+            }
+        d['linspace'] = self._linspace.to_simple_block_str()
+        d['metadata'] = self.metadata
+        return json.dumps(d)
+
+    def to_json(self, path):
+        with open(path, 'w') as writer:
+            print(self.to_json_str(), file=writer)

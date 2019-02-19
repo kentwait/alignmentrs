@@ -12,7 +12,7 @@ from alignmentrs.util import parse_comment_list, parse_cat_comment_list
 from .mixins import PropsMixin, AlnMixin
 from .mixins import SamplePropsMixin, SampleAlnMixin
 from .mixins import MarkerPropsMixin, MarkerAlnMixin
-from .mixins import FastaSerde
+from .mixins import FastaSerde, JsonSerde
 from .mixins import CoordsMixin
 
 
@@ -194,11 +194,11 @@ class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
         return True
 
 
-class SampleAlignment(FastaSerde, SampleAlnMixin, SamplePropsMixin, Alignment):
+class SampleAlignment(JsonSerde, FastaSerde, SampleAlnMixin, SamplePropsMixin, Alignment):
     members = ['samples']
 
 
-class MarkerAlignment(FastaSerde, MarkerAlnMixin, MarkerPropsMixin, Alignment):
+class MarkerAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin, Alignment):
     members = ['markers']
 
     def __init__(self, name, marker_alignment: BaseAlignment, 
@@ -265,7 +265,7 @@ class MarkerAlignment(FastaSerde, MarkerAlnMixin, MarkerPropsMixin, Alignment):
             self._linspace: BlockSpace = BlockSpace(start, stop, state)
 
 
-class FullAlignment(FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
+class FullAlignment(JsonSerde, FastaSerde, MarkerAlnMixin, MarkerPropsMixin,
                     SampleAlnMixin, SamplePropsMixin, Alignment):
     """Represents a multiple sequence alignment.
 
