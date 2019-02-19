@@ -1,7 +1,30 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 
-use crate::record::Record;
+use crate::record::{Record, BaseRecord};
+
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct RecordAlignment {
+
+    pub records: Vec<BaseRecord>
+
+}
+
+#[pymethods]
+impl RecordAlignment {
+    #[new]
+    /// Creates a new RecordAlignment object from a list of ids, descriptions,
+    /// and sequences.
+    fn __new__(obj: &PyRawObject, records: Vec<&BaseRecord>) -> PyResult<()> {
+        obj.init(|_| {
+            RecordAlignment { 
+                records: records.into_iter().map(|x| *x).collect()
+            }
+        })
+    }
+}
+
 
 #[pyclass(subclass)]
 #[derive(Clone)]
