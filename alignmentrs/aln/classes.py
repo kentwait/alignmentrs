@@ -193,6 +193,16 @@ class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
             return False
         return True
 
+    def __hash__(self):
+        return hash((
+            str(self),
+            self._linspace.to_block_str(),
+            tuple(self.metadata.items())
+        ))
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
 
 class SampleAlignment(JsonSerde, FastaSerde, SampleAlnMixin, SamplePropsMixin, Alignment):
     members = ['samples']
