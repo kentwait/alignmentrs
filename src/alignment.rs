@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 // use pyo3::class::gc::{PyGCProtocol, PyVisit, PyTraverseError};
 
-use crate::record::{Record, BaseRecord};
+use crate::record::BaseRecord;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
