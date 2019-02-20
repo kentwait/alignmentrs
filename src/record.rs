@@ -2,6 +2,25 @@ use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 
 
+#[pyclass(subclass)]
+#[derive(Clone)]
+/// BaseRecord(id, description, sequence)
+/// 
+/// BaseRecord represents a single sequence sample.
+pub struct BaseRecord {
+    #[prop(get,set)]
+    pub id: String,
+
+    #[prop(get,set)]
+    pub description: String,
+    
+    pub sequence: Vec<String>,
+
+    #[prop(get)]
+    pub chunk_size: i32,
+
+}
+
 #[pymethods]
 impl BaseRecord {
     #[new]
