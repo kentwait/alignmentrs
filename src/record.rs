@@ -133,17 +133,17 @@ impl BaseRecord {
     }
 
     #[getter]
-    fn len(&self) -> PyResult<i32> {
+    pub fn len(&self) -> PyResult<i32> {
         Ok((self.sequence.len() as i32)  * self.chunk_size)
     }
 
     #[getter]
-    fn chunked_len(&self) -> PyResult<i32> {
+    pub fn chunked_len(&self) -> PyResult<i32> {
         return Ok(self.sequence.len() as i32)
     }
 
     #[setter(chunk_size)]
-    fn set_chunk_size(&mut self, chunk_size: i32) -> PyResult<()> {
+    pub fn set_chunk_size(&mut self, chunk_size: i32) -> PyResult<()> {
         if self.len()? % chunk_size != 0 {
             return Err(exceptions::IndexError::py_err(
                 "invalid chunk_size: sequence cannot be cleanly divided into substrings"))
@@ -157,12 +157,12 @@ impl BaseRecord {
     }
 
     #[getter(sequence)]
-    fn get_sequence(&self) -> PyResult<String> {
+    pub fn get_sequence(&self) -> PyResult<String> {
         Ok(self.sequence.join(""))
     }
 
     #[setter(sequence)]
-    fn set_sequence(&mut self, sequence_str: &str) -> PyResult<()> {
+    pub fn set_sequence(&mut self, sequence_str: &str) -> PyResult<()> {
         let chars: Vec<char> = sequence_str.chars().collect();
         let sequence: Vec<String> = chars.chunks(self.chunk_size as usize)
             .map(|chunk| chunk.iter().collect::<String>())
@@ -172,9 +172,11 @@ impl BaseRecord {
     }
 
     #[getter]
-    fn chunked_sequence(&self) -> PyResult<Vec<String>> {
+    pub fn chunked_sequence(&self) -> PyResult<Vec<String>> {
         Ok(self.sequence.clone())
     }
+
+    // TODO: Get/set chunk
 }
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
