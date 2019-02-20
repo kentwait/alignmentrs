@@ -102,7 +102,7 @@ impl PyObjectProtocol for BaseRecord {
                 let sequence = self.get_sequence()?;
                 let mut seq = String::new();
                 for (i, c) in sequence.char_indices() {
-                    if i < 30 {
+                    if i < 6 {
                         seq.push(c);
                     } else if i >= 6 && i < 6 + 3 {
                         seq.push('.');
