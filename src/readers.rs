@@ -22,7 +22,7 @@ fn fasta_to_records(path: &str, chunk_size: i32)
 -> PyResult<(Vec<BaseRecord>, Vec<String>)> {
     // Open the path in read-only mode, returns `io::Result<File>`
     let f = match File::open(path) {
-        Err(x) => {
+        Err(_) => {
             return Err(exceptions::IOError::py_err(format!(
                 "encountered an error while trying to open file {:?}", path)))
         },

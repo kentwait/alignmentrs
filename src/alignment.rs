@@ -567,7 +567,6 @@ impl BaseAlignment {
     /// Inserts one or more samples at the specified position.
     fn insert_rows(&mut self, rows: Vec<i32>, values: Vec<&BaseRecord>) -> PyResult<()> {
         for (i, value) in values.into_iter().enumerate() {
-            let row = rows[i];
             if self.nrows()? < i as i32 {
                 return Err(exceptions::IndexError::py_err(
                     "Row index out of range."))
