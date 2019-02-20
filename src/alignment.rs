@@ -553,12 +553,85 @@ impl RecordAlignment {
         self.remove_rows(rows)
     }
 
+    /// insert_row(position, id, description, sequence, /)
+    /// --
+    /// 
+    /// Inserts one entry into the multiple sequence alignment
+    /// at the specified position.
+    fn insert_row(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
+        self.insert_rows(vec![row], vec![value])
+    }
 
+    /// insert_rows(position, ids, descriptions, sequences, /)
+    /// 
+    /// Inserts one or more samples at the specified position.
+    fn insert_rows(&mut self, rows: Vec<i32>, values: Vec<&BaseRecord>) -> PyResult<()> {
+        for (i, value) in values.into_iter().enumerate() {
+            let row = rows[i];
+            if self.nrows()? < i as i32 {
+                return Err(exceptions::IndexError::py_err(
+                    "Row index out of range."))
+            }
+            self.records.insert(i, value.clone());
+        }
+        Ok(())
+    }
 
+    /// append_row(id, description, sequence, /)
+    /// --
+    /// 
+    /// Appends one entry at the end of the multiple sequence alignment.
+    fn append_row(&mut self, value: &BaseRecord) -> PyResult<()> {
+        self.append_rows(vec![value])
+    }
 
+    /// append_rows(ids, descriptions, sequences, /)
+    /// 
+    /// Appends one or more samples at the end of the list.
+    fn append_rows(&mut self, values: Vec<&BaseRecord>) -> PyResult<()> {
+        for value in values.into_iter() {
+            self.records.push(value.clone());
+        }
+        Ok(())
+    }
 
+    /// reorder_rows(ids, /)
+    /// --
+    /// 
+    /// Reorders the sequences inplace based on a list of current row indices.
+    fn reorder_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+        check_empty_alignment(self)?;
+        check_length_match(&rows, &self.records)?;
+        if let Some(x) = rows.iter().max() {
+            check_row_index(self, *x as usize)?;
+            let mut records: Vec<BaseRecord> = Vec::with_capacity(rows.len());
+            for row in rows.iter() {
+                records.push(self.records[(*row) as usize].clone())
+            }
+            self.records = records;
+        }
+        Ok(())
+    }
 
-
+    /// reorder_cols(ids, /)
+    /// --
+    /// 
+    /// Reorders the alignment columns inplace based on a list of current
+    /// column indices.
+    fn reorder_cols(&mut self, cols: Vec<i32>) -> PyResult<()> {
+        check_empty_alignment(self)?;
+        check_length_match(&cols, &self.records[0].sequence)?;
+        if let Some(x) = cols.iter().max() {
+            check_col_index(self, *x as usize)?;
+            for i in 0..self.records.len() {
+                let sequence = (0..self.records[i].sequence.len())
+                    .map(|i| self.records[i].sequence[i].clone())
+                    .collect();
+                self.records[i].sequence = sequence;
+            }
+        }
+        Ok(())
+    }
 
     // Methods to convert row names to row indices
 
@@ -623,6 +696,34 @@ impl RecordAlignment {
         Ok(indices)
     }
     
+}
+
+// Customizes __repr__ and __str__ of PyObjectProtocol trait
+#[pyproto]
+impl PyObjectProtocol for RecordAlignment {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("RecordAlignment(nrows={nrows}, ncols={ncols})",
+                   nrows=self.nrows()?, ncols=self.nrows()?))
+    }
+
+    fn __str__(&self) -> PyResult<String> {
+        if self.nrows()? == 0 {
+            return Ok(String::new())
+        }
+        let mut fasta_strings: Vec<String> = Vec::new();
+        for record in self.records.iter() {
+            fasta_strings.push(record.__str__()?);
+        }
+        Ok(fasta_strings.join("\n"))
+    }
+
+    // Determines the "truthyness" of the object
+    fn __bool__(&self) -> PyResult<bool> {
+        if self.ncols()? == 0 {
+            return Ok(false)
+        }
+        Ok(true)
+    }
 }
 
 // #[pyproto]
