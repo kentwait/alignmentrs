@@ -183,30 +183,17 @@ impl BaseRecord {
 #[pyproto]
 impl PyObjectProtocol for BaseRecord {
     fn __repr__(&self) -> PyResult<String> {
-        // threshold cols is 80
-        let desc:String = match self.description.chars().count() {
-            // 80 - 13
-            x if x > 67 => {
-                let mut desc:String = self.description.char_indices()
-                                        .filter(|(i, _)| *i < 67 - 3)
-                                        .map(|(_, c)| c)
-                                        .collect();
-                desc.push_str("...");
-                desc
-            },
-            _ => self.description.clone()
-        };
+        // threshold is 15, 6 ... 6
         let seq: String = match self.len() {
-            // 80 - 10
-            Ok(x) if x >= 70 => {
+            Ok(x) if x >= 15 => {
                 let sequence = self.get_sequence()?;
                 let mut seq = String::new();
                 for (i, c) in sequence.char_indices() {
                     if i < 30 {
                         seq.push(c);
-                    } else if i >= 30 && i < 33 {
+                    } else if i >= 6 && i < 6 + 3 {
                         seq.push('.');
-                    } else if i >= 70 - 30 && i < 70 {
+                    } else if i >= 15 - 6 && i < 15 {
                         seq.push(c);
                     }
                 }
@@ -215,15 +202,8 @@ impl PyObjectProtocol for BaseRecord {
             _ => self.get_sequence()?.clone()
         };
         Ok(format!(
-            "[BaseRecord]\n\
-            id = {id}\n\
-            description = \"{desc}\"\n\
-            sequence = \"{seq}\"\n\
-            length = {len}\n\
-            chunk_size = {chunk_size}\n\
-            chunked_len = {chunked_len}",
-            id=self.id, desc=desc, seq=seq, len=self.len()?, chunk_size=self.chunk_size,
-            chunked_len=self.chunked_len()?
+            "BaseRecord(id={id}, sequence=\"{seq}\", length={len}, chunk_size={chunk_size}",
+            id=self.id, seq=seq, len=self.len()?, chunk_size=self.chunk_size
         ))
     }
 
