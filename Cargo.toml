@@ -9,7 +9,7 @@ name = "libalignmentrs"
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]
-version = "0.5"
+version = "0.5.4"
 features = ["extension-module"]
 
 [dependencies.regex]
