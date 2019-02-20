@@ -6,7 +6,7 @@ use crate::record::{Record, BaseRecord};
 
 #[pyclass(subclass)]
 #[derive(Clone)]
-pub struct RecordAlignment {
+pub struct BaseAlignment {
 
     pub records: Vec<BaseRecord>,
 
@@ -16,9 +16,9 @@ pub struct RecordAlignment {
 }
 
 #[pymethods]
-impl RecordAlignment {
+impl BaseAlignment {
     #[new]
-    /// Creates a new RecordAlignment object from a list of ids, descriptions,
+    /// Creates a new BaseAlignment object from a list of ids, descriptions,
     /// and sequences.
     fn __new__(obj: &PyRawObject, records: Vec<&BaseRecord>, chunk_size: i32) -> PyResult<()> {
         // TODO: Check if all vectors have the same size.
@@ -33,7 +33,7 @@ impl RecordAlignment {
             new_records.push(record);
         }
         obj.init(|_| {
-            RecordAlignment { 
+            BaseAlignment { 
                 records: new_records,
                 ncols: ncols,
                 chunk_size
@@ -72,7 +72,7 @@ impl RecordAlignment {
     /// get_rows(row_indices, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the sequences
+    /// Returns a new RawAlignment object containing the sequences
     /// specified by a list of indices.
     pub fn get_records(&self, rows: Vec<i32>) -> PyResult<Vec<BaseRecord>> {
         check_empty_alignment(self)?;
@@ -87,7 +87,7 @@ impl RecordAlignment {
     /// get_rows_by_name(names, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the sequences
+    /// Returns a new RawAlignment object containing the sequences
     /// specified using a list of names/ids.
     pub fn get_records_by_name(&self, names: Vec<&str>) -> PyResult<Vec<BaseRecord>> {
         check_empty_alignment(self)?;
@@ -104,7 +104,7 @@ impl RecordAlignment {
     /// get_rows_by_prefix(prefixes, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the sequences
+    /// Returns a new RawAlignment object containing the sequences
     /// that match the given list of prefixes.
     pub fn get_records_by_prefix(&self, prefixes: Vec<&str>) -> PyResult<Vec<BaseRecord>> {
         check_empty_alignment(self)?;
@@ -121,7 +121,7 @@ impl RecordAlignment {
     /// get_rows_by_suffix(suffixes, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the sequences
+    /// Returns a new RawAlignment object containing the sequences
     /// that match the given list of suffixes.
     pub fn get_records_by_suffix(&self, suffixes: Vec<&str>) -> PyResult<Vec<BaseRecord>> {
         check_empty_alignment(self)?;
@@ -200,7 +200,7 @@ impl RecordAlignment {
     /// get_cols(col_indices, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the specific
+    /// Returns a new RawAlignment object containing the specific
     /// alignment columns based on a list of indices. 
     pub fn get_cols(&self, cols: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
         check_empty_alignment(self)?;
@@ -218,9 +218,9 @@ impl RecordAlignment {
     /// --
     /// 
     /// Returns the subset of rows and columns in the alignment as a new
-    /// BaseAlignment.
+    /// RawAlignment.
     fn subset(&self, rows: Vec<i32>, cols: Vec<i32>)
-    -> PyResult<RecordAlignment> {
+    -> PyResult<BaseAlignment> {
         check_empty_alignment(self)?;
         if let Some(x) = rows.iter().max() {
             check_row_index(self, *x as usize)?;
@@ -248,7 +248,7 @@ impl RecordAlignment {
                 chunk_size,
             })
         }
-        Ok(RecordAlignment{ records, ncols: ncols as i32, chunk_size})
+        Ok(BaseAlignment{ records, ncols: ncols as i32, chunk_size})
     }
 
 
@@ -365,7 +365,7 @@ impl RecordAlignment {
 
     // Deleters
     // remove_rows and remove_cols are the main methods for deleting
-    // contents of BaseAlignment
+    // contents of RawAlignment
 
     /// remove_row(index, /)
     /// --
@@ -700,9 +700,9 @@ impl RecordAlignment {
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
 #[pyproto]
-impl PyObjectProtocol for RecordAlignment {
+impl PyObjectProtocol for BaseAlignment {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("RecordAlignment(nrows={nrows}, ncols={ncols})",
+        Ok(format!("BaseAlignment(nrows={nrows}, ncols={ncols})",
                    nrows=self.nrows()?, ncols=self.nrows()?))
     }
 
@@ -727,7 +727,7 @@ impl PyObjectProtocol for RecordAlignment {
 }
 
 // #[pyproto]
-// impl PyGCProtocol for RecordAlignment {
+// impl PyGCProtocol for BaseAlignment {
 //     fn __traverse__(&self, visit: PyVisit) -> Result<(), PyTraverseError> {
 //         if self.records.len() > 0 {
 //             for obj_ref in self.records.iter() {
@@ -746,7 +746,7 @@ impl PyObjectProtocol for RecordAlignment {
 // }
 
 
-pub fn check_empty_alignment(aln_ptr: &RecordAlignment) -> PyResult<()> {
+pub fn check_empty_alignment(aln_ptr: &BaseAlignment) -> PyResult<()> {
     if aln_ptr.nrows()? == 0 {
         return Err(exceptions::ValueError::py_err(
             "Cannot get rows from an empty alignment."))
@@ -755,7 +755,7 @@ pub fn check_empty_alignment(aln_ptr: &RecordAlignment) -> PyResult<()> {
 }
 
 
-pub fn check_row_index(aln_ptr: &RecordAlignment, i: usize) -> PyResult<()> {
+pub fn check_row_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
     if aln_ptr.nrows()? <= i as i32 {
         return Err(exceptions::IndexError::py_err(
             "Row index out of range."))
@@ -763,7 +763,7 @@ pub fn check_row_index(aln_ptr: &RecordAlignment, i: usize) -> PyResult<()> {
     Ok(())
 }
 
-pub fn check_col_index(aln_ptr: &RecordAlignment, i: usize) -> PyResult<()> {
+pub fn check_col_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
     if aln_ptr.ncols()? <= i as i32 {
         return Err(exceptions::IndexError::py_err(
             "Column index out of range."))
@@ -810,11 +810,11 @@ pub fn check_length_match<T, U>(v1: &Vec<T>, v2: &Vec<U>) -> PyResult<()> {
 
 #[pyclass(subclass)]
 #[derive(Clone)]
-/// BaseAlignment(ids, descriptions, sequences)
+/// RawAlignment(ids, descriptions, sequences)
 /// --
 /// 
-/// BaseAlignment represents a multiple sequence alignment.
-pub struct BaseAlignment {
+/// RawAlignment represents a multiple sequence alignment.
+pub struct RawAlignment {
 
     #[prop(get)]
     pub ids: Vec<String>,
@@ -828,9 +828,9 @@ pub struct BaseAlignment {
 }
 
 #[pymethods]
-impl BaseAlignment {
+impl RawAlignment {
     #[new]
-    /// Creates a new BaseAlignment object from a list of ids, descriptions,
+    /// Creates a new RawAlignment object from a list of ids, descriptions,
     /// and sequences.
     fn __new__(obj: &PyRawObject, ids: Vec<&str>, descriptions: Vec<&str>,
     sequences: Vec<&str>) -> PyResult<()> {
@@ -840,7 +840,7 @@ impl BaseAlignment {
                 "id, description, and sequence lists must have the same length"))
         }
         obj.init(|_| {
-            BaseAlignment { 
+            RawAlignment { 
                 ids: ids.iter().map(|s| s.to_string()).collect(), 
                 descriptions: descriptions.iter().map(|s| s.to_string()).collect(), 
                 sequences: sequences.iter().map(|s| s.to_string()).collect() }
@@ -873,7 +873,7 @@ impl BaseAlignment {
     /// get_rows(row_indices, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the sequences
+    /// Returns a new RawAlignment object containing the sequences
     /// specified by a list of indices.
     fn get_rows(&self, ids: Vec<i32>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
@@ -898,7 +898,7 @@ impl BaseAlignment {
     /// get_rows_by_name(names, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the sequences
+    /// Returns a new RawAlignment object containing the sequences
     /// specified using a list of names/ids.
     fn get_rows_by_name(&self, names: Vec<&str>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
@@ -918,7 +918,7 @@ impl BaseAlignment {
     /// get_rows_by_prefix(prefixes, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the sequences
+    /// Returns a new RawAlignment object containing the sequences
     /// that match the given list of prefixes.
     fn get_rows_by_prefix(&self, names: Vec<&str>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
@@ -938,7 +938,7 @@ impl BaseAlignment {
     /// get_rows_by_suffix(suffixes, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the sequences
+    /// Returns a new RawAlignment object containing the sequences
     /// that match the given list of suffixes.
     fn get_rows_by_suffix(&self, names: Vec<&str>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
@@ -983,7 +983,7 @@ impl BaseAlignment {
     /// get_cols(col_indices, /)
     /// --
     /// 
-    /// Returns a new BaseAlignment object containing the specific
+    /// Returns a new RawAlignment object containing the specific
     /// alignment columns based on a list of indices. 
     fn get_cols(&self, cols: Vec<i32>) -> PyResult<Vec<Record>> {
         if self._nrows() == 0 {
@@ -1014,9 +1014,9 @@ impl BaseAlignment {
     /// --
     /// 
     /// Returns the subset of rows and columns in the alignment as a new
-    /// BaseAlignment.
+    /// RawAlignment.
     fn subset(&self, ids: Vec<i32>, sites: Vec<i32>)
-    -> PyResult<BaseAlignment> {
+    -> PyResult<RawAlignment> {
         if self._nrows() == 0 {
             return Err(exceptions::ValueError::py_err("alignment has no sequences"))
         }
@@ -1049,7 +1049,7 @@ impl BaseAlignment {
             new_descriptions.push(self.descriptions[i].to_string());
             new_sequences.push(new_sequence)
         }
-        Ok(BaseAlignment {
+        Ok(RawAlignment {
             ids: new_ids,
             descriptions: new_descriptions,
             sequences: new_sequences,
@@ -1233,7 +1233,7 @@ impl BaseAlignment {
 
     // Deleters
     // remove_rows and remove_cols are the main methods for deleting
-    // contents of BaseAlignment
+    // contents of RawAlignment
 
     /// remove_row(index, /)
     /// --
@@ -1676,12 +1676,12 @@ impl BaseAlignment {
     /// --
     /// 
     /// Transposes the alignment making columns rows and rows columns.
-    fn transpose(&self) -> PyResult<BaseAlignment> {
+    fn transpose(&self) -> PyResult<RawAlignment> {
         if self._nrows() == 0 {
             let new_ids: Vec<String> = Vec::new();
             let new_descriptions: Vec<String> = Vec::new();
             let new_sequences: Vec<String> = Vec::new();
-            return Ok(BaseAlignment {
+            return Ok(RawAlignment {
                 ids: new_ids,
                 descriptions: new_descriptions,
                 sequences: new_sequences,
@@ -1701,7 +1701,7 @@ impl BaseAlignment {
             new_sequences[i] = old_sequence_matrix.iter()
                                 .map(|x| x[i]).collect();
         }
-        Ok(BaseAlignment {
+        Ok(RawAlignment {
             ids: new_ids,
             descriptions: new_descriptions,
             sequences: new_sequences,
@@ -1714,7 +1714,7 @@ impl BaseAlignment {
     /// Concatenates a list of alignments to the current alignment side-by-side.
     /// Assumes that the number of rows and the order of rows matches the
     /// current alignment.
-    fn concat(&self, aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignment> {
+    fn concat(&self, aln_list: Vec<&RawAlignment>) -> PyResult<RawAlignment> {
         let ids = self.ids.clone();
         let descriptions = self.descriptions.clone();
         let sequence_len = self._nrows();
@@ -1732,24 +1732,24 @@ impl BaseAlignment {
                 sequences[i].push_str(&aln.sequences[i]);
             }
         }
-        Ok(BaseAlignment {ids, descriptions, sequences})
+        Ok(RawAlignment {ids, descriptions, sequences})
     }
 
     /// copy()
     /// --
     /// 
     /// Creates a deep copy of itself.
-    fn copy(&self) -> PyResult<BaseAlignment> {
+    fn copy(&self) -> PyResult<RawAlignment> {
         let ids: Vec<String> = self.ids.clone();
         let descriptions: Vec<String> = self.descriptions.clone();
         let sequences: Vec<String> = self.sequences.clone();
-        Ok(BaseAlignment { ids, descriptions, sequences })
+        Ok(RawAlignment { ids, descriptions, sequences })
     }
 
     /// is_row_similar(other, /)
     /// 
     /// Checks if the other alignment has the same number of rows.
-    fn is_row_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
+    fn is_row_similar(&self, other: &RawAlignment) -> PyResult<bool> {
         if self._nrows() != other._nrows() {
             return Ok(false)
         } else if self.ids != other.ids {
@@ -1761,7 +1761,7 @@ impl BaseAlignment {
     /// is_col_similar(other, /)
     /// 
     /// Checks if the other alignment has the same number of columns.
-    fn is_col_similar(&self, other: &BaseAlignment) -> PyResult<bool> {
+    fn is_col_similar(&self, other: &RawAlignment) -> PyResult<bool> {
         if self._ncols() != other._ncols() {
             return Ok(false)
         }
@@ -1787,9 +1787,9 @@ impl BaseAlignment {
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
 #[pyproto]
-impl PyObjectProtocol for BaseAlignment {
+impl PyObjectProtocol for RawAlignment {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("BaseAlignment(nsamples={nsamples}, ncols={ncols})",
+        Ok(format!("RawAlignment(nsamples={nsamples}, ncols={ncols})",
                    nsamples=self._nrows(), ncols=self._ncols()))
     }
 
@@ -1819,7 +1819,7 @@ impl PyObjectProtocol for BaseAlignment {
     }
 }
 
-impl BaseAlignment {
+impl RawAlignment {
     fn _nrows(&self) -> usize {
         self.ids.len()
     }
@@ -1834,11 +1834,11 @@ impl BaseAlignment {
 
 
 #[pyfunction]
-/// concat_basealignments(aln_list, /)
+/// concat_RawAlignments(aln_list, /)
 /// --
 /// 
 /// Concatenates a list of alignments over the site (column) axis.
-fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignment> {
+fn concat_RawAlignments(aln_list: Vec<&RawAlignment>) -> PyResult<RawAlignment> {
     if aln_list.len() == 0 {
         return Err(exceptions::ValueError::py_err("empty list"))
     }
@@ -1858,15 +1858,15 @@ fn concat_basealignments(aln_list: Vec<&BaseAlignment>) -> PyResult<BaseAlignmen
             sequences[i].push_str(&aln.sequences[i]);
         }
     }
-    Ok(BaseAlignment {ids, descriptions, sequences})
+    Ok(RawAlignment {ids, descriptions, sequences})
 }
 
 // Register python functions to PyO3
 #[pymodinit]
 fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<RawAlignment>()?;
     m.add_class::<BaseAlignment>()?;
-    m.add_class::<RecordAlignment>()?;
-    m.add_function(wrap_function!(concat_basealignments))?;
+    m.add_function(wrap_function!(concat_RawAlignments))?;
 
     Ok(())
 }
