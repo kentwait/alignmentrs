@@ -268,9 +268,16 @@ class _Cols:
         if copy is True:
             return aln
 
-    def iter(self):
-        for i in range(self._instance.ncols):
-            yield self._instance._alignment.get_col(i)
+    def iter(self, skip_n=1, chunk_size=1):
+        cnt = 0
+        out = []
+        for i in range(0, self._instance.ncols, skip_n):
+            if chunk_size == 1:
+                yield self._instance._alignment.get_col(i)
+            else:
+                cols = list(range(i, i+chunk_size))
+                yield [''.join(x) for x in 
+                    self._instance._alignment.get_cols(cols)]
 
     def __iter__(self):
         return self.iter()
