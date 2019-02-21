@@ -418,9 +418,14 @@ class Alignment:
             column_metadata=self._column_metadata.copy(deep=True)
         )
 
-    def set_chunk_size(self, value, func_map=None):
-        self._alignment.chunk_size = value
-        self._chunk_size = value
+    def set_chunk_size(self, value, func_map=None, copy=False):
+        aln = self
+        if copy is True:
+            aln = self.copy()
+        aln._alignment.chunk_size = value
+        aln._chunk_size = value
+        if copy is True:
+            return aln
         # TODO: add a way for the positional data to adjust
 
     # TODO: implement __copy__ and __deepcopy__
