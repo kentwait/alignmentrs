@@ -321,7 +321,7 @@ class Alignment:
     def _index_constructor(self, index):
         if index is None:
             return pd.Index(list(range(self._alignment.ncols)))
-        elif not isinstance(index, pd.Index):
+        elif isinstance(index, pd.Index):
             return index
         raise TypeError(
             'index must be a {} object'.format(pd.Index.__mro__[0]))
@@ -336,7 +336,7 @@ class Alignment:
                     raise ValueError('{} value length does not match the number of columns'.format(key))
             return pd.DataFrame(column_metadata, index=self.index)
         elif isinstance(column_metadata, pd.DataFrame):
-            if len(val) != len(self.index):
+            if len(column_metadata) != len(self.index):
                 raise ValueError('length of column_metadata dataframe does not match the number of columns'.format(key))
             return column_metadata
         raise TypeError('column_metadata must be a dictionary or a {} object'.format(pd.DataFrame.__mro__[0]))
