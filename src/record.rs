@@ -57,7 +57,7 @@ impl BaseRecord {
 
     #[setter(chunk_size)]
     pub fn set_chunk_size(&mut self, chunk_size: i32) -> PyResult<()> {
-        if self.len()? % chunk_size != 0 {
+        if self.str_len()? % chunk_size != 0 {
             return Err(exceptions::IndexError::py_err(
                 "invalid chunk_size: sequence cannot be cleanly divided into substrings"))
         }
@@ -97,7 +97,7 @@ impl BaseRecord {
 impl PyObjectProtocol for BaseRecord {
     fn __repr__(&self) -> PyResult<String> {
         // threshold is 15, 6 ... 6
-        let seq: String = match self.len() {
+        let seq: String = match self.str_len() {
             Ok(x) if x >= 15 => {
                 let sequence = self.get_sequence()?;
                 let mut seq = String::new();
@@ -116,7 +116,7 @@ impl PyObjectProtocol for BaseRecord {
         };
         Ok(format!(
             "BaseRecord(id={id}, sequence=\"{seq}\", length={len}, chunk_size={chunk_size}",
-            id=self.id, seq=seq, len=self.len()?, chunk_size=self.chunk_size
+            id=self.id, seq=seq, len=self.str_len()?, chunk_size=self.chunk_size
         ))
     }
 
@@ -126,11 +126,11 @@ impl PyObjectProtocol for BaseRecord {
             return Ok(format!(">{id} {desc}\n{seq_len}",
                 id=self.id,
                 desc=self.description,
-                seq_len=self.len()?))
+                seq_len=self.str_len()?))
         }
         return Ok(format!(">{id}\n{seq_len}",
                 id=self.id,
-                seq_len=self.len()?))
+                seq_len=self.str_len()?))
     }
 }
 
