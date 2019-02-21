@@ -8,8 +8,10 @@ use crate::record::BaseRecord;
 #[derive(Clone)]
 pub struct BaseAlignment {
 
+    #[prop(get)]
     pub records: Vec<BaseRecord>,
 
+    #[prop(get)]
     pub chunk_size: i32,
 
 }
@@ -98,10 +100,12 @@ impl BaseAlignment {
         Ok(values)
     }
 
-    #[getter]
-    /// list of BaseRecord: Returns the list of descriptions.
-    pub fn records(&self) -> PyResult<Vec<BaseRecord>> {
-        Ok(self.records.clone())
+    #[setter(chunk_size)]
+    pub fn set_chunk_size(&mut self, chunk_size: i32) -> PyResult<()> {
+        for i in 0..self.records.len() {
+            self.records[i].set_chunk_size(chunk_size)?;
+        }
+        Ok(())
     }
 
     // Sequence getters
