@@ -1,6 +1,4 @@
-from alignmentrs.aln.classes import Alignment, CatAlignment
-from alignmentrs.aln.funcs import fasta_file_to_alignment
+from alignmentrs.aln.classes import Alignment
 
-__all__ = ['Alignment', 'CatAlignment'
-           'fasta_file_to_alignment',
+__all__ = ['Alignment',
            ]

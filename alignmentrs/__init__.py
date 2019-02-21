@@ -2,7 +2,7 @@ from libalignmentrs.readers import fasta_to_records
 import libalignmentrs as librs
 
 from alignmentrs import aln, alnset
-from alignmentrs.aln import Alignment, fasta_file_to_alignment
+from alignmentrs.aln import Alignment
 from alignmentrs.alnset import AlignmentSet, fasta_directory_to_alignmentset
 
 
@@ -11,7 +11,6 @@ __version__ = '0.9.0'
 __all__ = [
     # From dynamic library
     'librs',
-    # 'BlockSpace',
     # Modules
     'aln', 'alnset',
     # Classes
