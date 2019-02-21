@@ -503,7 +503,7 @@ impl BaseAlignment {
         cols.reverse();
         let mut records: Vec<Vec<String>> = vec![Vec::with_capacity(self.records.len()); cols.len()];
         for i in 0..self.records.len() {
-            for j in cols.into_iter().map(|x| x as usize) {
+            for j in cols.iter().map(|x| *x as usize) {
                 records[i].insert(0, self.records[i].sequence[j].clone());
                 self.records[i].sequence.remove(j);
             }
