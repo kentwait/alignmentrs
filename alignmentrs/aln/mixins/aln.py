@@ -1,45 +1,11 @@
 from copy import deepcopy
 import itertools
 
-from libalignmentrs.record import Record
+from libalignmentrs.record import BaseRecord
+from libalignmentrs.alignment import BaseAlignment
 
 
-__all__ = ['PropsMixin', 'AlnMixin']
-
-class PropsMixin:
-    @property
-    def nrows(self):
-        """int: Returns the number of rows in the alignment."""
-        return sum(
-            (self.__getattribute__(m).nrows for m in self.__class__.members))
-
-    @property
-    def ncols(self):
-        """int: Returns the number of sites in the alignment."""
-        return self.samples.ncols
-
-    @property
-    def ids(self):
-        """list of str: Returns the list of identifiers."""
-        generator = (
-            self.__getattribute__(m).ids for m in self.__class__.members)
-        return [item for item in itertools.chain(*generator)]
-
-    @property
-    def descriptions(self):
-        """list of str: Returns the list of descriptions."""
-        generator = (
-            self.__getattribute__(m).descriptions 
-            for m in self.__class__.members)
-        return [item for item in itertools.chain(*generator)]
-
-    @property
-    def sequences(self):
-        """list of str: Returns the list of sequences."""
-        generator = (
-            self.__getattribute__(m).sequences 
-            for m in self.__class__.members)
-        return [item for item in itertools.chain(*generator)]
+__all__ = ['AlnMixin']
 
 
 class AlnMixin:
