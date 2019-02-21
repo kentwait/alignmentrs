@@ -128,7 +128,7 @@ impl BaseAlignment {
     /// 
     /// Returns a new RawAlignment object containing the sequences
     /// specified by a list of indices.
-    pub fn get_records(&self, mut rows: Vec<i32>) -> PyResult<Vec<BaseRecord>> {
+    pub fn get_records(&self, rows: Vec<i32>) -> PyResult<Vec<BaseRecord>> {
         check_empty_alignment(self)?;
         if let Some(x) = rows.iter().max() {
             check_row_index(self, *x as usize)?;
@@ -180,7 +180,7 @@ impl BaseAlignment {
         }
     }
 
-    pub fn get_rows(&self, mut rows: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
+    pub fn get_rows(&self, rows: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
         check_empty_alignment(self)?;
         if let Some(x) = rows.iter().max() {
             check_row_index(self, *x as usize)?;
@@ -325,7 +325,7 @@ impl BaseAlignment {
         self.remove_records(rows)
     }
 
-    fn drain_records(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment>> {
+    fn drain_records(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
         check_empty_alignment(self)?;
         rows.sort_unstable();
         rows.dedup();
@@ -370,13 +370,11 @@ impl BaseAlignment {
         if let Some(x) = rows.iter().max() {
             check_row_index(self, *x as usize)?;
         }
-        if let Some(x) = rows.iter().max() {
-            let mut records: Vec<BaseRecord> = Vec::with_capacity(rows.len());
+        let mut records: Vec<BaseRecord> = Vec::with_capacity(rows.len());
             for row in rows.iter() {
                 records.push(self.records[(*row) as usize].clone());
             }
             self.records = records;
-        }
         Ok(())
     }
 
@@ -478,11 +476,11 @@ impl BaseAlignment {
         self.remove_cols(cols)
     }
 
-    fn drain_cols(&mut self, mut cols: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
-        let aln = self.copy()?;
-        aln.retain_cols(cols)?;
-        self.remove_cols(cols)?;
-        aln
+    fn drain_cols(&mut self, cols: Vec<i32>) -> PyResult<BaseAlignment> {
+        let mut aln = self.copy()?;
+        aln.retain_cols(cols.clone())?;
+        self.remove_cols(cols.clone())?;
+        Ok(aln)
     }
 
     /// replace_col(coordinate, sequence, /)
@@ -519,7 +517,7 @@ impl BaseAlignment {
     /// 
     /// Reorders the alignment columns inplace based on a list of current
     /// column indices.
-    fn reorder_cols(&mut self, mut cols: Vec<i32>) -> PyResult<()> {
+    fn reorder_cols(&mut self, cols: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         if let Some(x) = cols.iter().max() {
             check_col_index(self, *x as usize)?;
@@ -590,7 +588,7 @@ impl BaseAlignment {
     /// Replace the names/identifiers of many entries simultaneously.
     /// Each name/identifier will replace an existing identifier based on the
     /// corresponding list of row indices.
-    fn replace_ids(&mut self, mut rows: Vec<i32>, values: Vec<&str>)
+    fn replace_ids(&mut self, rows: Vec<i32>, values: Vec<&str>)
     -> PyResult<()> {
         check_length_match(&rows, &values)?;
         check_empty_alignment(self)?;
@@ -619,7 +617,7 @@ impl BaseAlignment {
     /// Replace the descriptions of many entries simultaneously.
     /// Each description will replace an existing description based on the
     /// corresponding list of row indices.
-    fn replace_descriptions(&mut self, mut rows: Vec<i32>, values: Vec<&str>) 
+    fn replace_descriptions(&mut self, rows: Vec<i32>, values: Vec<&str>) 
     -> PyResult<()> {
         check_length_match(&rows, &values)?;
         check_empty_alignment(self)?;
@@ -647,7 +645,7 @@ impl BaseAlignment {
     /// Replaces many sequences simulateneously.
     /// Each sequence will replace an existing sequence based on the
     /// corresponding list of row indices.
-    fn replace_sequences(&mut self, mut rows: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
+    fn replace_sequences(&mut self, rows: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
         check_length_match(&rows, &values)?;
         check_empty_alignment(self)?;
         if let Some(x) = rows.iter().max() {
@@ -655,7 +653,7 @@ impl BaseAlignment {
         }
         for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
             check_length_match_i32(values[i].len() as i32, self.records[i].str_len()?)?;
-            self.records[i].set_sequence(values[i])?;
+            self.records[row].set_sequence(values[i])?;
         }
         Ok(())
     }
