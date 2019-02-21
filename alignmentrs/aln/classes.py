@@ -468,7 +468,7 @@ class Alignment:
         parts.append('chunk_size = {}'.format(self.chunk_size))
         if self:
             aln = idseq_to_display(self.ids, self.chunked_sequences)
-            parts += [None, aln, None]
+            parts += ['', aln, '']
         parts.append('metadata_keys = [{}]'.format(
             ', '.join(list(self.metadata.keys()))
         ))
