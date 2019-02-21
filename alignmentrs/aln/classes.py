@@ -279,7 +279,7 @@ class _Cols:
         if chunk_size is None:
             chunk_size = 1
 
-        for i in range(0, self._instance.ncols, skip_n):
+        for i in range(0, self._instance.ncols-(chunk_size-1), skip_n):
             if chunk_size == 1:
                 yield self._instance._alignment.get_col(i)
             else:
