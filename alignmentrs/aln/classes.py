@@ -101,7 +101,7 @@ class _Rows:
         for i in range(self._instance.nrows):
             yield self._instance._alignment.get_record(i)
 
-    def iter_sequence(self):
+    def iter_sequences(self):
         for i in range(self._instance.nrows):
             yield self._instance._alignment.get_row(i)
 
@@ -339,6 +339,11 @@ class Alignment(CoordsMixin, object):
         """list of str: Returns the list of sequences."""
         return self._alignment.sequences
 
+    @property
+    def chunked_sequences(self):
+        """list of list of str: Returns the list of sequences."""
+        return self._alignment.chunked_sequences
+
     # Methods
     # ==========================================================================
 
@@ -361,63 +366,64 @@ class Alignment(CoordsMixin, object):
 
     def __getitem__(self, key):
         if isinstance(key, str):
-            for member in self.__class__.members:
-                if key in self.__getattribute__(member).ids:
-                    i = self.__getattribute__(member).row_names_to_ids([key])
-                    assert len(i) == 1, \
-                        '{} matched multiple rows in the alignment.'.format(key)
-                    return self.samples.get_row(i[0])
-            raise KeyError('Key did not match any sample name/identifier')
-        elif isinstance(key, int):  # TODO: Fix bug
+            if key in self.ids:
+                i = self._alignment.row_names_to_indices([key])
+                return self.samples.get_row(i[0])
+            raise KeyError('key did not match any identifier')
+        elif isinstance(key, int):
             return self.samples.get_col(key)
-        raise TypeError('Key must be str or int.')
+        raise TypeError('key must be str or int')
 
     def __delitem__(self, key):
         if isinstance(key, str):
-            for member in self.__class__.members:
-                if key in self.__getattribute__(member).ids:
-                    i = self.samples.row_names_to_ids([key])
-                    assert len(i) == 1, \
-                        '{} matched multiple rows in the alignment.'.format(key)
-                    return self.__getattribute__(member).remove_rows(i)
-            raise KeyError('Key did not match any sample name/identifier')
+            if key in self.ids:
+                i = self._alignment.row_names_to_indices([key])
+                return self._alignment.remove_rows(i)
+            raise KeyError('key did not match any identifier')
         elif isinstance(key, int):
             return self.remove_cols(key)
-        raise TypeError('Key must be str or int.')
+        raise TypeError('key must be str or int')
 
     def __iter__(self):
         raise NotImplementedError(
-            'Iteration over alignment is ambiguous.\n'
-            'Use .iter_samples, .iter_markers, or .iter_rows '
-            'to iterate across samples, markers or all entries, respectively.\n'
-            'Use .iter_sample_sites, .iter_marker_sites, .iter_sites '
-            'to iterate across sites in samples, markers or '
-            'sites across both samples and markers, respectively.')
+            'Use .rows.iter() or .rows.iter_sequences() '
+            'to iterate over records or sample sequences, respectively.\n'
+            'Use .cols.iter() to iterate across columns in the alignment.')
 
     def __repr__(self):
-        if len(self.__class__.members) > 1:
-            member_reprs = ', '.join([
-                'n{}={}'.format(member, self.__getattribute__(member).nrows) 
-                for member in self.__class__.members
-            ])
-        else:
-            member_reprs = 'nrows={}'.format(self.nrows)
-        return '{}({}, ncols={})'.format(
-            self.__class__.__name__,
-            member_reprs,
-            self.ncols,
+        # self.name = name
+        # self.chunk_size = chunk_size
+        # self._alignment: BaseAlignment = \
+        #     self._alignment_constructor(records, chunk_size)
+        # self._index = self._index_constructor(index)
+        # self.metadata = self._metadata_constructor(metadata)
+        # self._column_metadata = \
+        #     self._col_metadata_constructor(column_metadata, self.index)
+        # self._rows = _Rows(self)
+        # self._cols = _Cols(self)
+        if self is False:
+            return ''
+        # Name
+        title = '[Alignment]'
+        name = 'name = {}'.format(self.name)
+        chunk_size = 'chunk_size = {}'.format(self.chunk_size)
+        aln = idseq_to_display(self.ids, self.chunked_sequences)
+        meta_keys = 'metadata_keys = [{}]\n'.format(
+            ', '.join([k for k,v in self.metadata.keys()])
         )
+        col_meta_keys = 'column_metadata_keys = [{}]\n'.format(
+            ', '.join([k for k,v in self._column_metadata.keys()])
+        )
+        return '\n'.join([title, name, chunk_size, aln, meta_keys,
+                          col_meta_keys])
 
     def __str__(self):
-        return self.to_fasta_str()
+        return str(self._alignment)
 
     def __len__(self):
         raise NotImplementedError(
-            'len() is not implemented for Alignment.\n'
-            'Use .ncols to get the number of columns, '
-            '.nsamples to get the number of samples, '
-            '.nmarkers to get the number of markers, or '
-            '.nrows to get all the number of alignment rows.')
+            'Use .nrows to get the number of samples, or '
+            '.ncols to get the number of columns in the alignment.')
 
     def __bool__(self):
         if self.ncols == 0 or self.nrows == 0:
@@ -433,6 +439,34 @@ class Alignment(CoordsMixin, object):
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+
+def idseq_to_display(ids, chunks, template='{name}     {seq}',
+                     max_length=20, id_width=15, sequence_width=55):
+        if len(ids):
+            return ''
+        def chunked_fn(x):
+            if len(x)*len(x[0]) <= sequence_width - (len(x) - 1):
+                return ' '.join(x)
+            left = (sequence_width//2) // len(x[0])
+            right = (sequence_width//2) // len(x[0])
+            return ' '.join(x[:left]) + '...' + ' '.join(x[-right:])
+
+        name_fn = lambda x: x if len(x) <= id_width else x[:id_width-3] + '...'
+        seq_fn = lambda x: ''.join(x) if len(x) <= sequence_width else \
+            ''.join(x[:(sequence_width//2)]) + '...' + \
+            ''.join(x[-((sequence_width//2)):])
+
+        fmt_names = (name_fn(name) for name in ids)
+        fmt_seqs = (chunked_fn(seq) if isinstance(seq, list) else seq_fn(seq)
+                    for seq in chunks)
+        
+        lines = [template.format(name=value[0], sequence=value[1])
+                 for i, value in enumerate(zip(fmt_names, fmt_seqs))
+                 if i > max_length]
+        if len(ids) > max_length:
+            lines[-1] = '...'        
+        return '\n'.join(lines)
 
 
 class SampleAlignment(JsonSerde, FastaSerde, SampleAlnMixin, SamplePropsMixin, Alignment):
