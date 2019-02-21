@@ -108,6 +108,9 @@ class _Rows:
     def __iter__(self):
         return self.iter()
 
+    def __len__(self):
+        return self._instance.nrows
+
 
 class _Cols:
     def __init__(self, instance):
@@ -176,6 +179,9 @@ class _Cols:
 
     def __iter__(self):
         return self.iter()
+    
+    def __len__(self):
+        return self._instance.ncols
 
 
 class Alignment(CoordsMixin, object):
