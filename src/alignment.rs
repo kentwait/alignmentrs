@@ -42,11 +42,13 @@ impl BaseAlignment {
     }
     
     #[getter]
+    /// int: Returns the number of rows in the BaseAlignment.
     pub fn nrows(&self) -> PyResult<i32> {
         Ok(self.records.len() as i32)
     }
 
     #[getter]
+    /// int: Returns the number of columns in the alignment.
     pub fn ncols(&self) -> PyResult<i32> {
         if self.records.len() == 0 {
             return Ok(0)
@@ -54,6 +56,41 @@ impl BaseAlignment {
         Ok(self.ncols)
     }
 
+    #[getter]
+    /// int: Returns the number of aligned characters (ncols * chunk_size).
+    pub fn nchars(&self) -> PyResult<i32> {
+        if self.records.len() == 0 {
+            return Ok(0)
+        }
+        Ok(self.ncols * self.chunk_size)
+    }
+
+    #[getter]
+    /// list of str: Returns the list of identifiers.
+    pub fn ids(&self) -> PyResult<Vec<String>> {
+        let values: Vec<String> = self.records.iter()
+            .map(|r| r.id.to_string() )
+            .collect();
+        Ok(values)
+    }
+
+    #[getter]
+    /// list of str: Returns the list of descriptions.
+    pub fn descriptions(&self) -> PyResult<Vec<String>> {
+        let values: Vec<String> = self.records.iter()
+            .map(|r| r.description.to_string() )
+            .collect();
+        Ok(values)
+    }
+
+    #[getter]
+    /// list of str: Returns the list of sequences.
+    pub fn sequences(&self) -> PyResult<Vec<String>> {
+        let values: Vec<String> = self.records.iter()
+            .map(|r| r.sequence.join("") )
+            .collect();
+        Ok(values)
+    }
 
     // Sequence getters
 
@@ -163,6 +200,7 @@ impl BaseAlignment {
             Err(x) => Err(x)
         }
     }
+
     pub fn get_rows_by_prefix(&self, prefixes: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         check_empty_alignment(self)?;
         let rows = match self.row_prefix_to_indices(prefixes) {
@@ -174,6 +212,7 @@ impl BaseAlignment {
             Err(x) => Err(x)
         }
     }
+
     pub fn get_rows_by_suffix(&self, suffixes: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         check_empty_alignment(self)?;
         let rows = match self.row_suffix_to_indices(suffixes) {
