@@ -47,12 +47,12 @@ impl BaseRecord {
 
     #[getter]
     pub fn len(&self) -> PyResult<i32> {
-        Ok((self.sequence.len() as i32)  * self.chunk_size)
+        Ok(self.sequence.len() as i32)
     }
 
     #[getter]
-    pub fn chunked_len(&self) -> PyResult<i32> {
-        return Ok(self.sequence.len() as i32)
+    pub fn str_len(&self) -> PyResult<i32> {
+        Ok((self.sequence.len() as i32)  * self.chunk_size)
     }
 
     #[setter(chunk_size)]
