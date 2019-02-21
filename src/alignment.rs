@@ -92,6 +92,21 @@ impl BaseAlignment {
         Ok(values)
     }
 
+    #[getter]
+    /// list of str: Returns the list of sequences.
+    pub fn chunked_sequences(&self) -> PyResult<Vec<Vec<String>>> {
+        let values: Vec<Vec<String>> = self.records.iter()
+            .map(|r| r.sequence.clone() )
+            .collect();
+        Ok(values)
+    }
+
+    #[getter]
+    /// list of BaseRecord: Returns the list of descriptions.
+    pub fn records(&self) -> PyResult<Vec<BaseRecord>> {
+        Ok(self.records.clone())
+    }
+
     // Sequence getters
 
     /// get_row(row_index, /)
