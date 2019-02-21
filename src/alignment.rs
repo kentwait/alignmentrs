@@ -773,6 +773,10 @@ impl BaseAlignment {
                 .collect();
         Ok(cols)
     }
+
+    pub fn copy(&self) -> PyResult<BaseAlignment> {
+        Ok(BaseAlignment{ records: self.records.clone(), chunk_size: self.chunk_size })
+    }
 }
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
