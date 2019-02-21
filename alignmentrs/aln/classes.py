@@ -3,13 +3,14 @@ import itertools
 import os
 from copy import deepcopy
 
+import pandas as pd
+
 from libalignmentrs.alignment import BaseAlignment
-from libalignmentrs.readers import (fasta_file_to_basealignment, 
-                                    fasta_file_to_basealignments)
+from libalignmentrs.readers import fasta_to_records
 from libalignmentrs.position import BlockSpace
-from libalignmentrs.record import Record
+from libalignmentrs.record import BaseRecord
 from alignmentrs.util import parse_comment_list, parse_cat_comment_list
-from .mixins import PropsMixin, AlnMixin
+from .mixins import RowOpsMixin, ColOpsMixin
 from .mixins import SamplePropsMixin, SampleAlnMixin
 from .mixins import MarkerPropsMixin, MarkerAlnMixin
 from .mixins import FastaSerde, JsonSerde
@@ -20,7 +21,133 @@ from .mixins.functions import subset
 __all__ = ['Alignment', 'CatAlignment']
 
 
-class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
+class _Rows:
+    def __init__(self, instance):
+        self._instance = instance
+        self._axis = 0
+
+    def insert(self, position, records, copy=False, dry_run=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+
+        # TODO: Check data type of position
+        if isinstance(records, BaseRecord):
+            self._instance._alignment.insert_rows(position, records)
+        elif isinstance(records, list) and \
+            sum((isinstance(rec, BaseAlignment) for rec in records)):
+            self._instance._alignment.insert_rows(position, records)
+        raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+
+    def prepend(self, records, copy=False, dry_run=False):
+        if isinstance(records, BaseRecord):
+            self._instance._alignment.insert_rows(0, records)
+        elif isinstance(records, list) and \
+            sum((isinstance(rec, BaseAlignment) for rec in records)):
+            self._instance._alignment.insert_row(0, records)
+        raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+
+    def append(self, records, copy=False, dry_run=False):
+        if isinstance(records, BaseRecord):
+            self._instance._alignment.append_rows(records)
+        elif isinstance(records, list) and \
+            sum((isinstance(rec, BaseAlignment) for rec in records)):
+            self._instance._alignment.append_row(records)
+        raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+
+    def remove(self, positions, copy=False, dry_run=False):
+        if isinstance(positions, int):
+            self._instance._alignment.remove_row(positions)
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)):
+            self._instance._alignment.remove_rows(positions)
+        raise TypeError('positions must be an int or a list of int')
+
+    def retain(self, positions, copy=False, dry_run=False):
+        if isinstance(positions, int):
+            self._instance._alignment.retain_row(positions)
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)):
+            self._instance._alignment.retain_rows(positions)
+        raise TypeError('positions must be an int or a list of int')
+
+    def drain(self, positions, dry_run=False):
+        raise NotImplementedError()
+
+    def replace(self, positions, records, copy=False, dry_rul=False):
+        # TODO: Check data type of positions
+        if isinstance(records, BaseRecord):
+            self._instance._alignment.replace_row(positions, records)
+        elif isinstance(records, list) and \
+            sum((isinstance(rec, BaseAlignment) for rec in records)):
+            self._instance._alignment.replace_rows(positions, records)
+        raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+
+    def reorder(self, positions, copy=False):
+        if isinstance(positions, int):
+            self._instance._alignment.reorder_rows([positions])
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)):
+            self._instance._alignment.reorder_rows(positions)
+        raise TypeError('positions must be an int or a list of int')
+
+class _Cols:
+    def __init__(self, instance):
+        self._instance = instance
+        self._axis = 1
+
+    def insert(self, position, values, copy=False, dry_run=False):
+        raise NotImplementedError()
+
+    def prepend(self, values, copy=False, dry_run=False):
+        raise NotImplementedError()
+
+    def append(self, values, copy=False, dry_run=False):
+        raise NotImplementedError()
+
+    def remove(self, positions, copy=False, dry_run=False):
+        if isinstance(positions, int):
+            self._instance._alignment.remove_col(positions)
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)):
+            self._instance._alignment.remove_cols(positions)
+        raise TypeError('positions must be an int or a list of int')
+
+    def retain(self, positions, copy=False, dry_run=False):
+        if isinstance(positions, int):
+            self._instance._alignment.retain_col(positions)
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)):
+            self._instance._alignment.retain_cols(positions)
+        raise TypeError('positions must be an int or a list of int')
+
+    def drain(self, positions, copy=False, dry_run=False):
+        raise NotImplementedError()
+
+    def replace(self, positions, values, copy=False, dry_rul=False):
+        # TODO: Check data type of positions
+        if isinstance(values, list):
+            if sum((isinstance(val, str) for val in values)):
+                values = [[val] for val in values]
+            elif sum((isinstance(val, list) for val in values)) and \
+                sum((isinstance(val, str) for lst in values for val in lst)):
+                pass
+            else:
+                raise TypeError('values must be a list of str, or list of list of str')
+        else:
+            raise TypeError('values must be a list of str, or list of list of str')
+        self._instance._alignment.replace_cols(positions, values)
+
+    def reorder(self, positions, copy=False):
+        if isinstance(positions, int):
+            self._instance._alignment.reorder_cols([positions])
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)):
+            self._instance._alignment.reorder_cols(positions)
+        raise TypeError('positions must be an int or a list of int')
+
+
+class Alignment(CoordsMixin, object):
     """Reperesents a multiple sequence alignment of samples.
 
     The Alignment object encapsulates information generally
@@ -41,12 +168,10 @@ class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
     metadata : dict
         Other information related to the alignment.
     """
-
-    members = ['samples']
-
-    def __init__(self, name, sample_alignment: BaseAlignment, 
-                 linspace: BlockSpace=None, metadata: dict=None,
+    def __init__(self, name, records, chunk_size: int=1,
+                 index=None, metadata: dict=None, column_metadata=None,
                  **kwargs):
+                # TODO: Update docstrings
         """Creates a new Alignment object from a sample BaseAlignment.
 
         Parameters
@@ -74,97 +199,128 @@ class Alignment(CoordsMixin, AlnMixin, PropsMixin, object):
             sites.
 
         """
-        if not sample_alignment:
-            raise ValueError(
-                'Cannot create an Alignment using an empty '
-                'sample_alignment BaseAlignment.')
         self.name = name
-        self.samples: BaseAlignment = sample_alignment
+        self.chunk_size = chunk_size
+        self._alignment: BaseAlignment = \
+            self._alignment_constructor(records, chunk_size)
+        self._index = self._index_constructor(index)
+        self.metadata = self._metadata_constructor(metadata)
+        self._column_metadata = \
+            self._col_metadata_constructor(column_metadata, self.index)
+        self._rows = _Rows(self)
+        self._cols = _Cols(self)
 
-        # Use given metadata
-        if metadata is not None:
-            if isinstance(metadata, dict):
-                self.metadata: OrderedDict = OrderedDict(metadata)
-            else:
-                raise TypeError('metadata is not a dictionary.')
+    # Constructors
+    def _alignment_constructor(self, records, chunk_size):
+        if isinstance(records, list):
+            if not sum((isinstance(rec, BaseRecord) for rec in records)):
+                raise TypeError('records must be a list of BaseRecord objects')
+            return BaseAlignment(records, chunk_size)
+        elif isinstance(records, BaseAlignment):
+            return records
+        raise TypeError('records must be a list of BaseRecord objects or a BaseAlignment')
+
+    def _metadata_constructor(self, metadata):
+        if not(metadata is not None and isinstance(metadata, dict)):
+            raise TypeError('metadata must be a dictionary object')
+        return metadata
+
+    def _index_constructor(self, index):
+        if not(index is not None and isinstance(index, pd.Index)):
+            raise TypeError('index must be a {} object'.format(
+                pd.Index.__mro__[0]))
+        if index is not None:
+            return pd.Index(list(range(self._alignment.ncols)))
+        return index
+
+    def _col_metadata_constructor(self, column_metadata, index):
+        if column_metadata is None:
+            pd.DataFrame(None, index=index)
+
+        if isinstance(column_metadata, dict):
+            # Check if values match the length of the index
+            for key, val in column_metadata.items():
+                if len(val) != len(self.index):
+                    raise ValueError('{} value length does not match the number of columns'.format(key))
+            return pd.DataFrame(column_metadata, index=self.index)
+        elif isinstance(column_metadata, pd.DataFrame):
+            if len(val) != len(self.index):
+                raise ValueError('length of column_metadata dataframe does not match the number of columns'.format(key))
+            return column_metadata
         else:
-            self.metadata: OrderedDict = OrderedDict()
+            raise TypeError('column_metadata must be a dictionary or a {} object'.format(pd.DataFrame.__mro__[0]))
 
-        # Use given linspace
-        if linspace is not None:
-            if isinstance(linspace, BlockSpace):
-                self._linspace: BlockSpace = linspace
-            else:
-                raise TypeError('linspace is not a BlockSpace object.')
-        else:
-            start = kwargs['linspace_default_start'] \
-                    if 'linspace_default_start' in kwargs.keys() else 0
-            stop = kwargs['linspace_default_stop'] \
-                    if 'linspace_default_stop' in kwargs.keys() else \
-                    start + self.samples.ncols
-            state = kwargs['linspace_default_state'] \
-                    if 'linspace_default_state' in kwargs.keys() else \
-                    "1"
-            self._linspace: BlockSpace = BlockSpace(start, stop, state)
+    # Properties
+    @property
+    def rows(self):
+        return self._row
 
+    @property
+    def cols(self):
+        return self._cols
 
-    @classmethod
-    def _from_basealignment(cls, name: str, sample_alignment: BaseAlignment,
-                            linspace: BlockSpace=None, metadata: dict=None,
-                            **kwargs):
-        obj = super(Alignment, cls).__new__(cls)
-        if not sample_alignment:
-            raise ValueError(
-                'Cannot create an Alignment using an empty '
-                'sample_alignment BaseAlignment.')
-        obj.name = name
-        obj.samples: BaseAlignment = sample_alignment
+    @property
+    def index(self):
+        """pandas.core.indexes.base.Index: Returns the column index
+        of the alignment."""
+        return self._index
 
-        # Use given metadata
-        if metadata is not None:
-            if isinstance(metadata, dict):
-                obj.metadata: OrderedDict = OrderedDict(metadata)
-            else:
-                raise TypeError('metadata is not a dictionary.')
-        else:
-            obj.metadata: OrderedDict = OrderedDict()
+    @property
+    def column_metadata(self):
+        """pandas.core.frame.DataFrame: Returns the associated column
+        metadata as a pandas DataFrame."""
+        return self._column_metadata
 
-        # Use given linspace
-        if linspace is not None:
-            if isinstance(linspace, BlockSpace):
-                obj._linspace: BlockSpace = linspace
-            else:
-                raise TypeError('linspace is not a BlockSpace object.')
-        else:
-            start = kwargs['linspace_default_start'] \
-                    if 'linspace_default_start' in kwargs.keys() else 0
-            stop = kwargs['linspace_default_stop'] \
-                    if 'linspace_default_stop' in kwargs.keys() else \
-                    start + obj.samples.ncols
-            state = kwargs['linspace_default_state'] \
-                    if 'linspace_default_state' in kwargs.keys() else \
-                    "1"
-            obj._linspace: BlockSpace = BlockSpace(start, stop, state)
-        return obj
+    @property
+    def nrows(self):
+        """int: Returns the number of rows in the alignment."""
+        return self._alignment.nrows
 
+    @property
+    def ncols(self):
+        """int: Returns the number of columns in the alignment."""
+        return self._alignment.ncols
+
+    @property
+    def nchars(self):
+        """int: Returns the number of aligned characters
+        (ncols * chunk_size)."""
+        return self._alignment.nchars
+
+    @property
+    def ids(self):
+        """list of str: Returns the list of identifiers."""
+        return self._alignment.ids
+
+    @property
+    def descriptions(self):
+        """list of str: Returns the list of descriptions."""
+        return self._alignment.descriptions
+
+    @property
+    def sequences(self):
+        """list of str: Returns the list of sequences."""
+        return self._alignment.sequences
+
+    # Methods
+    # ==========================================================================
+
+    def to_records(self):
+        return self._alignment.get_records(list(range(self.nrows)))
+
+    def copy(self):
+        return self.__class__(
+            self.name, self._alignment,
+            chunk_size=self.chunk_size,
+            index=self._index.copy(deep=True),
+            metadata=deepcopy(self.metadata),
+            column_metadata=self._column_metadata.copy(deep=True)
+        )
+
+    # TODO: implement __copy__ and __deepcopy__
 
     # Special methods
     # ==========================================================================
-    def copy(self):
-        """Creates a new deep copy of the alignment.
-
-        Returns
-        -------
-        Alignment
-            The new alignment object is a deep copy of the original alignment.
-
-        """
-        new_alns = (self.__getattribute__(member).copy()
-                    for member in self.__class__.members)
-        return self.__class__._from_basealignment(
-            self.name, *new_alns,
-            metadata=deepcopy(self.metadata),
-            linspace=self._linspace.copy())
 
     def __getitem__(self, key):
         if isinstance(key, str):
