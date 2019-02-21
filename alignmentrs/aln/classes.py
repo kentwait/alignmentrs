@@ -18,7 +18,7 @@ class _Rows:
         self._instance = instance
         self._axis = 0
 
-    def insert(self, position, records, copy=False, dry_run=False):
+    def insert(self, position, records, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -33,7 +33,7 @@ class _Rows:
         if copy is True:
             return aln
 
-    def prepend(self, records, copy=False, dry_run=False):
+    def prepend(self, records, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -47,7 +47,7 @@ class _Rows:
         if copy is True:
             return aln
 
-    def append(self, records, copy=False, dry_run=False):
+    def append(self, records, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -61,7 +61,7 @@ class _Rows:
         if copy is True:
             return aln
 
-    def remove(self, positions, copy=False, dry_run=False):
+    def remove(self, positions, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -75,7 +75,7 @@ class _Rows:
         if copy is True:
             return aln
 
-    def retain(self, positions, copy=False, dry_run=False):
+    def retain(self, positions, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -89,10 +89,10 @@ class _Rows:
         if copy is True:
             return aln
 
-    def drain(self, positions, dry_run=False):
+    def drain(self, positions):
         raise NotImplementedError()
 
-    def replace(self, positions, records, copy=False, dry_rul=False):
+    def replace(self, positions, records, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -122,10 +122,27 @@ class _Rows:
             return aln
 
     def filter(self, function, copy=False, dry_run=False):
-        # Function accepts a BaseRecord object, outputs true or false
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+        # Function accepts a Record, outputs true or false
         if not(function is not None and callable(function)):
             raise TypeError('missing filter function')
-        positions = function()
+        positions = [i for i in range(aln.nrows) 
+                     if function(aln._alignment.get_record(i))]
+        remove_positions = aln._alignment.invert_rows(positions)
+        if dry_run:
+            parts = []
+            parts.append('[Filter]')
+            parts.append('True = {}/{}'.format(
+                len(positions), aln.nrows))
+            parts.append('False = {}/{}'.format(
+                len(remove_positions), aln.nrows))
+            print('\n'.join(parts))
+            return {'function': function, True: positions, False: remove_positions}
+        aln.rows.remove(remove_positions)
+        if copy is True:
+            return aln
 
     def iter(self):
         for i in range(self._instance.nrows):
@@ -147,47 +164,53 @@ class _Cols:
         self._instance = instance
         self._axis = 1
 
-    def insert(self, position, values, copy=False, dry_run=False):
+    def insert(self, position, values, copy=False):
         raise NotImplementedError()
 
-    def prepend(self, values, copy=False, dry_run=False):
+    def prepend(self, values, copy=False):
         raise NotImplementedError()
 
-    def append(self, values, copy=False, dry_run=False):
+    def append(self, values, copy=False):
         raise NotImplementedError()
 
-    def remove(self, positions, copy=False, dry_run=False):
+    def remove(self, positions, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
         if isinstance(positions, int):
-            aln._alignment.remove_col(positions)
+            positions = [positions]
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            aln._alignment.remove_cols(positions)
+            pass
         else:
             raise TypeError('positions must be an int or a list of int')
+        retain_positions = aln._alignment.invert_cols(positions)        
+        aln._alignment.remove_cols(positions)
+        aln._column_metadata = aln._column_metadata.iloc[retain_positions]
         if copy is True:
             return aln
 
-    def retain(self, positions, copy=False, dry_run=False):
+    def retain(self, positions, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
         if isinstance(positions, int):
-            aln._alignment.retain_col(positions)
+            positions = [positions]
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            aln._alignment.retain_cols(positions)
+            pass
         else:        
             raise TypeError('positions must be an int or a list of int')
+        remove_positions = aln._alignment.invert_cols(positions)
+        aln._alignment.remove_cols(remove_positions)
+        aln._column_metadata = aln._column_metadata.iloc[positions]
         if copy is True:
             return aln
 
-    def drain(self, positions, copy=False, dry_run=False):
+    def drain(self, positions):
         raise NotImplementedError()
 
-    def replace(self, positions, values, copy=False, dry_rul=False):
+    def replace(self, positions, values, copy=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -211,19 +234,39 @@ class _Cols:
         if copy is True:
             aln = self._instance.copy()
         if isinstance(positions, int):
-            aln._alignment.reorder_cols([positions])
+            positions = [positions]
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            aln._alignment.reorder_cols(positions)
-        raise TypeError('positions must be an int or a list of int')
+            pass
+        else:
+            raise TypeError('positions must be an int or a list of int')
+        aln._alignment.reorder_cols(positions)
+        aln._column_metadata = aln._column_metadata.iloc[positions]
         if copy is True:
             return aln
 
     def filter(self, function, copy=False, dry_run=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         # Function accepts a list of str, outputs true or false
         if not(function is not None and callable(function)):
             raise TypeError('missing filter function')
-        positions = function()
+        positions = [i for i in range(aln.ncols) 
+                     if function(aln._alignment.get_col(i))]
+        remove_positions = aln._alignment.invert_cols(positions)
+        if dry_run:
+            parts = []
+            parts.append('[Filter]')
+            parts.append('True = {}/{}'.format(
+                len(positions), aln.ncols))
+            parts.append('False = {}/{}'.format(
+                len(remove_positions), aln.ncols))
+            print('\n'.join(parts))
+            return {'function': function, True: positions, False: remove_positions}
+        aln.cols.remove(remove_positions)
+        if copy is True:
+            return aln
 
     def iter(self):
         for i in range(self._instance.ncols):
@@ -525,7 +568,7 @@ def idseq_to_display(ids, chunked_sequences, template='{name}     {seq}',
     
     lines = [template.format(name=value[0], seq=value[1])
              for i, value in enumerate(zip(fmt_names, fmt_seqs))
-             if i > max_length]
+             if i < max_length]
     if len(ids) > max_length:
         lines[-1] = '...'
     return '\n'.join(lines)

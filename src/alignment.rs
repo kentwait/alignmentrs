@@ -766,7 +766,15 @@ impl BaseAlignment {
         Ok(indices)
     }
     
-    pub fn index_invert(&self, cols: Vec<i32>) -> PyResult<Vec<i32>> {
+    pub fn invert_rows(&self, rows: Vec<i32>) -> PyResult<Vec<i32>> {
+        let rows: Vec<i32> = (0..self.nrows()?)
+                .filter(|i| !rows.contains(&(*i as i32)) )
+                .map(|i| i as i32 )
+                .collect();
+        Ok(rows)
+    }
+
+    pub fn invert_cols(&self, cols: Vec<i32>) -> PyResult<Vec<i32>> {
         let cols: Vec<i32> = (0..self.ncols()?)
                 .filter(|i| !cols.contains(&(*i as i32)) )
                 .map(|i| i as i32 )
