@@ -101,6 +101,10 @@ class _Rows:
         for i in range(self._instance.nrows):
             yield self._instance._alignment.get_record(i)
 
+    def iter_sequence(self):
+        for i in range(self._instance.nrows):
+            yield self._instance._alignment.get_row(i)
+
     def __iter__(self):
         return self.iter()
 
