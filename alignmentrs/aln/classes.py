@@ -22,73 +22,104 @@ class _Rows:
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
-
         # TODO: Check data type of position
         if isinstance(records, BaseRecord):
-            self._instance._alignment.insert_rows(position, records)
+            aln._alignment.insert_rows(position, records)
         elif isinstance(records, list) and \
             sum((isinstance(rec, BaseAlignment) for rec in records)):
-            self._instance._alignment.insert_rows(position, records)
+            aln._alignment.insert_rows(position, records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+        if copy is True:
+            return aln
 
     def prepend(self, records, copy=False, dry_run=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         if isinstance(records, BaseRecord):
-            self._instance._alignment.insert_rows(0, records)
+            aln._alignment.insert_rows(0, records)
         elif isinstance(records, list) and \
             sum((isinstance(rec, BaseAlignment) for rec in records)):
-            self._instance._alignment.insert_row(0, records)
+            aln._alignment.insert_row(0, records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+        if copy is True:
+            return aln
 
     def append(self, records, copy=False, dry_run=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         if isinstance(records, BaseRecord):
-            self._instance._alignment.append_rows(records)
+            aln._alignment.append_rows(records)
         elif isinstance(records, list) and \
             sum((isinstance(rec, BaseAlignment) for rec in records)):
-            self._instance._alignment.append_row(records)
+            aln._alignment.append_row(records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+        if copy is True:
+            return aln
 
     def remove(self, positions, copy=False, dry_run=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         if isinstance(positions, int):
-            self._instance._alignment.remove_row(positions)
+            aln._alignment.remove_row(positions)
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            self._instance._alignment.remove_rows(positions)
+            aln._alignment.remove_rows(positions)
         else:
             raise TypeError('positions must be an int or a list of int')
+        if copy is True:
+            return aln
 
     def retain(self, positions, copy=False, dry_run=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         if isinstance(positions, int):
-            self._instance._alignment.retain_row(positions)
+            aln._alignment.retain_row(positions)
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            self._instance._alignment.retain_rows(positions)
+            aln._alignment.retain_rows(positions)
         else:
             raise TypeError('positions must be an int or a list of int')
+        if copy is True:
+            return aln
 
     def drain(self, positions, dry_run=False):
         raise NotImplementedError()
 
     def replace(self, positions, records, copy=False, dry_rul=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         # TODO: Check data type of positions
         if isinstance(records, BaseRecord):
-            self._instance._alignment.replace_row(positions, records)
+            aln._alignment.replace_row(positions, records)
         elif isinstance(records, list) and \
             sum((isinstance(rec, BaseAlignment) for rec in records)):
-            self._instance._alignment.replace_rows(positions, records)
+            aln._alignment.replace_rows(positions, records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+        if copy is True:
+            return aln
 
     def reorder(self, positions, copy=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         if isinstance(positions, int):
-            self._instance._alignment.reorder_rows([positions])
+            aln._alignment.reorder_rows([positions])
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            self._instance._alignment.reorder_rows(positions)
+            aln._alignment.reorder_rows(positions)
         else:        
             raise TypeError('positions must be an int or a list of int')
+        if copy is True:
+            return aln
 
     def filter(self, function, copy=False, dry_run=False):
         # Function accepts a BaseRecord object, outputs true or false
@@ -126,27 +157,40 @@ class _Cols:
         raise NotImplementedError()
 
     def remove(self, positions, copy=False, dry_run=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         if isinstance(positions, int):
-            self._instance._alignment.remove_col(positions)
+            aln._alignment.remove_col(positions)
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            self._instance._alignment.remove_cols(positions)
+            aln._alignment.remove_cols(positions)
         else:
             raise TypeError('positions must be an int or a list of int')
+        if copy is True:
+            return aln
 
     def retain(self, positions, copy=False, dry_run=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         if isinstance(positions, int):
-            self._instance._alignment.retain_col(positions)
+            aln._alignment.retain_col(positions)
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            self._instance._alignment.retain_cols(positions)
+            aln._alignment.retain_cols(positions)
         else:        
             raise TypeError('positions must be an int or a list of int')
+        if copy is True:
+            return aln
 
     def drain(self, positions, copy=False, dry_run=False):
         raise NotImplementedError()
 
     def replace(self, positions, values, copy=False, dry_rul=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         # TODO: Check data type of positions
         if isinstance(values, list):
             if sum((isinstance(val, str) for val in values)):
@@ -158,15 +202,22 @@ class _Cols:
                 raise TypeError('values must be a list of str, or list of list of str')
         else:
             raise TypeError('values must be a list of str, or list of list of str')
-        self._instance._alignment.replace_cols(positions, values)
+        aln._alignment.replace_cols(positions, values)
+        if copy is True:
+            return aln
 
     def reorder(self, positions, copy=False):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
         if isinstance(positions, int):
-            self._instance._alignment.reorder_cols([positions])
+            aln._alignment.reorder_cols([positions])
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            self._instance._alignment.reorder_cols(positions)
+            aln._alignment.reorder_cols(positions)
         raise TypeError('positions must be an int or a list of int')
+        if copy is True:
+            return aln
 
     def filter(self, function, copy=False, dry_run=False):
         # Function accepts a list of str, outputs true or false
