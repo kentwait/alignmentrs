@@ -348,6 +348,21 @@ impl BaseAlignment {
 
     // Sequence setters
 
+    fn replace_row(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
+        self.replace_rows(vec![row], vec![value])
+    }
+
+    fn replace_rows(&mut self, rows: Vec<i32>, values: Vec<&BaseRecord>) -> PyResult<()> {
+        check_length_match(&rows, &values)?;
+        check_empty_alignment(self)?;
+        for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
+            check_row_index(self, row)?;
+            check_length_match_i32(values[i].len()?, self.records[i].len()?)?;
+            self.records[row] = values[i].clone();
+        }
+        Ok(())
+    }
+
     /// replace_sequence(index, value, /)
     /// --
     ///
@@ -813,6 +828,14 @@ pub fn check_col_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
 
 pub fn check_length_match<T, U>(v1: &Vec<T>, v2: &Vec<U>) -> PyResult<()> {
     if v1.len() != v2.len() {
+        return Err(exceptions::ValueError::py_err(
+            "Length mismatch."))
+    }
+    Ok(())
+}
+
+pub fn check_length_match_i32(len1: i32, len2:i32) -> PyResult<()> {
+    if len1 != len2 {
         return Err(exceptions::ValueError::py_err(
             "Length mismatch."))
     }
