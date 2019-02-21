@@ -10,7 +10,6 @@ pub struct BaseAlignment {
 
     pub records: Vec<BaseRecord>,
 
-    pub ncols: i32,
     pub chunk_size: i32,
 
 }
@@ -22,7 +21,6 @@ impl BaseAlignment {
     /// and sequences.
     fn __new__(obj: &PyRawObject, records: Vec<&BaseRecord>, chunk_size: i32) -> PyResult<()> {
         // TODO: Check if all vectors have the same size.
-        let ncols = 0;  // TODO: Get ncols from first record else 0
         let mut new_records: Vec<BaseRecord> = Vec::new();
         for b in records.into_iter() {
             let mut record: BaseRecord = b.clone();
@@ -35,8 +33,7 @@ impl BaseAlignment {
         obj.init(|_| {
             BaseAlignment { 
                 records: new_records,
-                ncols: ncols,
-                chunk_size
+                chunk_size,
             }
         })
     }
@@ -53,7 +50,7 @@ impl BaseAlignment {
         if self.records.len() == 0 {
             return Ok(0)
         }
-        Ok(self.ncols)
+        self.records[0].len()
     }
 
     #[getter]
@@ -62,7 +59,7 @@ impl BaseAlignment {
         if self.records.len() == 0 {
             return Ok(0)
         }
-        Ok(self.ncols * self.chunk_size)
+        self.records[0].str_len()
     }
 
     #[getter]
@@ -302,7 +299,7 @@ impl BaseAlignment {
                 chunk_size,
             })
         }
-        Ok(BaseAlignment{ records, ncols: ncols as i32, chunk_size})
+        Ok(BaseAlignment{ records, chunk_size })
     }
 
 
@@ -372,6 +369,8 @@ impl BaseAlignment {
         check_empty_alignment(self)?;
         for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
             check_row_index(self, row)?;
+            // TODO: Make function that checks if records have the same length and string length
+            check_length_match_i32(values[i].str_len()?, self.records[i].str_len()?)?;
             check_length_match_i32(values[i].len()?, self.records[i].len()?)?;
             self.records[row] = values[i].clone();
         }
@@ -398,9 +397,7 @@ impl BaseAlignment {
         check_empty_alignment(self)?;
         for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
             check_row_index(self, row)?;
-            check_length_match(
-                &values[i].chars().collect(), 
-                &self.records[i].sequence.join("").chars().collect())?;
+            check_length_match_i32(values[i].len() as i32, self.records[i].str_len()?)?;
             self.records[i].set_sequence(values[i])?;
         }
         Ok(())
@@ -765,6 +762,13 @@ impl BaseAlignment {
         Ok(indices)
     }
     
+    pub fn index_invert(&self, cols: Vec<i32>) -> PyResult<Vec<i32>> {
+        let cols: Vec<i32> = (0..self.ncols()?)
+                .filter(|i| !cols.contains(&(*i as i32)) )
+                .map(|i| i as i32 )
+                .collect();
+        Ok(cols)
+    }
 }
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
@@ -772,7 +776,7 @@ impl BaseAlignment {
 impl PyObjectProtocol for BaseAlignment {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("BaseAlignment(nrows={nrows}, ncols={ncols})",
-                   nrows=self.nrows()?, ncols=self.nrows()?))
+                   nrows=self.nrows()?, ncols=self.ncols()?))
     }
 
     fn __str__(&self) -> PyResult<String> {
