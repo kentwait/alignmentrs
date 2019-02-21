@@ -678,8 +678,8 @@ impl BaseAlignment {
         if let Some(x) = cols.iter().max() {
             check_col_index(self, *x as usize)?;
             for i in 0..self.records.len() {
-                let sequence = (0..self.records[i].sequence.len())
-                    .map(|i| self.records[i].sequence[i].clone())
+                let sequence = cols.iter()
+                    .map(|j| self.records[i].sequence[(*j) as usize].to_string())
                     .collect();
                 self.records[i].sequence = sequence;
             }
