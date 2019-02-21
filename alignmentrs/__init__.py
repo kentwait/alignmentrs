@@ -1,4 +1,4 @@
-from libalignmentrs.readers import fasta_file_to_records
+from libalignmentrs.readers import fasta_to_records
 import libalignmentrs as librs
 
 from alignmentrs import aln, alnset
@@ -18,4 +18,4 @@ __all__ = [
     'Alignment', 'AlignmentSet',
     # Functions
     'fasta_file_to_alignment', 'fasta_directory_to_alignmentset',
-    'fasta_file_to_records']
+    'fasta_to_records']
