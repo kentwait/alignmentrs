@@ -9,6 +9,36 @@ from libalignmentrs.position import simple_block_str_to_linspace
 __all__ = ['fasta_file_to_lists']
 
 
+def idseq_to_display(ids, chunked_sequences, template='{name}     {seq}',
+                     max_length=20, id_width=15, sequence_width=55):
+    if not len(ids):
+        return ''
+    def chunked_fn(x):
+        if len(x)*len(x[0]) <= sequence_width - (len(x) - 1):
+            return ' '.join(x)
+        left = (sequence_width//2) // len(x[0])
+        right = (sequence_width//2) // len(x[0])
+        return ' '.join(x[:left]) + '...' + ' '.join(x[-right:])
+
+    name_fn = lambda x: x + (' '*(id_width-len(x))) if len(x) <= id_width else \
+        x[:id_width-3] + '...'
+    seq_fn = lambda x: ''.join(x) if len(x) <= sequence_width else \
+        ''.join(x[:(sequence_width//2)]) + '...' + \
+        ''.join(x[-((sequence_width//2)):])
+
+    fmt_names = (name_fn(name) for name in ids)
+    fmt_seqs = ((chunked_fn(chunks) if len(chunks[0]) > 1 else seq_fn(chunks))
+                if len(chunks) > 0 else ''
+                for chunks in chunked_sequences)
+    
+    lines = [template.format(name=value[0], seq=value[1])
+             for i, value in enumerate(zip(fmt_names, fmt_seqs))
+             if i < max_length]
+    if len(ids) > max_length:
+        lines[-1] = '...'
+    return '\n'.join(lines)
+
+
 def fasta_file_to_lists(path, marker_kw=None):
     """Reads a FASTA formatted text file to a list.
 
@@ -95,6 +125,7 @@ def parse_comment_list(comment_list: list):
             comments_d['linspace'] = \
                 simple_block_str_to_linspace(v)
     return comments_d
+
 
 def parse_cat_comment_list(comment_list: list):
     comments_d = dict()
