@@ -325,14 +325,7 @@ impl BaseAlignment {
         self.remove_records(rows)
     }
 
-    fn drain_record(&mut self, row: i32) -> PyResult<BaseRecord> {
-        match self.drain_records(vec![row]) {
-            Ok(vals) => Ok(vals[0].clone()),
-            Err(x) => Err(x)
-        }
-    }
-
-    fn drain_records(&mut self, mut rows: Vec<i32>) -> PyResult<Vec<BaseRecord>> {
+    fn drain_records(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment>> {
         check_empty_alignment(self)?;
         rows.sort_unstable();
         rows.dedup();
@@ -345,7 +338,7 @@ impl BaseAlignment {
             records.insert(0, self.records[row].clone());
             self.records.remove(row);
         }
-        Ok(records) 
+        Ok(BaseAlignment{ records, chunk_size: self.chunk_size}) 
     }
 
     fn replace_record(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
@@ -485,30 +478,11 @@ impl BaseAlignment {
         self.remove_cols(cols)
     }
 
-    // drain
-    fn drain_col(&mut self, row: i32) -> PyResult<Vec<String>> {
-        match self.drain_cols(vec![row]) {
-            Ok(vals) => Ok(vals[0].clone()),
-            Err(x) => Err(x)
-        }
-    }
-
     fn drain_cols(&mut self, mut cols: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
-        check_empty_alignment(self)?;
-        cols.sort_unstable();
-        cols.dedup();
-        if let Some(x) = cols.iter().max() {
-            check_col_index(self, *x as usize)?;
-        }
-        cols.reverse();
-        let mut records: Vec<Vec<String>> = vec![Vec::with_capacity(self.records.len()); cols.len()];
-        for i in 0..self.records.len() {
-            for j in cols.iter().map(|x| *x as usize) {
-                records[i].insert(0, self.records[i].sequence[j].clone());
-                self.records[i].sequence.remove(j);
-            }
-        }
-        Ok(records)
+        let aln = self.copy()?;
+        aln.retain_cols(cols)?;
+        self.remove_cols(cols)?;
+        aln
     }
 
     /// replace_col(coordinate, sequence, /)

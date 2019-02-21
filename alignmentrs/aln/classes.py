@@ -3,7 +3,7 @@ import itertools
 import os
 from copy import deepcopy
 
-import pandas as pd
+import pandas
 
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
@@ -90,7 +90,22 @@ class _Rows:
             return aln
 
     def drain(self, positions):
-        raise NotImplementedError()
+        if isinstance(positions, int):
+            positions = [positions]
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)):
+            pass
+        else:        
+            raise TypeError('positions must be an int or a list of int')
+        remove_positions = self._instance._alignment.invert_rows(positions)
+        new_baln = self._instance._alignment.drain_records(remove_positions)
+        aln = self._instance.__class__(
+            self._instance.name,
+            new_baln, 
+            chunk_size=self._instance.chunk_size,
+            index=self._instance._index.copy(deep=True), 
+            metadata=deepcopy(self._instance.metadata), 
+            column_metadata=self._instance._column_metadata.copy(deep=True))
 
     def replace(self, positions, records, copy=False):
         aln = self._instance
@@ -236,7 +251,26 @@ class _Cols:
             return aln
 
     def drain(self, positions):
-        raise NotImplementedError()
+        if isinstance(positions, int):
+            positions = [positions]
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)):
+            pass
+        else:        
+            raise TypeError('positions must be an int or a list of int')
+        remove_positions = self._instance._alignment.invert_cols(positions)
+        new_baln = self._instance._alignment.drain_cols(remove_positions)
+        new_col_metadata = self._instance \
+            ._column_metadata.iloc[remove_positions].copy(deep=True)
+        self._instance._column_metadata = self._instance \
+            ._column_metadata.iloc[positions].copy(deep=True)
+        aln = self._instance.__class__(
+            self._instance.name,
+            new_baln, 
+            chunk_size=self._instance.chunk_size,
+            index=pandas.Index(new_col_metadata.index), 
+            metadata=deepcopy(self._instance.metadata), 
+            column_metadata=new_col_metadata)
 
     def replace(self, positions, values, copy=False):
         aln = self._instance
@@ -422,26 +456,26 @@ class Alignment:
 
     def _index_constructor(self, index):
         if index is None:
-            return pd.Index(list(range(self._alignment.ncols)))
-        elif isinstance(index, pd.Index):
+            return pandas.Index(range(self._alignment.ncols))
+        elif isinstance(index, pandas.Index):
             return index
         raise TypeError(
-            'index must be a {} object'.format(pd.Index.__mro__[0]))
+            'index must be a {} object'.format(pandas.Index.__mro__[0]))
 
     def _col_metadata_constructor(self, column_metadata, index):
         if column_metadata is None:
-            return pd.DataFrame(None, index=index)
+            return pandas.DataFrame(None, index=index)
         elif isinstance(column_metadata, dict):
             # Check if values match the length of the index
             for key, val in column_metadata.items():
                 if len(val) != len(self.index):
                     raise ValueError('{} value length does not match the number of columns'.format(key))
-            return pd.DataFrame(column_metadata, index=self.index)
-        elif isinstance(column_metadata, pd.DataFrame):
+            return pandas.DataFrame(column_metadata, index=self.index)
+        elif isinstance(column_metadata, pandas.DataFrame):
             if len(column_metadata) != len(self.index):
                 raise ValueError('length of column_metadata dataframe does not match the number of columns'.format(key))
             return column_metadata
-        raise TypeError('column_metadata must be a dictionary or a {} object'.format(pd.DataFrame.__mro__[0]))
+        raise TypeError('column_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
 
     # Properties
     @property
