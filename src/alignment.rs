@@ -598,19 +598,20 @@ impl BaseAlignment {
     /// Inserts one entry into the multiple sequence alignment
     /// at the specified position.
     fn insert_row(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
-        self.insert_rows(vec![row], vec![value])
+        self.insert_rows(row, vec![value])
     }
 
     /// insert_rows(position, ids, descriptions, sequences, /)
     /// 
     /// Inserts one or more samples at the specified position.
-    fn insert_rows(&mut self, rows: Vec<i32>, values: Vec<&BaseRecord>) -> PyResult<()> {
-        for (i, row) in rows.into_iter().enumerate() {
-            if self.nrows()? < row {
-                return Err(exceptions::IndexError::py_err(
-                    "Row index out of range."))
-            }
-            self.records.insert(row as usize, values[i].clone());
+    fn insert_rows(&mut self, mut row: i32, values: Vec<&BaseRecord>) -> PyResult<()> {
+        if self.nrows()? < row {
+            return Err(exceptions::IndexError::py_err(
+                "Row index out of range."))
+        }
+        for value in values.into_iter() {
+            self.records.insert(row as usize, value.clone());
+            row += 1;
         }
         Ok(())
     }
