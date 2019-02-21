@@ -1,9 +1,10 @@
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import itertools
 import os
 from copy import deepcopy
 
 import pandas
+import numpy
 
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
@@ -197,15 +198,48 @@ class Alignment:
             column_metadata=self._column_metadata.copy(deep=True)
         )
 
-    def set_chunk_size(self, value, func_map=None, copy=False):
+    def set_chunk_size(self, value, copy=False, reducer_func=None, expander_func=None):
         aln = self
         if copy is True:
             aln = self.copy()
+        # Changing chunk size to invalid size will raise an error
         aln._alignment.chunk_size = value
         aln._chunk_size = value
+
+        # Adjust column metadata
+        # current size -> 1's -> new size
+        if expander_func is None:
+            # more columns than original, copy
+            # Change to 1s
+            df = self._default_expander_func(
+                aln._column_metadata, self.chunk_size)
+        else:
+            df = expander_func(
+                aln._column_metadata, self.chunk_size)
+        if reducer_func is None:
+            # Average/Mode to reduce to new size
+            df = self._default_reducer_func(df, value)
+        else:
+            df = reducer_func(df, value)
+        aln._column_metadata = df
         if copy is True:
             return aln
-        # TODO: add a way for the positional data to adjust
+
+    @staticmethod
+    def _default_expander_func(df, n):
+        return pandas.DataFrame(
+                {col: numpy.repeat(df.values, n) for col in df})
+
+    @staticmethod
+    def _default_reducer_func(df, n):
+        def apply_func(x, col):
+            if x[col].dtype != numpy.dtype('O'):
+                return max(Counter(x[col]).items(), key=lambda y: y[1])[0]
+            return numpy.mean(x[col])
+        grouper = numpy.arange(len(df)//n)
+        return df.groupby(grouper) \
+                .apply(lambda x: pandas.Series(
+                    {col: apply_func(x, col) for col in df}))
 
     # TODO: implement __copy__ and __deepcopy__
 
