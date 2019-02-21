@@ -24,10 +24,10 @@ class _Rows:
             aln = self._instance.copy()
         # TODO: Check data type of position
         if isinstance(records, BaseRecord):
-            aln._alignment.insert_rows(position, records)
+            aln._alignment.insert_records(position, records)
         elif isinstance(records, list) and \
             sum((isinstance(rec, BaseAlignment) for rec in records)):
-            aln._alignment.insert_rows(position, records)
+            aln._alignment.insert_records(position, records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
         if copy is True:
@@ -38,10 +38,10 @@ class _Rows:
         if copy is True:
             aln = self._instance.copy()
         if isinstance(records, BaseRecord):
-            aln._alignment.insert_rows(0, records)
+            aln._alignment.insert_records(0, records)
         elif isinstance(records, list) and \
             sum((isinstance(rec, BaseAlignment) for rec in records)):
-            aln._alignment.insert_row(0, records)
+            aln._alignment.insert_record(0, records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
         if copy is True:
@@ -52,10 +52,10 @@ class _Rows:
         if copy is True:
             aln = self._instance.copy()
         if isinstance(records, BaseRecord):
-            aln._alignment.append_rows(records)
+            aln._alignment.append_records(records)
         elif isinstance(records, list) and \
             sum((isinstance(rec, BaseAlignment) for rec in records)):
-            aln._alignment.append_row(records)
+            aln._alignment.append_record(records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
         if copy is True:
@@ -66,10 +66,10 @@ class _Rows:
         if copy is True:
             aln = self._instance.copy()
         if isinstance(positions, int):
-            aln._alignment.remove_row(positions)
+            aln._alignment.remove_record(positions)
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            aln._alignment.remove_rows(positions)
+            aln._alignment.remove_records(positions)
         else:
             raise TypeError('positions must be an int or a list of int')
         if copy is True:
@@ -80,10 +80,10 @@ class _Rows:
         if copy is True:
             aln = self._instance.copy()
         if isinstance(positions, int):
-            aln._alignment.retain_row(positions)
+            aln._alignment.retain_record(positions)
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            aln._alignment.retain_rows(positions)
+            aln._alignment.retain_records(positions)
         else:
             raise TypeError('positions must be an int or a list of int')
         if copy is True:
@@ -98,10 +98,10 @@ class _Rows:
             aln = self._instance.copy()
         # TODO: Check data type of positions
         if isinstance(records, BaseRecord):
-            aln._alignment.replace_row(positions, records)
+            aln._alignment.replace_record(positions, records)
         elif isinstance(records, list) and \
             sum((isinstance(rec, BaseAlignment) for rec in records)):
-            aln._alignment.replace_rows(positions, records)
+            aln._alignment.replace_records(positions, records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
         if copy is True:
@@ -112,10 +112,10 @@ class _Rows:
         if copy is True:
             aln = self._instance.copy()
         if isinstance(positions, int):
-            aln._alignment.reorder_rows([positions])
+            aln._alignment.reorder_records([positions])
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
-            aln._alignment.reorder_rows(positions)
+            aln._alignment.reorder_records(positions)
         else:        
             raise TypeError('positions must be an int or a list of int')
         if copy is True:
@@ -552,7 +552,7 @@ class Alignment:
     #     if isinstance(key, str):
     #         if key in self.ids:
     #             i = self._alignment.row_names_to_indices([key])
-    #             return self._alignment.remove_rows(i)
+    #             return self._alignment.remove_records(i)
     #         raise KeyError('key did not match any identifier')
     #     elif isinstance(key, int):
     #         return self.remove_cols(key)

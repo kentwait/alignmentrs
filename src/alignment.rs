@@ -111,7 +111,7 @@ impl BaseAlignment {
 
     // Row methods
 
-    /// get_row(row_index, /)
+    /// get_record(row_index, /)
     /// --
     /// 
     /// Returns a new Record object containing the id, description,
@@ -123,7 +123,7 @@ impl BaseAlignment {
         }
     }
 
-    /// get_rows(row_indices, /)
+    /// get_records(row_indices, /)
     /// --
     /// 
     /// Returns a new RawAlignment object containing the sequences
@@ -138,7 +138,7 @@ impl BaseAlignment {
         Ok(records)
     }
 
-    /// get_rows_by_name(names, /)
+    /// get_records_by_name(names, /)
     /// --
     /// 
     /// Returns a new RawAlignment object containing the sequences
@@ -149,7 +149,7 @@ impl BaseAlignment {
         self.get_records(rows)
     }
 
-    /// get_rows_by_prefix(prefixes, /)
+    /// get_records_by_prefix(prefixes, /)
     /// --
     /// 
     /// Returns a new RawAlignment object containing the sequences
@@ -160,7 +160,7 @@ impl BaseAlignment {
         self.get_records(rows)
     }
 
-    /// get_rows_by_suffix(suffixes, /)
+    /// get_records_by_suffix(suffixes, /)
     /// --
     /// 
     /// Returns a new RawAlignment object containing the sequences
@@ -206,19 +206,19 @@ impl BaseAlignment {
         self.get_rows(rows)
     }
 
-    /// insert_row(position, id, description, sequence, /)
+    /// insert_record(position, id, description, sequence, /)
     /// --
     /// 
     /// Inserts one entry into the multiple sequence alignment
     /// at the specified position.
-    fn insert_row(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
-        self.insert_rows(row, vec![value])
+    fn insert_record(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
+        self.insert_records(row, vec![value])
     }
 
-    /// insert_rows(position, ids, descriptions, sequences, /)
+    /// insert_records(position, ids, descriptions, sequences, /)
     /// 
     /// Inserts one or more samples at the specified position.
-    fn insert_rows(&mut self, mut row: i32, values: Vec<&BaseRecord>) -> PyResult<()> {
+    fn insert_records(&mut self, mut row: i32, values: Vec<&BaseRecord>) -> PyResult<()> {
         if self.nrows()? < row {
             return Err(exceptions::IndexError::py_err(
                 "row index out of range."))
@@ -230,38 +230,38 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// append_row(id, description, sequence, /)
+    /// append_record(id, description, sequence, /)
     /// --
     /// 
     /// Appends one entry at the end of the multiple sequence alignment.
-    fn append_row(&mut self, value: &BaseRecord) -> PyResult<()> {
-        self.append_rows(vec![value])
+    fn append_record(&mut self, value: &BaseRecord) -> PyResult<()> {
+        self.append_records(vec![value])
     }
 
-    /// append_rows(ids, descriptions, sequences, /)
+    /// append_records(ids, descriptions, sequences, /)
     /// 
     /// Appends one or more samples at the end of the list.
-    fn append_rows(&mut self, values: Vec<&BaseRecord>) -> PyResult<()> {
+    fn append_records(&mut self, values: Vec<&BaseRecord>) -> PyResult<()> {
         for value in values.into_iter() {
             self.records.push(value.clone());
         }
         Ok(())
     }
 
-    /// remove_row(index, /)
+    /// remove_record(index, /)
     /// --
     /// 
     /// Removes one entry corresponding to the specified row index.
-    fn remove_row(&mut self, row: i32) -> PyResult<()> {
-        self.remove_rows(vec![row])
+    fn remove_record(&mut self, row: i32) -> PyResult<()> {
+        self.remove_records(vec![row])
     }
 
-    /// remove_rows(indices, /)
+    /// remove_records(indices, /)
     /// --
     /// 
     /// Removes many entries simulatenously based on a
     /// list of row indices.
-    fn remove_rows(&mut self, mut rows: Vec<i32>) -> PyResult<()> {
+    fn remove_records(&mut self, mut rows: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         rows.sort_unstable();
         rows.reverse();
@@ -272,59 +272,59 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// remove_rows_by_name(names, /)
+    /// remove_records_by_name(names, /)
     /// 
     /// Removes samples matching the given sample ID's inplace.
-    fn remove_rows_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn remove_records_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows = self.row_names_to_indices(names)?;
-        self.remove_rows(rows)
+        self.remove_records(rows)
     }
 
-    /// remove_rows_by_prefix(prefixes, /)
+    /// remove_records_by_prefix(prefixes, /)
     /// 
     /// Removes samples matching at least one of the given prefixes inplace.
-    fn remove_rows_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn remove_records_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows = self.row_prefix_to_indices(names)?;
-        self.remove_rows(rows)
+        self.remove_records(rows)
     }
 
-    /// remove_rows_by_suffix(suffixes, /)
+    /// remove_records_by_suffix(suffixes, /)
     /// 
     /// Removes samples matching at least one of the given suffixes inplace.
-    fn remove_rows_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn remove_records_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows = self.row_suffix_to_indices(names)?;
-        self.remove_rows(rows)
+        self.remove_records(rows)
     }
 
-    /// retain_row(index, /)
+    /// retain_record(index, /)
     /// --
     /// 
     /// Keeps one entry according to the given row index and
     /// removes everything else.
-    fn retain_row(&mut self, id: i32) -> PyResult<()> {
-        self.retain_rows(vec![id])
+    fn retain_record(&mut self, id: i32) -> PyResult<()> {
+        self.retain_records(vec![id])
     }
 
-    /// retain_rows(indices, /)
+    /// retain_records(indices, /)
     /// 
     /// Keep entries at the specified row indices, and removes
     /// everything else.
-    fn retain_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+    fn retain_records(&mut self, rows: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows: Vec<i32> = self.invert_rows(rows)?;
-        self.remove_rows(rows)
+        self.remove_records(rows)
     }
 
     // TODO: Drain
 
-    fn replace_row(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
-        self.replace_rows(vec![row], vec![value])
+    fn replace_record(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
+        self.replace_records(vec![row], vec![value])
     }
 
-    fn replace_rows(&mut self, rows: Vec<i32>, values: Vec<&BaseRecord>) -> PyResult<()> {
+    fn replace_records(&mut self, rows: Vec<i32>, values: Vec<&BaseRecord>) -> PyResult<()> {
         check_length_match(&rows, &values)?;
         check_empty_alignment(self)?;
         for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
@@ -337,11 +337,11 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// reorder_rows(ids, /)
+    /// reorder_records(ids, /)
     /// --
     /// 
     /// Reorders the sequences inplace based on a list of current row indices.
-    fn reorder_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+    fn reorder_records(&mut self, rows: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         check_length_match(&rows, &self.records)?;
         if let Some(x) = rows.iter().max() {
@@ -619,7 +619,7 @@ impl BaseAlignment {
     
 
     // Deleters
-    // remove_rows and remove_cols are the main methods for deleting
+    // remove_records and remove_cols are the main methods for deleting
     // contents of RawAlignment
 
     
@@ -629,53 +629,53 @@ impl BaseAlignment {
 
     
 
-    // The following are extensions of remove_rows and retain_rows
+    // The following are extensions of remove_records and retain_records
     // that uses sample IDs instead of row indices to reference samples.
     // These are convenience functions that simply do a lookup on the
-    // ids vector to get the row ids to use with the remove_row method.
+    // ids vector to get the row ids to use with the remove_record method.
 
     
 
-    /// retain_rows_by_name(names, /)
+    /// retain_records_by_name(names, /)
     /// 
     /// Keep samples matching the given sample ID's and remove
     /// non-matching samples inplace.
-    fn retain_rows_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn retain_records_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows = self.row_names_to_indices(names)?;
         let rows: Vec<i32> = (0..self.records.len())
             .filter(|i| !rows.contains(&(*i as i32)) )
             .map(|i| i as i32 )
             .collect();
-        self.remove_rows(rows)
+        self.remove_records(rows)
     }
 
-    /// retain_rows_by_prefix(prefixes, /)
+    /// retain_records_by_prefix(prefixes, /)
     /// 
     /// Keep samples matching at least one of the given prefixes and remove
     /// non-matching samples inplace.
-    fn retain_rows_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn retain_records_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows = self.row_prefix_to_indices(names)?;
         let rows: Vec<i32> = (0..self.records.len())
             .filter(|i| !rows.contains(&(*i as i32)) )
             .map(|i| i as i32 )
             .collect();
-        self.remove_rows(rows)
+        self.remove_records(rows)
     }
 
-    /// retain_rows_by_suffix(suffixes, /)
+    /// retain_records_by_suffix(suffixes, /)
     /// 
     /// Keep samples matching at least one of the given suffixes and remove
     /// non-matching samples inplace.
-    fn retain_rows_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
+    fn retain_records_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows = self.row_suffix_to_indices(names)?;
         let rows: Vec<i32> = (0..self.records.len())
             .filter(|i| !rows.contains(&(*i as i32)) )
             .map(|i| i as i32 )
             .collect();
-        self.remove_rows(rows)
+        self.remove_records(rows)
     }
 
     
