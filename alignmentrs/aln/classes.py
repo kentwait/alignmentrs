@@ -155,8 +155,36 @@ class _Rows:
     def __iter__(self):
         return self.iter()
 
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            if key in self.ids:
+                i = self._alignment.row_names_to_indices([key])
+                return self._instance._alignment.get_record(i[0])
+            raise KeyError('key did not match any identifier')
+        elif isinstance(key, list) and \
+            sum((isinstance(val, str) for val in key)):
+            return self._instance._alignment.get_records_by_name(key)
+        elif isinstance(key, int):
+            return self._instance._alignment.get_record(key)
+        elif isinstance(key, list) and \
+            sum((isinstance(val, int) for val in key)):
+            keys = key
+        elif isinstance(key, slice):
+            abs_slice = key.indices(self._instance.nrows)
+            keys = list(range(*abs_slice))
+        else:
+            raise TypeError('key must be int, list of int, or a slice')
+        return self._instance._alignment.get_records(keys)
+
+
     def __len__(self):
         return self._instance.nrows
+
+    def __repr__(self):
+        return self._instance.__repr__()
+
+    def __str__(self):
+        return self._instance.__str__()
 
 
 class _Cols:
@@ -286,11 +314,29 @@ class _Cols:
                 yield self._instance._alignment.get_chunk(i, chunk_size)
 
     def __iter__(self):
-        return self.iter()
-    
+        return self.iter(skip_n=1, chunk_size=1)
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._instance._alignment.get_col(key)
+        elif isinstance(key, list) and \
+            sum((isinstance(val, int) for val in key)):
+            keys = key
+        elif isinstance(key, slice):
+            abs_slice = key.indices(self._instance.ncols)
+            keys = list(range(*abs_slice))
+        else:
+            raise TypeError('key must be int, list of int, or a slice')
+        return self._instance._alignment.get_cols(keys)
+
     def __len__(self):
         return self._instance.ncols
 
+    def __repr__(self):
+        return self._instance.__repr__()
+
+    def __str__(self):
+        return self._instance.__str__()
 
 class Alignment:
     """Reperesents a multiple sequence alignment of samples.
@@ -491,23 +537,26 @@ class Alignment:
 
     def __getitem__(self, key):
         if isinstance(key, str):
-            if key in self.ids:
-                i = self._alignment.row_names_to_indices([key])
-                return self.samples.get_row(i[0])
-            raise KeyError('key did not match any identifier')
-        elif isinstance(key, int):
-            return self.samples.get_col(key)
+            return self.rows.__getitem__(key)
+        elif isinstance(key, list) and \
+            sum((isinstance(val, str) for val in key)):
+            return self.rows.__getitem__(key)
+        elif isinstance(key, int) or isinstance(key, slice):
+            return self.cols.__getitem__(key)
+        elif isinstance(key, list) and \
+            sum((isinstance(val, int) for val in key)):
+            return self.cols.__getitem__(key)
         raise TypeError('key must be str or int')
 
-    def __delitem__(self, key):
-        if isinstance(key, str):
-            if key in self.ids:
-                i = self._alignment.row_names_to_indices([key])
-                return self._alignment.remove_rows(i)
-            raise KeyError('key did not match any identifier')
-        elif isinstance(key, int):
-            return self.remove_cols(key)
-        raise TypeError('key must be str or int')
+    # def __delitem__(self, key):
+    #     if isinstance(key, str):
+    #         if key in self.ids:
+    #             i = self._alignment.row_names_to_indices([key])
+    #             return self._alignment.remove_rows(i)
+    #         raise KeyError('key did not match any identifier')
+    #     elif isinstance(key, int):
+    #         return self.remove_cols(key)
+    #     raise TypeError('key must be str or int')
 
     def __iter__(self):
         raise NotImplementedError(
