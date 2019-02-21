@@ -91,6 +91,20 @@ class _Rows:
             self._instance._alignment.reorder_rows(positions)
         raise TypeError('positions must be an int or a list of int')
 
+    def filter(self, function, copy=False, dry_run=False):
+        # Function accepts a BaseRecord object, outputs true or false
+        if not(function is not None and callable(function)):
+            raise TypeError('missing filter function')
+        positions = function()
+
+    def iter(self):
+        for i in range(self._instance.nrows):
+            yield self._instance._alignment.get_record(i)
+
+    def __iter__(self):
+        return self.iter()
+
+
 class _Cols:
     def __init__(self, instance):
         self._instance = instance
@@ -145,6 +159,19 @@ class _Cols:
             sum((isinstance(pos, int) for pos in positions)):
             self._instance._alignment.reorder_cols(positions)
         raise TypeError('positions must be an int or a list of int')
+
+    def filter(self, function, copy=False, dry_run=False):
+        # Function accepts a list of str, outputs true or false
+        if not(function is not None and callable(function)):
+            raise TypeError('missing filter function')
+        positions = function()
+
+    def iter(self):
+        for i in range(self._instance.ncols):
+            yield self._instance._alignment.get_col(i)
+
+    def __iter__(self):
+        return self.iter()
 
 
 class Alignment(CoordsMixin, object):
