@@ -1,9 +1,10 @@
 from libalignmentrs.readers import fasta_to_records
 import libalignmentrs as librs
 
-from alignmentrs import aln, alnset
+from alignmentrs import aln
+# from alignmentrs import alnset
 from alignmentrs.aln import Alignment
-from alignmentrs.alnset import AlignmentSet, fasta_directory_to_alignmentset
+# from alignmentrs.alnset import AlignmentSet, fasta_directory_to_alignmentset
 
 
 __author__ = 'Kent Kawashima'
