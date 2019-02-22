@@ -320,11 +320,7 @@ class Alignment(JsonSerdeMixin, object):
         return True
 
     def __hash__(self):
-        return hash((
-            str(self),
-            self._linspace.to_block_str(),
-            tuple(self.metadata.items())
-        ))
+        return hash(self.to_dict(column_metadata=True).items())
 
     def __eq__(self, other):
         return hash(self) == hash(other)
