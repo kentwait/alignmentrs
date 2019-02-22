@@ -145,9 +145,9 @@ class RowMutator:
         if copy is True:
             return aln
 
-    # TODO: map for records
     def map(self, function):
-        pass
+        for record in self.iter():
+            yield function(record)
 
     def iter(self):
         for i in range(self._instance.nrows):
@@ -371,9 +371,9 @@ class ColMutator:
         if copy is True:
             return aln
 
-    # TODO: map for columns
-    def map(self, function):
-        pass
+    def map(self, function, skip_n=None, chunk_size=None):
+        for col in self.iter(skip_n=skip_n, chunk_size=chunk_size):
+            yield function(col)
 
     def iter(self, skip_n=None, chunk_size=None):
         cnt = 0
