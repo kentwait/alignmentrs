@@ -115,8 +115,10 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return pandas.Index(range(self._alignment.ncols))
         elif isinstance(index, pandas.Index):
             return index
+        elif isinstance(index, list):
+            return pandas.Index(index)
         raise TypeError(
-            'index must be a {} object'.format(pandas.Index.__mro__[0]))
+            'index must be a list or {} object'.format(pandas.Index.__mro__[0]))
 
     def _col_metadata_constructor(self, column_metadata, index):
         if column_metadata is None:
@@ -130,6 +132,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         elif isinstance(column_metadata, pandas.DataFrame):
             if len(column_metadata) != len(self.index):
                 raise ValueError('length of column_metadata dataframe does not match the number of columns'.format(key))
+            column_metadata.index = self.index
             df = column_metadata
         else:
             raise TypeError('column_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
