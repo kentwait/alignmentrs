@@ -89,7 +89,7 @@ class FastaSerdeMixin:
             to ensure maximum compatibility)
 
         """
-        fasta_str = '\n'.join([str(rec) for rec in self._alignments.records])
+        fasta_str = '\n'.join([str(rec) for rec in self._alignment.records])
         if column_metadata is not None and isinstance(column_metadata, list):
             meta_str = '\n'.join([
                 '>meta|{}\n{}'.format(
@@ -134,7 +134,7 @@ class DictSerdeMixin:
             'alignment': [
                 {'id': r.id, 'description': r.description,
                  'sequence': r.sequence, 'chunk_size': r.chunk_size}
-                for r in self._alignments.records
+                for r in self._alignment.records
             ],
             'metadata': self.metadata.to_dict(),
         }
