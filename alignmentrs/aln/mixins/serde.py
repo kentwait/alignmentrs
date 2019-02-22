@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import os
 import json
+import pickle
 
 import pandas
 
@@ -139,6 +140,22 @@ class JsonSerdeMixin(DictSerdeMixin):
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'w') as writer:
             print(json_str, file=writer)
+
+
+class PickleSerdeMixin(DictSerdeMixin):
+    @classmethod
+    def from_pickle(cls, path):
+        with open(path, 'rb') as reader:
+            d = pickle.load(reader)
+        return cls.from_dict(d)
+
+    def to_pickle(self, path, column_metadata=True):
+        d = self.to_dict(column_metadata)
+        dirpath = os.path.dirname(path)
+        if not os.path.isdir(dirpath):
+            raise OSError('{} does not exist'.format(dirpath))
+        with open(path, 'wb') as writer:
+            pickle.dump(d, writer)
 
 
 class NexusSerdeMixin:
