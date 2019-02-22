@@ -416,7 +416,10 @@ impl BaseAlignment {
 
     pub fn get_chunk(&self, i: usize, chunk_size: usize) -> PyResult<Vec<String>> {
         let sequences: Vec<String> = self.records.iter()
-            .map(|rec| rec.sequence[i..i+chunk_size].join(""))
+            .map(|rec| {
+                let chars: Vec<char> = rec.sequence.join("").chars().collect();
+                chars[i..i+chunk_size].into_iter().collect::<String>()
+            })
             .collect();
         Ok(sequences)
     }
