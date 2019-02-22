@@ -1,5 +1,4 @@
-from collections import OrderedDict, Counter
-import itertools
+from collections import Counter
 import os
 from copy import deepcopy
 
@@ -8,16 +7,16 @@ import numpy
 
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
-from libalignmentrs.readers import fasta_to_records
 from alignmentrs.util import idseq_to_display
-from alignmentrs.aln.mixins.serde import DictSerdeMixin, JsonSerdeMixin
+from alignmentrs.aln.mixins import (FastaSerdeMixin, JsonSerdeMixin, 
+                                    PickleSerdeMixin)
 from .mutator import RowMutator, ColMutator
 
 
 __all__ = ['Alignment', 'CatAlignment']
 
 
-class Alignment(JsonSerdeMixin, object):
+class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin, object):
     """Reperesents a multiple sequence alignment of samples.
 
     The Alignment object encapsulates information generally

@@ -9,7 +9,11 @@ from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
 from libalignmentrs.readers import fasta_to_records
 
-__all__ = ['FastaSerdeMixin', 'DictSerdeMixin', 'JsonSerdeMixin']
+
+__all__ = [
+    'FastaSerdeMixin', 'DictSerdeMixin', 'JsonSerdeMixin', 
+    'PickleSerdeMixin', 'CsvSerdeMixin'
+]
 
 
 class FastaSerdeMixin:
