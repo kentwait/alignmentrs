@@ -2,16 +2,19 @@ from collections import OrderedDict
 import os
 import json
 
+import pandas
+
 from libalignmentrs.alignment import BaseAlignment
+from libalignmentrs.record import BaseRecord
 from libalignmentrs.position import BlockSpace
 from libalignmentrs.position import simple_block_str_to_linspace
 from libalignmentrs.readers import fasta_file_to_basealignments
 
 
-__all__ = ['FastaSerde']
+__all__ = ['FastaSerdeMixin', 'DictSerdeMixin', 'JsonSerdeMixin']
 
 
-class FastaSerde:
+class FastaSerdeMixin:
     @classmethod
     def from_fasta(cls, path, name=None, comment_parser=None, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
@@ -114,50 +117,128 @@ class FastaSerde:
             print(fasta_str, file=writer)
 
 
-class JsonSerde:
+class DictSerdeMixin:
+    @classmethod
+    def from_dict(cls, d):
+        records = [BaseRecord(r['id'], r['description'], r['sequence'], 
+                              r['chunk_size'])
+                   for r in d['alignment']]
+        column_metadata = \
+            d['column_metadata'] if 'column_metadata' in d.keys() else None
+        return cls(d['name'], records, chunk_size=d['chunk_size'],
+                   index=d['index'], metadata=d['metadata'],
+                   column_metadata=column_metadata)
+
+    def to_dict(self, column_metadata=True):
+        d = {
+            'name': self.name,
+            'index': self._index.to_list(),
+            'alignment': [
+                {'id': r.id, 'description': r.description,
+                 'sequence': r.sequence, 'chunk_size': r.chunk_size}
+                for r in self._alignments.records
+            ],
+            'metadata': self.metadata.to_dict(),
+        }
+        if column_metadata:
+            d['column_metadata'] = self.column_metadata.to_dict()
+        return d
+
+
+class JsonSerdeMixin(DictSerdeMixin):
     @classmethod
     def from_json(cls, path):
         with open(path, 'r') as reader:
             d = json.load(reader)
-        
-        # Create BaseAlignments
-        balns = []
-        for member in cls.members:
-            # TODO: Warn if member is not found.
-            baln = BaseAlignment(
-                d[member]['ids'],
-                d[member]['descriptions'],
-                d[member]['sequences']
-            )
-            balns.append(baln)
+        return cls.from_dict(d)
 
-        # Check if linspace exists, then create linspace
-        if 'linspace' in d.keys():
-            linspace = simple_block_str_to_linspace(d['linspace'])
-        else:
-            linspace = None
-        
-        # Check if metadata exists
-        if 'metadata' in d.keys():
-            metadata = d['metadata']
-        else:
-            metadata = None
-
-        return cls(d['name'], *balns, metadata=metadata, linspace=linspace)
-
-    def to_json_str(self):
-        d = OrderedDict()
-        d['name'] = self.name
-        for member in self.__class__.members:
-            d[member] = {
-                'ids': self.__getattribute__(member).ids,
-                'descriptions': self.__getattribute__(member).descriptions,
-                'sequences': self.__getattribute__(member).sequences,
-            }
-        d['linspace'] = self._linspace.to_simple_block_str()
-        d['metadata'] = self.metadata
+    def to_str_json(self, column_metadata=True):
+        d = self.to_dict(column_metadata)
         return json.dumps(d)
 
-    def to_json(self, path):
+    def to_json(self, path, column_metadata=True):
         with open(path, 'w') as writer:
-            print(self.to_json_str(), file=writer)
+            print(self.to_str_json(column_metadata), file=writer)
+
+
+class NexusSerdeMixin:
+    pass
+
+
+class PhylipSerdeMixin:
+    pass
+
+
+class CsvSerdeMixin:
+    @classmethod
+    def from_csv(cls, path, delimiter='\t', metadata=True, column_metadata=True):
+        # self, name, records, chunk_size: int=1,
+        # index=None, metadata: dict=None, column_metadata=None,
+        data_path = os.path.abspath(path)
+
+        metadata_d = dict()
+        name = None
+        chunk_size = 1
+        index = None
+        records = []
+        in_sequence = False
+        with open(data_path, 'r') as reader:
+            for line in reader.readlines():
+                line = line.rstrip()
+                if line.startswith('#'):
+                    line = line.lstrip()
+                    key, value = [string.strip() for string in line.lstrip().split('=')]
+                    if key == 'name':
+                        name = value
+                    elif key == 'chunk_size':
+                        chunk_size = value
+                    elif key == 'index':
+                        # TODO: Add re test for security
+                        index = pandas.Index(eval(value))
+                    else:
+                        metadata[key] = value
+                elif line.startswith('id'):
+                    in_sequence = True
+                    continue
+                elif in_sequence is True:
+                    sid, desc, seq = line.split(delimiter)
+                    records.append(BaseRecord(sid, desc, seq, chunk_size))
+        if column_metadata:
+            l, r = path.rsplit('.', 1)
+            meta_path = l + '.cols.' + r
+            column_metadata_d = pandas.read_csv(meta_path, index_col=0, comment='#')
+        return cls(name, records, chunk_size=chunk_size,
+                   index=index, metadata=metadata_d,
+                   column_metadata=column_metadata_d)
+
+
+    def to_csv(self, path, delimiter='\t', metadata=True, column_metadata=True):
+        lines = []
+        lines.append('# name = {}'.format(self.name))
+        lines.append('# index = {}'.format(self.index.to_list()))
+        lines.append('# chunk_size = {}'.format(self._alignment.chunk_size))
+        if metadata is True:
+            lines += [
+                '# {} = {}'.format(k, v) for k, v in metadata.items()
+            ]
+        lines.append(delimiter.join(['id', 'description', 'sequence']))
+        lines += [
+            delimiter.join([r.id, r.description.replace('\t', ' '),
+                            r.sequence])
+            for r in self._alignment.records
+        ]
+        dirpath = os.path.dirname(path)
+        if not os.path.isdir(dirpath):
+            raise OSError('{} does not exist'.format(dirpath))
+        if not path.endswith('.csv'):
+            data_path = path + '.csv'
+            meta_path = path + '.cols.csv'
+        else:
+            data_path = path
+            l, r = path.rsplit('.', 1)
+            meta_path = l + '.cols.' + r
+        with open(data_path, 'w') as writer:
+            for line in lines:
+                print(line, file=writer)
+        if column_metadata is True:
+            self._column_metadata.to_csv(meta_path)

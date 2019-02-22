@@ -10,13 +10,14 @@ from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
 from libalignmentrs.readers import fasta_to_records
 from alignmentrs.util import idseq_to_display
+from alignmentrs.aln.mixins.serde import DictSerdeMixin, JsonSerdeMixin
 from .mutator import RowMutator, ColMutator
 
 
 __all__ = ['Alignment', 'CatAlignment']
 
 
-class Alignment:
+class Alignment(JsonSerdeMixin, object):
     """Reperesents a multiple sequence alignment of samples.
 
     The Alignment object encapsulates information generally
@@ -69,7 +70,6 @@ class Alignment:
 
         """
         self.name = name
-        self._chunk_size = chunk_size
         self._alignment: BaseAlignment = \
             self._alignment_constructor(records, chunk_size)
         self._index = self._index_constructor(index)
@@ -139,7 +139,7 @@ class Alignment:
     @property
     def chunk_size(self):
         """int: Returns the chunk size of the alignment."""
-        return self._chunk_size
+        return self._alignment.chunk_size
 
     @property
     def column_metadata(self):
@@ -204,7 +204,6 @@ class Alignment:
             aln = self.copy()
         # Changing chunk size to invalid size will raise an error
         aln._alignment.chunk_size = value
-        aln._chunk_size = value
 
         # Adjust column metadata
         # current size -> 1's -> new size
@@ -224,6 +223,20 @@ class Alignment:
         aln._column_metadata = df
         if copy is True:
             return aln
+
+    # TODO: get consensus
+
+    # TODO: drop gaps
+
+    # TODO: drop Ns
+
+    # TODO: drop (remove)
+
+    # TODO: drop except (retain)
+
+    # TODO: variants, get variants per col
+
+
 
     @staticmethod
     def _default_expander_func(df, n):
