@@ -122,7 +122,7 @@ class RowMutator:
         if copy is True:
             return aln
 
-    def filter(self, function, copy=False, dry_run=False):
+    def filter(self, function, copy=False, dry_run=False, inverse=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -141,7 +141,10 @@ class RowMutator:
                 len(remove_positions), aln.nrows))
             print('\n'.join(parts))
             return {'function': function, True: positions, False: remove_positions}
-        aln.rows.remove(remove_positions)
+        if inverse:
+            aln.rows.remove(positions)
+        else:
+            aln.rows.remove(remove_positions)
         if copy is True:
             return aln
 
@@ -348,7 +351,7 @@ class ColMutator:
         if copy is True:
             return aln
 
-    def filter(self, function, copy=False, dry_run=False):
+    def filter(self, function, copy=False, dry_run=False, inverse=False):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -367,20 +370,36 @@ class ColMutator:
                 len(remove_positions), aln.ncols))
             print('\n'.join(parts))
             return {'function': function, True: positions, False: remove_positions}
-        aln.cols.remove(remove_positions)
+        if inverse:
+            aln.cols.remove(positions)
+        else:
+            aln.cols.remove(remove_positions)
         if copy is True:
             return aln
 
     def drop(self, value, case_sensitive=False, copy=False, dry_run=False):
-        func = lambda x: value.upper() not in [chars.upper() for chars in x]
-        if case_sensitive:
-            func = lambda x: value not in x
-        return self.filter(func, copy=copy, dry_run=dry_run)
+        if len(value) < self._instance.chunk_size:
+            if case_sensitive:
+                func = lambda x: \
+                    len(x) != sum([value not in chars for chars in x])
+            else:
+                func = lambda x: \
+                    len(x) != \
+                    sum([value.upper() not in chars.upper() for chars in x])
+        elif len(value) == self._instance.chunk_size:
+            if case_sensitive:
+                func = lambda x: value not in x
+            else:
+                func = lambda x: value.upper() not in \
+                    [chars.upper() for chars in x]
+        else:
+            raise ValueError('value is larger than chunk size')
+        return self.filter(func, copy=copy, dry_run=dry_run, inverse=True)
 
     def drop_except(self, value, case_sensitive=False, copy=False, 
                     dry_run=False):
         return self.filter(lambda x: value in x, case_sensitive=case_sensitive,
-                           copy=copy, dry_run=dry_run)
+                           copy=copy, dry_run=dry_run, inverse=True)
 
     def drop_n(self, n_char='N', case_sensitive=False, copy=False, 
                dry_run=False):
