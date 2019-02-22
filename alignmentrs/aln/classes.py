@@ -221,19 +221,22 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     def reset_index(self):
         self.cols.reset_index()
 
-    # TODO: get consensus
+    def drop(self, value, case_sensitive=False, copy=False, dry_run=False):
+        return self.cols.drop(value, case_sensitive=case_sensitive,
+                              copy=copy, dry_run=dry_run)
 
-    # TODO: drop gaps
+    def drop_except(self, value, case_sensitive=False, copy=False,
+                    dry_run=False):
+        return self.cols.drop_except(value, case_sensitive=case_sensitive,
+                                     copy=copy, dry_run=dry_run)
 
-    # TODO: drop Ns
+    def drop_n(self, n_char='N', case_sensitive=False, copy=False,
+               dry_run=False):
+        return self.cols.drop_n(n_char=n_char, case_sensitive=case_sensitive,
+                                copy=copy, dry_run=dry_run)
 
-    # TODO: drop (remove)
-
-    # TODO: drop except (retain)
-
-    # TODO: variants, get variants per col
-
-
+    def drop_gap(self, gap_char='-', copy=False, dry_run=False):
+        return self.cols.drop_gap(gap_char=gap_char, copy=copy, dry_run=dry_run)
 
     @staticmethod
     def _default_expander_func(df, n):

@@ -371,6 +371,26 @@ class ColMutator:
         if copy is True:
             return aln
 
+    def drop(self, value, case_sensitive=False, copy=False, dry_run=False):
+        func = lambda x: value.upper() not in [chars.upper() for chars in x]
+        if case_sensitive:
+            func = lambda x: value not in x
+        return self.filter(func, copy=copy, dry_run=dry_run)
+
+    def drop_except(self, value, case_sensitive=False, copy=False, 
+                    dry_run=False):
+        return self.filter(lambda x: value in x, case_sensitive=case_sensitive,
+                           copy=copy, dry_run=dry_run)
+
+    def drop_n(self, n_char='N', case_sensitive=False, copy=False, 
+               dry_run=False):
+        return self.drop(n_char, case_sensitive=case_sensitive,
+                         copy=copy, dry_run=dry_run)
+
+    def drop_gap(self, gap_char='-', copy=False, dry_run=False):
+        return self.drop(gap_char, case_sensitive=True,
+                         copy=copy, dry_run=dry_run)
+
     def map(self, function, skip_n=None, chunk_size=None):
         for col in self.iter(skip_n=skip_n, chunk_size=chunk_size):
             yield function(col)
