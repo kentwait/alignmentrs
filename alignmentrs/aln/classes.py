@@ -235,7 +235,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         cons = []
         for cnts in self.cols.map(Counter):
             char, cnt = max(cnts.items(), key=lambda x: x[1])
-            if half is True and cnt < self.nrows:
+            if half is True and cnt < self.nrows/2:
                 char = None
             cons.append(char)
         return cons
