@@ -51,23 +51,24 @@ class FastaSerdeMixin:
 
         """
         records, _ = fasta_to_records(path, chunk_size)
+        col_meta = dict()
         if column_metadata is not None and isinstance(column_metadata, dict):
-            col_meta = []
             keep_records = []
             for i, record in enumerate(records):
                 if record.id.startswith('meta|'):
                     _, k = record.id.lsplit('|', 1)
                     if k in column_metadata.keys():
                         func = column_metadata[k]
-                        data = list(map(func, record.sequence))
-                        col_meta.append({k: data})
+                        data = func(record.sequence)
+                        col_meta[k] = data
                     else:
                         keep_records.append(i)
                 else:
                     keep_records.append(i)
             records = records[keep_records]
 
-        return cls(name, records, chunk_size=chunk_size)
+        return cls(name, records, chunk_size=chunk_size,
+                   column_metadata=col_meta)
 
     def to_fasta(self, path=None, column_metadata=None):
         """Saves the alignment as a FASTA-formatted file.
@@ -105,6 +106,13 @@ class FastaSerdeMixin:
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'w') as writer:
             print(fasta_str, file=writer)
+
+    def set_record_as_column_metadata(self, i, func, name=None):
+        data = func(self.rows[i].sequence)
+        if name is None:
+            name = self.rows[i].id
+        self._column_metadata[name] = data
+        self.rows.remove(i)
 
 
 class DictSerdeMixin:
