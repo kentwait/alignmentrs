@@ -12,9 +12,17 @@ from libalignmentrs.readers import fasta_to_records
 
 __all__ = [
     'FastaSerdeMixin', 'DictSerdeMixin', 'JsonSerdeMixin', 
-    'PickleSerdeMixin', 'CsvSerdeMixin'
+    'PickleSerdeMixin', 'CsvSerdeMixin', 'RecordsSerdeMixin',
 ]
 
+
+class RecordsSerdeMixin:
+    @classmethod
+    def from_records(cls, records, chunk_size=1, name=None, **kwargs):
+        cls(name, records, chunk_size=chunk_size, **kwargs)
+
+    def to_records(self):
+        return self._alignment.records
 
 class FastaSerdeMixin:
     @classmethod

@@ -8,15 +8,16 @@ import numpy
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
 from alignmentrs.util import idseq_to_display
-from alignmentrs.aln.mixins import (FastaSerdeMixin, JsonSerdeMixin, 
-                                    PickleSerdeMixin)
+from alignmentrs.aln.mixins import (RecordsSerdeMixin, FastaSerdeMixin,
+                                    JsonSerdeMixin, PickleSerdeMixin)
 from .mutator import RowMutator, ColMutator
 
 
 __all__ = ['Alignment', 'CatAlignment']
 
 
-class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin, object):
+class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin, 
+                RecordsSerdeMixin, object):
     """Reperesents a multiple sequence alignment of samples.
 
     The Alignment object encapsulates information generally
@@ -187,9 +188,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin, object):
 
     # Methods
     # ==========================================================================
-
-    def to_records(self):
-        return self._alignment.get_records(list(range(self.nrows)))
 
     def copy(self):
         return self.__class__(
