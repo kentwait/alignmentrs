@@ -221,6 +221,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     def reset_index(self):
         self.cols.reset_index()
 
+    def variants(self):
+        return list(self.cols.map(Counter))
+
+    def consensus(self, half=True):
+        cons = []
+        for cnts in self.cols.map(Counter):
+            char, cnt = max(cnts.items(), key=lambda x: x[1])
+            if half is True and cnt < self.nrows:
+                char = None
+            cons.append(char)
+        return cons
+
     def drop(self, value, case_sensitive=False, copy=False, dry_run=False):
         return self.cols.drop(value, case_sensitive=case_sensitive,
                               copy=copy, dry_run=dry_run)
