@@ -198,22 +198,29 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             column_metadata=self._column_metadata.copy(deep=True)
         )
 
-    def set_chunk_size(self, value, copy=False, recasting_func=None):
+    def set_chunk_size(self, value, copy=False, recasting_func=None, 
+                       reset_index=False):
+        if reset_index is not True:
+            raise ValueError(
+                'cannot change chunk size without resetting the current index')
         aln = self
         if copy is True:
             aln = self.copy()
         # Changing chunk size to invalid size will raise an error
+        curr_chunk_size = aln.chunk_size
         aln._alignment.chunk_size = value
 
         # Adjust column metadata
         if recasting_func is None:
             # current size -> 1's -> new size
             df = self._default_expander_func(
-                aln._column_metadata, self.chunk_size)
+                aln._column_metadata, curr_chunk_size)
+            print(curr_chunk_size, value, len(df))
             df = self._default_reducer_func(df, value)
+            print(curr_chunk_size, value, len(df))
         else:
             df = recasting_func(
-                aln._column_metadata, self.chunk_size, value)
+                aln._column_metadata, curr_chunk_size, value)
         aln._column_metadata = df
         if copy is True:
             return aln
@@ -261,9 +268,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             if x[col].dtype != numpy.dtype('O'):
                 return max(Counter(x[col]).items(), key=lambda y: y[1])[0]
             return numpy.mean(x[col])
-        grouper = numpy.arange(len(df)//n)
+        grouper = numpy.arange(len(df))//n
         return df.groupby(grouper) \
-                .apply(lambda x: pandas.Series(
+                 .apply(lambda x: pandas.Series(
                     {col: apply_func(x, col) for col in df}))
 
     # TODO: implement __copy__ and __deepcopy__

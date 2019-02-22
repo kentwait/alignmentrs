@@ -105,6 +105,7 @@ impl BaseAlignment {
         for i in 0..self.records.len() {
             self.records[i].set_chunk_size(chunk_size)?;
         }
+        self.chunk_size = chunk_size;
         Ok(())
     }
 
