@@ -152,13 +152,16 @@ class JsonSerdeMixin(DictSerdeMixin):
             d = json.load(reader)
         return cls.from_dict(d)
 
-    def to_str_json(self, column_metadata=True):
+    def to_json(self, path=None, column_metadata=True):
         d = self.to_dict(column_metadata)
-        return json.dumps(d)
-
-    def to_json(self, path, column_metadata=True):
+        json_str = json.dumps(d)
+        if path is None:
+            return json_str
+        dirpath = os.path.dirname(path)
+        if not os.path.isdir(dirpath):
+            raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'w') as writer:
-            print(self.to_str_json(column_metadata), file=writer)
+            print(json_str, file=writer)
 
 
 class NexusSerdeMixin:
@@ -212,7 +215,7 @@ class CsvSerdeMixin:
                    column_metadata=column_metadata_d)
 
 
-    def to_csv(self, path, delimiter='\t', metadata=True, column_metadata=True):
+    def to_csv(self, path=None, delimiter='\t', metadata=True, column_metadata=True):
         lines = []
         lines.append('# name = {}'.format(self.name))
         lines.append('# index = {}'.format(self.index.to_list()))
@@ -237,8 +240,13 @@ class CsvSerdeMixin:
             data_path = path
             l, r = path.rsplit('.', 1)
             meta_path = l + '.cols.' + r
+        csv_str = '\n'.join(lines)
+        if path is None:
+            return csv_str
+        dirpath = os.path.dirname(path)
+        if not os.path.isdir(dirpath):
+            raise OSError('{} does not exist'.format(dirpath))
         with open(data_path, 'w') as writer:
-            for line in lines:
-                print(line, file=writer)
+            print(csv_str, file=writer)
         if column_metadata is True:
             self._column_metadata.to_csv(meta_path)
