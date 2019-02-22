@@ -392,6 +392,10 @@ class ColMutator:
             else:
                 yield self._instance._alignment.get_chunk(i, chunk_size)
 
+    def reset_index(self):
+        self._instance._index = pandas.Index(len(self._index))
+        self._instance._column_metadata.reset_index(drop=True, inplace=True)
+
     @staticmethod
     def _insert_metadata(aln, position, column_values):
         if isinstance(column_values, list) and \

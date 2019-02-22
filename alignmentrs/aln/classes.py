@@ -218,6 +218,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if copy is True:
             return aln
 
+    def reset_index(self):
+        self.cols.reset_index()
+
     # TODO: get consensus
 
     # TODO: drop gaps
