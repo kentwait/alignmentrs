@@ -6,17 +6,14 @@ import pandas
 
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
-from libalignmentrs.position import BlockSpace
-from libalignmentrs.position import simple_block_str_to_linspace
-from libalignmentrs.readers import fasta_file_to_basealignments
-
+from libalignmentrs.readers import fasta_to_records
 
 __all__ = ['FastaSerdeMixin', 'DictSerdeMixin', 'JsonSerdeMixin']
 
 
 class FastaSerdeMixin:
     @classmethod
-    def from_fasta(cls, path, name=None, comment_parser=None, **kwargs):
+    def from_fasta(cls, path, name=None, chunk_size=1, column_metadata=None):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -40,59 +37,26 @@ class FastaSerdeMixin:
             descriptions, and sequences in the FASTA file.
 
         """
-        if 'keywords' in kwargs.keys():
-            balns, comment_list = \
-                fasta_file_to_basealignments(path, kwargs['keywords'])
-        else:
-            balns, comment_list = \
-                fasta_file_to_basealignments(path, [])
+        records, _ = fasta_to_records(path, chunk_size)
+        if column_metadata is not None and isinstance(column_metadata, dict):
+            col_meta = []
+            keep_records = []
+            for i, record in enumerate(records):
+                if record.id.startswith('meta|'):
+                    _, k = record.id.lsplit('|', 1)
+                    if k in column_metadata.keys():
+                        func = column_metadata[k]
+                        data = list(map(func, record.sequence))
+                        col_meta.append({k: data})
+                    else:
+                        keep_records.append(i)
+                else:
+                    keep_records.append(i)
+            records = records[keep_records]
 
-        # Parse comment if parser is provided
-        # Ignore otherwise
-        if comment_parser is not None and callable(comment_parser):
-            metadata = comment_parser(comment_list)
-        else:
-            metadata = OrderedDict()
+        return cls(name, records, chunk_size=chunk_size)
 
-        # Name the alignment object
-        if name is not None:
-            name = name
-        elif 'name' in metadata.keys():
-            name = metadata['name']
-        else:
-            name = os.path.basename(path)
-
-        # Check if linspace in metadata
-        if 'linspace' in metadata.keys() and \
-            isinstance(metadata['linspace'], BlockSpace):
-            linspace = metadata['linspace']
-        else:
-            linspace = None
-
-        # Removes name and linspace from metadata if present
-        if metadata:
-            for k in ['name', 'linspace']:
-                del metadata[k]
-        
-        # Create a new Alignment object
-        return cls(name, *balns, linspace=linspace, metadata=metadata)
-
-
-    def to_fasta_str(self, include_info=False, include_metadata=False):
-        parts = []
-        if include_info:
-            parts += [
-                ';name\t' + str(self.name),
-                ';coords\t{' + self._linspace.to_simple_block_str() + '}',
-            ]
-        if include_metadata:
-            parts += [';{}\t{}'.format(k, v) for k, v in self.metadata.items()]
-        for member in self.__class__.members:
-            parts.append(str(self.__getattribute__(member)))
-        return '\n'.join(parts)
-
-
-    def to_fasta(self, path, include_info=False, include_metadata=False):
+    def to_fasta(self, path=None, column_metadata=None):
         """Saves the alignment as a FASTA-formatted file.
         Some metadata may not be lost.
 
@@ -111,9 +75,22 @@ class FastaSerdeMixin:
             to ensure maximum compatibility)
 
         """
+        fasta_str = '\n'.join([str(rec) for rec in self._alignments.records])
+        if column_metadata is not None and isinstance(column_metadata, list):
+            meta_str = '\n'.join([
+                '>meta|{}\n{}'.format(
+                    k, 
+                    ''.join(list(map(str, self.column_metadata[k].to_list())))
+                )
+                for k in column_metadata
+            ])
+            fasta_str += column_metadata
+        if path is None:
+            return fasta_str
+        dirpath = os.path.dirname(path)
+        if not os.path.isdir(dirpath):
+            raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'w') as writer:
-            fasta_str = self.to_fasta_str(
-                include_info=include_info, include_metadata=include_metadata)
             print(fasta_str, file=writer)
 
 
