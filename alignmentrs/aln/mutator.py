@@ -1,4 +1,6 @@
 from copy import deepcopy
+import numbers
+
 import pandas
 
 from libalignmentrs.alignment import BaseAlignment
@@ -29,18 +31,7 @@ class RowMutator:
             return aln
 
     def prepend(self, records, copy=False):
-        aln = self._instance
-        if copy is True:
-            aln = self._instance.copy()
-        if isinstance(records, BaseRecord):
-            aln._alignment.insert_records(0, records)
-        elif isinstance(records, list) and \
-            sum((isinstance(rec, BaseAlignment) for rec in records)):
-            aln._alignment.insert_record(0, records)
-        else:
-            raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
-        if copy is True:
-            return aln
+        self.insert(0, records, copy=copy)
 
     def append(self, records, copy=False):
         aln = self._instance
@@ -206,14 +197,65 @@ class ColMutator:
         self._instance = instance
         self._axis = 1
 
-    def insert(self, position, values, copy=False):
-        raise NotImplementedError()
+    def insert(self, position, values, copy=False,
+               column_values=None, reset_index=False):
+        if reset_index is not True:
+            raise ValueError(
+                'cannot perform an insert without resetting the current index')
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+        # TODO: Check data type of position
+        if isinstance(values, list) and \
+            sum((isinstance(val, str) for val in values)):
+            values = [values]
+        elif isinstance(values, list) and \
+            sum((isinstance(val, BaseAlignment)
+                for lst in values for val in lst)):
+            pass
+        else:
+            raise TypeError(
+                'values must be a list of str or a list of list of str')
 
-    def prepend(self, values, copy=False):
-        raise NotImplementedError()
+        aln._alignment.insert_cols(position, values)
+        aln._index, aln._column_metadata = \
+            self._insert_metadata(aln, position, column_values)
 
-    def append(self, values, copy=False):
-        raise NotImplementedError()
+        if copy is True:
+            return aln
+
+    def prepend(self, values, copy=False,
+               column_values=None, reset_index=False):
+        if reset_index is not True:
+            raise ValueError(
+                'cannot perform an prepend without resetting the current index')
+        self.insert(0, values, copy=copy, column_values=column_values,       
+                    reset_index=reset_index)
+
+    def append(self, values, copy=False,
+               column_values=None, reset_index=False):
+        if reset_index is not True:
+            raise ValueError(
+                'cannot perform an append without resetting the current index')
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+        position = len(aln._index)
+        if isinstance(values, list) and \
+            sum((isinstance(val, str) for val in values)):
+            aln._alignment.apend_col(values)
+        elif isinstance(values, list) and \
+            sum((isinstance(val, BaseAlignment)
+                for lst in values for val in lst)):
+            aln._alignment.apend_cols(values)
+        else:
+            raise TypeError(
+                'values must be a list of str or a list of list of str')
+        aln._alignment.insert_cols(position, values)
+        aln._index, aln._column_metadata = \
+            self._insert_metadata(aln, position, column_values)
+        if copy is True:
+            return aln
 
     def remove(self, positions, copy=False):
         aln = self._instance
@@ -349,6 +391,35 @@ class ColMutator:
                 yield self._instance._alignment.get_col(i)
             else:
                 yield self._instance._alignment.get_chunk(i, chunk_size)
+
+    @staticmethod
+    def _insert_metadata(aln, position, column_values):
+        if isinstance(column_values, list) and \
+            sum((isinstance(val, list) for val in column_values)):
+            df = pandas.DataFrame(
+                {k:v for k,v in zip(aln._column_metadata, column_values[i])})
+        elif isinstance(column_values, list) and \
+            sum((isinstance(val, dict) for val in column_values)):
+            df = pandas.DataFrame(column_values)
+        elif isinstance(column_values, list) and \
+            sum((isinstance(val, numbers.Number) or isinstance(val, str)
+                for val in column_values)):
+            df = pandas.DataFrame(
+                {k:v for k,v in zip(aln._column_metadata, column_values)})
+        elif isinstance(column_values, dict) and \
+            sum((isinstance(val, list) for val in column_values)):
+            df = pandas.DataFrame(column_values)
+        elif isinstance(column_values, dict) and \
+            sum((isinstance(val, numbers.Number) or isinstance(val, str)
+                for val in column_values)):
+            df = pandas.DataFrame(column_values)
+        new_column_metadata = \
+            pandas.concat([aln._column_metadata.iloc[:position],
+                            df,
+                            aln._column_metadata.iloc[position+len(df):]]) \
+                .reset_index(drop=True)
+        new_index = pandas.Index(len(aln._index) + len(df))
+        return new_index, new_column_metadata
 
     def __iter__(self):
         return self.iter(skip_n=1, chunk_size=1)
