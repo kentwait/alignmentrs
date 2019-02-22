@@ -109,18 +109,20 @@ class Alignment(JsonSerdeMixin, object):
 
     def _col_metadata_constructor(self, column_metadata, index):
         if column_metadata is None:
-            return pandas.DataFrame(None, index=index)
+            df = pandas.DataFrame(None, index=index)
         elif isinstance(column_metadata, dict):
             # Check if values match the length of the index
             for key, val in column_metadata.items():
                 if len(val) != len(self.index):
                     raise ValueError('{} value length does not match the number of columns'.format(key))
-            return pandas.DataFrame(column_metadata, index=self.index)
+            df = pandas.DataFrame(column_metadata, index=self.index)
         elif isinstance(column_metadata, pandas.DataFrame):
             if len(column_metadata) != len(self.index):
                 raise ValueError('length of column_metadata dataframe does not match the number of columns'.format(key))
-            return column_metadata
-        raise TypeError('column_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
+            df = column_metadata
+        else:
+            raise TypeError('column_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
+        return df
 
     # Properties
     @property
