@@ -295,16 +295,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if copy is True:
             aln = self.copy()
         if isinstance(others, Alignment):
+            balns = [others._alignment]
             others = [others]
         elif isinstance(others, list) and \
             sum((isinstance(o, Alignment) for o in others)) == len(others):
-            pass
+            balns = [o._alignment for o in others]
         else:
             raise ValueError(
                 'others must be an Alignment or ''a list of Alignment objects')
         # check if chunks are the same
         # check if number of records are the same
-        aln._alignment.concat(others)
+        curr_ncols = aln.ncols
+        aln._alignment.concat(balns)
         # Concat dataframes
         aln._column_metadata = pandas.concat(
             [aln._column_metadata] + 
@@ -312,8 +314,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             sort=False, axis=0
         )
         # Add names
-        name_list = ([aln.name]*len(aln.records)) + \
-                    [o.name for o in others for _ in len(o.records)]
+        name_list = ([aln.name]*curr_ncols) + \
+                    [o.name for o in others for _ in range(o.ncols)]
         if None in name_list:
             warnings.warn('used `None` in _src_name column metadata '
                 'because some alignments have no name', NoNameWarning)
@@ -329,8 +331,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             aln._column_metadata.reset_index(drop=True, inplace=True)
         else:
             aln._index = pandas.Index(pandas.concat(
-                [pd.Series(aln._index)] + [pd.Series(o._index) for o in others]
+                [pandas.Series(aln._index)] + 
+                [pandas.Series(o._index) for o in others]
             ))
+        if copy is True:
+            return aln
 
     @staticmethod
     def _default_expander_func(df, n):
