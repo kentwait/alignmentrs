@@ -78,6 +78,7 @@ class Alignment(JsonSerdeMixin, object):
             self._col_metadata_constructor(column_metadata, self.index)
         self._rows = RowMutator(self)
         self._cols = ColMutator(self)
+        # TODO: Add logging to log and replay actions performed using the API
 
     # Constructors
     def _alignment_constructor(self, records, chunk_size):
