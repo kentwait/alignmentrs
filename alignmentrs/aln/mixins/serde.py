@@ -101,14 +101,14 @@ class FastaSerdeMixin:
             fasta_str += column_metadata
         if path is None:
             return fasta_str
-        dirpath = os.path.dirname(path)
+        dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'w') as writer:
             print(fasta_str, file=writer)
 
     def set_record_as_column_metadata(self, i, func, name=None):
-        data = func(self.rows[i].sequence)
+        data = [func(v) for v in self.rows[i].sequence]
         if name is None:
             name = self.rows[i].id
         self._column_metadata[name] = data
@@ -121,8 +121,8 @@ class DictSerdeMixin:
         records = [BaseRecord(r['id'], r['description'], r['sequence'], 
                               r['chunk_size'])
                    for r in d['alignment']]
-        column_metadata = \
-            d['column_metadata'] if 'column_metadata' in d.keys() else None
+        column_metadata = None if 'column_metadata' not in d.keys() else \
+            {k: v for k, v in d['column_metadata'].items()}
         return cls(d['name'], records, chunk_size=d['chunk_size'],
                    index=d['index'], metadata=d['metadata'],
                    column_metadata=column_metadata)
@@ -133,13 +133,14 @@ class DictSerdeMixin:
             'index': self._index.to_list(),
             'alignment': [
                 {'id': r.id, 'description': r.description,
-                 'sequence': r.sequence, 'chunk_size': r.chunk_size}
+                 'sequence': r.sequence_str, 'chunk_size': r.chunk_size}
                 for r in self._alignment.records
             ],
-            'metadata': self.metadata.to_dict(),
+            'chunk_size': self.chunk_size,
+            'metadata': self.metadata,
         }
         if column_metadata:
-            d['column_metadata'] = self.column_metadata.to_dict()
+            d['column_metadata'] = self.column_metadata.to_dict(orient='list')
         return d
 
 
@@ -155,7 +156,7 @@ class JsonSerdeMixin(DictSerdeMixin):
         json_str = json.dumps(d)
         if path is None:
             return json_str
-        dirpath = os.path.dirname(path)
+        dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'w') as writer:
@@ -171,7 +172,7 @@ class PickleSerdeMixin(DictSerdeMixin):
 
     def to_pickle(self, path, column_metadata=True):
         d = self.to_dict(column_metadata)
-        dirpath = os.path.dirname(path)
+        dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'wb') as writer:
@@ -244,7 +245,7 @@ class CsvSerdeMixin:
                             r.sequence])
             for r in self._alignment.records
         ]
-        dirpath = os.path.dirname(path)
+        dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
         if not path.endswith('.csv'):
@@ -257,7 +258,7 @@ class CsvSerdeMixin:
         csv_str = '\n'.join(lines)
         if path is None:
             return csv_str
-        dirpath = os.path.dirname(path)
+        dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
         with open(data_path, 'w') as writer:
