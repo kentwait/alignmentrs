@@ -1,3 +1,6 @@
+from copy import deepcopy
+import pandas
+
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
 
