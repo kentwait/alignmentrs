@@ -225,6 +225,14 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if copy is True:
             return aln
 
+    def add_column_metadata(self, name, data):
+        if name in self._column_metadata:
+            raise ValueError('name already exists')
+        self._column_metadata[name] = data
+
+    def remove_column_metadata(self, name):
+        self._column_metadata.drop(name, axis=1, inplace=True) 
+
     def reset_index(self):
         self.cols.reset_index()
 
