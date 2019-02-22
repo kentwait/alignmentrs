@@ -240,14 +240,15 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             cons.append(char)
         return cons
 
-    def drop(self, value, case_sensitive=False, copy=False, dry_run=False):
+    def drop(self, value, case_sensitive=False, copy=False, dry_run=False, 
+             mode='any'):
         return self.cols.drop(value, case_sensitive=case_sensitive,
-                              copy=copy, dry_run=dry_run)
+                              copy=copy, dry_run=dry_run, mode=mode)
 
     def drop_except(self, value, case_sensitive=False, copy=False,
-                    dry_run=False):
+                    dry_run=False, mode='any'):
         return self.cols.drop_except(value, case_sensitive=case_sensitive,
-                                     copy=copy, dry_run=dry_run)
+                                     copy=copy, dry_run=dry_run, mode=mode)
 
     def drop_n(self, n_char='N', case_sensitive=False, copy=False,
                dry_run=False):

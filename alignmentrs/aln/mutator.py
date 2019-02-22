@@ -377,29 +377,75 @@ class ColMutator:
         if copy is True:
             return aln
 
-    def drop(self, value, case_sensitive=False, copy=False, dry_run=False):
+    def drop(self, value, case_sensitive=False, copy=False, dry_run=False,
+             mode='any'):
         if len(value) < self._instance.chunk_size:
-            if case_sensitive:
+            if case_sensitive and mode == 'any':
                 func = lambda x: \
-                    len(x) != sum([value not in chars for chars in x])
+                    sum([value in chars for chars in x]) > 0
+            elif case_sensitive and mode == 'all':
+                func = lambda x: \
+                    sum([value in chars for chars in x]) == len(x)
+            elif not case_sensitive and mode == 'any':
+                func = lambda x: \
+                    sum([value.upper() in chars.upper() for chars in x]) > 0
+            elif not case_sensitive and mode == 'all':
+                func = lambda x: \
+                    sum([value.upper() in chars.upper() for chars in x]) \
+                        == len(x)
             else:
-                func = lambda x: \
-                    len(x) != \
-                    sum([value.upper() not in chars.upper() for chars in x])
+                raise ValueError('invalid mode')
         elif len(value) == self._instance.chunk_size:
-            if case_sensitive:
-                func = lambda x: value not in x
+            if case_sensitive and mode == 'any':
+                func = lambda x: value in x
+            elif case_sensitive and mode == 'all':
+                func = lambda x: [value]*len(x) == x
+            elif not case_sensitive and mode == 'any':
+                func = lambda x: \
+                    value.upper() in [chars.upper() for chars in x]
+            elif not case_sensitive and mode == 'all':
+                func = lambda x: \
+                    [value.upper()]*len(x) == [chars.upper() for chars in x]
             else:
-                func = lambda x: value.upper() not in \
-                    [chars.upper() for chars in x]
+                raise ValueError('invalid mode')
         else:
             raise ValueError('value is larger than chunk size')
         return self.filter(func, copy=copy, dry_run=dry_run, inverse=True)
 
     def drop_except(self, value, case_sensitive=False, copy=False, 
-                    dry_run=False):
-        return self.filter(lambda x: value in x, case_sensitive=case_sensitive,
-                           copy=copy, dry_run=dry_run, inverse=True)
+                    dry_run=False, mode='any'):
+        if len(value) < self._instance.chunk_size:
+            if case_sensitive and mode == 'any':
+                func = lambda x: \
+                    sum([value in chars for chars in x]) > 0
+            elif case_sensitive and mode == 'all':
+                func = lambda x: \
+                    sum([value in chars for chars in x]) == len(x)
+            elif not case_sensitive and mode == 'any':
+                func = lambda x: \
+                    sum([value.upper() in chars.upper() for chars in x]) > 0
+            elif not case_sensitive and mode == 'all':
+                func = lambda x: \
+                    sum([value.upper() in chars.upper() for chars in x]) \
+                        == len(x)
+            else:
+                raise ValueError('invalid mode')
+        elif len(value) == self._instance.chunk_size:
+            if case_sensitive and mode == 'any':
+                func = lambda x: value in x
+            elif case_sensitive and mode == 'all':
+                func = lambda x: [value]*len(x) == x
+            elif not case_sensitive and mode == 'any':
+                func = lambda x: \
+                    value.upper() in [chars.upper() for chars in x]
+            elif not case_sensitive and mode == 'all':
+                func = lambda x: \
+                    [value.upper()]*len(x) == [chars.upper() for chars in x]
+            else:
+                raise ValueError('invalid mode')
+        else:
+            raise ValueError('value is larger than chunk size')
+        return self.filter(func, copy=copy, dry_run=dry_run, inverse=False)
 
     def drop_n(self, n_char='N', case_sensitive=False, copy=False, 
                dry_run=False):
