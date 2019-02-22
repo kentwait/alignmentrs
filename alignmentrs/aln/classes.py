@@ -198,7 +198,7 @@ class Alignment(JsonSerdeMixin, object):
             column_metadata=self._column_metadata.copy(deep=True)
         )
 
-    def set_chunk_size(self, value, copy=False, reducer_func=None, expander_func=None):
+    def set_chunk_size(self, value, copy=False, recasting_func=None):
         aln = self
         if copy is True:
             aln = self.copy()
@@ -206,20 +206,14 @@ class Alignment(JsonSerdeMixin, object):
         aln._alignment.chunk_size = value
 
         # Adjust column metadata
-        # current size -> 1's -> new size
-        if expander_func is None:
-            # more columns than original, copy
-            # Change to 1s
+        if recasting_func is None:
+            # current size -> 1's -> new size
             df = self._default_expander_func(
                 aln._column_metadata, self.chunk_size)
-        else:
-            df = expander_func(
-                aln._column_metadata, self.chunk_size)
-        if reducer_func is None:
-            # Average/Mode to reduce to new size
             df = self._default_reducer_func(df, value)
         else:
-            df = reducer_func(df, value)
+            df = recasting_func(
+                aln._column_metadata, self.chunk_size, value)
         aln._column_metadata = df
         if copy is True:
             return aln
