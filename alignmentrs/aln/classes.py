@@ -139,6 +139,12 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         of the alignment."""
         return self._index
 
+    @index.setter
+    def set_index(self, index):
+        index = pandas.Index(index)
+        self._column_metadata.index = index
+        self._index = index
+
     @property
     def chunk_size(self):
         """int: Returns the chunk size of the alignment."""
