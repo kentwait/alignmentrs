@@ -425,8 +425,53 @@ impl BaseAlignment {
     }
 
     // insert
+    fn insert_col(&mut self, col: usize, value: Vec<&str>) -> PyResult<()> {
+        self.insert_cols(col, vec![value])
+    }
+
+    fn insert_cols(&mut self, mut col: usize, values: Vec<Vec<&str>>)
+    -> PyResult<()> {
+        if values.len() == 0 {
+            return Ok(())
+        }
+        // TODO: Add immediate return to other methods when value length is 0
+        check_col_index(self, col)?;
+        check_length_match(&values[0], &self.records)?;
+        check_chunk_size(self, &values[0])?;
+        for value in values.iter() {
+            for i in 0..self.records.len() {
+                self.records[i].sequence.insert(
+                    col as usize, value[i].to_string());
+            }
+            col += 1;
+        }
+        Ok(())
+    }
+
+    // for value in values.into_iter() {
+    //     self.records.insert(row as usize, value.clone());
+    //     row += 1;
+    // }
+    // Ok(())
 
     // append
+    fn append_col(&mut self, value: Vec<&str>) -> PyResult<()> {
+        self.append_cols(vec![value])
+    }
+
+    fn append_cols(&mut self, values: Vec<Vec<&str>>) -> PyResult<()> {
+        if values.len() == 0 {
+            return Ok(())
+        }
+        check_length_match(&values[0], &self.records)?;
+        check_chunk_size(self, &values[0])?;
+        for i in 0..self.records.len() {
+            for value in values.iter() {
+                self.records[i].sequence.push(value[i].to_string());
+            }
+        }
+        Ok(())
+    }
 
     /// remove_col(index, /)
     /// --
@@ -839,7 +884,15 @@ impl PyObjectProtocol for BaseAlignment {
 pub fn check_empty_alignment(aln_ptr: &BaseAlignment) -> PyResult<()> {
     if aln_ptr.nrows()? == 0 {
         return Err(exceptions::ValueError::py_err(
-            "Cannot get rows from an empty alignment."))
+            "empty alignment"))
+    }
+    Ok(())
+}
+
+pub fn check_empty_list<T>(list: &Vec<T>) -> PyResult<()> {
+    if list.len() == 0 {
+        return Err(exceptions::ValueError::py_err(
+            "empty list"))
     }
     Ok(())
 }
@@ -848,7 +901,7 @@ pub fn check_empty_alignment(aln_ptr: &BaseAlignment) -> PyResult<()> {
 pub fn check_row_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
     if aln_ptr.nrows()? <= i as i32 {
         return Err(exceptions::IndexError::py_err(
-            "row index out of range."))
+            "row index out of range"))
     }
     Ok(())
 }
@@ -856,16 +909,25 @@ pub fn check_row_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
 pub fn check_col_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
     if aln_ptr.ncols()? <= i as i32 {
         return Err(exceptions::IndexError::py_err(
-            "column index out of range."))
+            "column index out of range"))
     }
     Ok(())
 }
 
+pub fn check_chunk_size(aln_ptr: &BaseAlignment, list_ptr: &Vec<&str>)
+-> PyResult<()> {
+    if list_ptr.len() > 0 &&
+        list_ptr[0].chars().count() != aln_ptr.chunk_size as usize {
+        return Err(exceptions::ValueError::py_err(
+            "chunk sizes do not match"))
+    }
+    Ok(())
+}
 
 pub fn check_length_match<T, U>(v1: &Vec<T>, v2: &Vec<U>) -> PyResult<()> {
     if v1.len() != v2.len() {
         return Err(exceptions::ValueError::py_err(
-            "length mismatch."))
+            "length mismatch"))
     }
     Ok(())
 }
