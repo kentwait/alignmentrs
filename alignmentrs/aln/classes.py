@@ -173,6 +173,10 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return self._alignment.nchars
 
     @property
+    def records(self):
+        return self._alignment.records
+
+    @property
     def ids(self):
         """list of str: Returns the list of identifiers."""
         return self._alignment.ids
