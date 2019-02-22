@@ -749,6 +749,26 @@ impl BaseAlignment {
         self.remove_records(rows)
     }
 
+    fn concat(&mut self, others: Vec<&BaseAlignment>) -> PyResult<()> {
+        check_empty_alignment(self)?;
+        if let Err(_) = check_empty_list(&others) {
+            return Ok(())
+        };
+        for aln in others.iter() {
+            check_length_match(&self.records, &aln.records)?;
+            if self.records[0].sequence[0].len() ==
+               aln.records[0].sequence[0].len() {
+                return Err(exceptions::ValueError::py_err(
+                    "length mismatch"))
+            }
+            for j in 0..self.records.len() {
+                self.records[j].sequence.extend_from_slice(
+                    &aln.records[j].sequence);
+            }
+        }
+        Ok(())
+    }
+
 
     // Methods to convert row names to row indices
 
@@ -940,8 +960,6 @@ pub fn check_length_match_i32(len1: i32, len2:i32) -> PyResult<()> {
     }
     Ok(())
 }
-
-// TODO: Make concat_basealignments
 
 // Register python functions to PyO3
 #[pymodinit]

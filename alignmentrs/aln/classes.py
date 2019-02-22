@@ -1,6 +1,7 @@
 from collections import Counter
-import os
 from copy import deepcopy
+import warnings
+import os
 
 import pandas
 import numpy
@@ -15,6 +16,16 @@ from .mutator import RowMutator, ColMutator
 
 __all__ = ['Alignment', 'CatAlignment']
 
+
+class NoNameWarning(UserWarning):
+    """Warning for mismatched/incompatible alignments.
+    """
+    pass
+
+class DuplicateNameWarning(UserWarning):
+    """Warning for mismatched/incompatible alignments.
+    """
+    pass
 
 class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin, 
                 RecordsSerdeMixin, object):
@@ -275,6 +286,48 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     def drop_gap(self, gap_char='-', copy=False, dry_run=False):
         return self.cols.drop_gap(gap_char=gap_char, copy=copy, dry_run=dry_run)
+
+    def join(self, others, reset_index=False, copy=False):
+        aln = self
+        if copy is True:
+            aln = self.copy()
+        if isinstance(others, Alignment):
+            others = [others]
+        elif isinstance(others, list) and \
+            sum((isinstance(o, Alignment) for o in others)) == len(others):
+            pass
+        else:
+            raise ValueError(
+                'others must be an Alignment or ''a list of Alignment objects')
+        # check if chunks are the same
+        # check if number of records are the same
+        aln._alignment.concat(others)
+        # Concat dataframes
+        aln._column_metadata = pandas.concat(
+            [aln._column_metadata] + 
+            [aln._column_metadata for aln in others],
+            sort=False, axis=0
+        )
+        # Add names
+        name_list = ([aln.name]*len(aln.records)) + \
+                    [o.name for o in others for _ in len(o.records)]
+        if None in name_list:
+            warnings.warn('used `None` in _src_name column metadata '
+                'because some alignments have no name', NoNameWarning)
+        if set(name_list) != len(others) + 1:
+            warnings.warn('some alignments have the same name', 
+                DuplicateNameWarning)
+        aln._column_metadata['_src_name'] = name_list
+        # Concat index
+        if reset_index is True:
+            aln._index = pandas.Index(range(
+                sum([len(aln._index)] + [len(o._index) for o in others])
+            ))
+            aln._column_metadata.reset_index(drop=True, inplace=True)
+        else:
+            aln._index = pandas.Index(pandas.concat(
+                [pd.Series(aln._index)] + [pd.Series(o._index) for o in others]
+            ))
 
     @staticmethod
     def _default_expander_func(df, n):
