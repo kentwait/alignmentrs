@@ -51,13 +51,13 @@ impl BaseRecord {
     }
 
     #[getter]
-    pub fn str_len(&self) -> PyResult<i32> {
+    pub fn len_str(&self) -> PyResult<i32> {
         Ok((self.sequence.len() as i32)  * self.chunk_size)
     }
 
     #[setter(chunk_size)]
     pub fn set_chunk_size(&mut self, chunk_size: i32) -> PyResult<()> {
-        if self.str_len()? % chunk_size != 0 {
+        if self.len_str()? % chunk_size != 0 {
             return Err(exceptions::IndexError::py_err(
                 "invalid chunk_size: sequence cannot be cleanly divided into substrings"))
         }
@@ -70,8 +70,8 @@ impl BaseRecord {
     }
 
     #[getter(sequence)]
-    pub fn get_sequence(&self) -> PyResult<String> {
-        Ok(self.sequence.join(""))
+    pub fn get_sequence(&self) -> PyResult<Vec<String>> {
+        Ok(self.sequence.clone())
     }
 
     #[setter(sequence)]
@@ -85,8 +85,8 @@ impl BaseRecord {
     }
 
     #[getter]
-    pub fn chunked_sequence(&self) -> PyResult<Vec<String>> {
-        Ok(self.sequence.clone())
+    pub fn sequence_str(&self) -> PyResult<String> {
+        Ok(self.sequence.join(""))
     }
 
     // TODO: Get/set chunk
@@ -97,9 +97,9 @@ impl BaseRecord {
 impl PyObjectProtocol for BaseRecord {
     fn __repr__(&self) -> PyResult<String> {
         // threshold is 15, 6 ... 6
-        let seq: String = match self.str_len() {
+        let seq: String = match self.len_str() {
             Ok(x) if x >= 15 => {
-                let sequence = self.get_sequence()?;
+                let sequence: String = self.sequence_str()?;
                 let mut seq = String::new();
                 for (i, c) in sequence.char_indices() {
                     if i < 6 {
@@ -112,11 +112,11 @@ impl PyObjectProtocol for BaseRecord {
                 }
                 seq
             },
-            _ => self.get_sequence()?.clone()
+            _ => self.sequence_str()?.clone()
         };
         Ok(format!(
             "BaseRecord(id={id}, sequence=\"{seq}\", length={len}, chunk_size={chunk_size}",
-            id=self.id, seq=seq, len=self.str_len()?, chunk_size=self.chunk_size
+            id=self.id, seq=seq, len=self.len_str()?, chunk_size=self.chunk_size
         ))
     }
 
@@ -126,11 +126,11 @@ impl PyObjectProtocol for BaseRecord {
             return Ok(format!(">{id} {desc}\n{seq_len}",
                 id=self.id,
                 desc=self.description,
-                seq_len=self.str_len()?))
+                seq_len=self.len_str()?))
         }
         return Ok(format!(">{id}\n{seq_len}",
                 id=self.id,
-                seq_len=self.str_len()?))
+                seq_len=self.len_str()?))
     }
 }
 

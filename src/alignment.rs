@@ -61,7 +61,7 @@ impl BaseAlignment {
         if self.records.len() == 0 {
             return Ok(0)
         }
-        self.records[0].str_len()
+        self.records[0].len_str()
     }
 
     #[getter]
@@ -354,7 +354,7 @@ impl BaseAlignment {
         }
         for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
             // TODO: Make function that checks if records have the same length and string length
-            check_length_match_i32(values[i].str_len()?, self.records[i].str_len()?)?;
+            check_length_match_i32(values[i].len_str()?, self.records[i].len_str()?)?;
             check_length_match_i32(values[i].len()?, self.records[i].len()?)?;
             self.records[row] = values[i].clone();
         }
@@ -701,7 +701,7 @@ impl BaseAlignment {
             check_row_index(self, *x as usize)?;
         }
         for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
-            check_length_match_i32(values[i].len() as i32, self.records[i].str_len()?)?;
+            check_length_match_i32(values[i].len() as i32, self.records[i].len_str()?)?;
             self.records[row].set_sequence(values[i])?;
         }
         Ok(())
@@ -756,11 +756,8 @@ impl BaseAlignment {
         };
         for aln in others.iter() {
             check_length_match(&self.records, &aln.records)?;
-            if self.records[0].sequence[0].len() ==
-               aln.records[0].sequence[0].len() {
-                return Err(exceptions::ValueError::py_err(
-                    "length mismatch"))
-            }
+            check_length_match_i32(self.records[0].chunk_size,
+                                   aln.records[0].chunk_size)?;
             for j in 0..self.records.len() {
                 self.records[j].sequence.extend_from_slice(
                     &aln.records[j].sequence);
