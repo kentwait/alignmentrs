@@ -154,6 +154,10 @@ class RowMutator:
         if copy is True:
             return aln
 
+    # TODO: map for records
+    def map(self, function):
+        pass
+
     def iter(self):
         for i in range(self._instance.nrows):
             yield self._instance._alignment.get_record(i)
@@ -324,6 +328,10 @@ class ColMutator:
         aln.cols.remove(remove_positions)
         if copy is True:
             return aln
+
+    # TODO: map for columns
+    def map(self, function):
+        pass
 
     def iter(self, skip_n=None, chunk_size=None):
         cnt = 0
