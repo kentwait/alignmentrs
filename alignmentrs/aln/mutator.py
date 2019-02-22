@@ -273,6 +273,7 @@ class ColMutator:
             raise TypeError('positions must be an int or a list of int')
         retain_positions = aln._alignment.invert_cols(positions)        
         aln._alignment.remove_cols(positions)
+        aln._index = aln._index[retain_positions]
         aln._column_metadata = aln._column_metadata.iloc[retain_positions]
         if copy is True:
             return aln
@@ -290,6 +291,7 @@ class ColMutator:
             raise TypeError('positions must be an int or a list of int')
         remove_positions = aln._alignment.invert_cols(positions)
         aln._alignment.remove_cols(remove_positions)
+        aln._index = aln._index[positions]
         aln._column_metadata = aln._column_metadata.iloc[positions]
         if copy is True:
             return aln
@@ -347,6 +349,7 @@ class ColMutator:
         else:
             raise TypeError('positions must be an int or a list of int')
         aln._alignment.reorder_cols(positions)
+        aln._index = aln._index[positions]
         aln._column_metadata = aln._column_metadata.iloc[positions]
         if copy is True:
             return aln
@@ -486,7 +489,7 @@ class ColMutator:
         if isinstance(column_values, list) and \
             sum((isinstance(val, list) for val in column_values)):
             df = pandas.DataFrame(
-                {k:v for k,v in zip(aln._column_metadata, column_values[i])})
+                {k:v for k,v in zip(aln._column_metadata, column_values)})
         elif isinstance(column_values, list) and \
             sum((isinstance(val, dict) for val in column_values)):
             df = pandas.DataFrame(column_values)
