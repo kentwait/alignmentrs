@@ -115,7 +115,7 @@ class RowMutator:
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
-        if isinstance(positons, int):
+        if isinstance(positions, int):
             aln._alignment.retain_record(positions)
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
