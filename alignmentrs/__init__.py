@@ -4,7 +4,7 @@ import libalignmentrs as librs
 from alignmentrs import aln
 # from alignmentrs import alnset
 from alignmentrs.aln import Alignment
-# from alignmentrs.alnset import AlignmentSet, fasta_directory_to_alignmentset
+# from alignmentrs.alnset import Alignmentet, fasta_directory_to_alignmentset
 
 
 __author__ = 'Kent Kawashima'

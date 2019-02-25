@@ -2,6 +2,9 @@ from collections import Counter
 from copy import deepcopy
 import warnings
 import os
+from datetime import datetime
+import json
+import inspect
 
 import pandas
 import numpy
@@ -51,7 +54,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     """
     def __init__(self, name, records, chunk_size: int=1,
                  index=None, metadata: dict=None, column_metadata=None,
-                 **kwargs):
+                 store_history=True, **kwargs):
                 # TODO: Update docstrings
         """Creates a new Alignment object from a sample BaseAlignment.
 
@@ -90,6 +93,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self._rows = RowMutator(self)
         self._cols = ColMutator(self)
         # TODO: Add logging to log and replay actions performed using the API
+        self._history = History() if store_history else None
+        # self._store_state_history = store_state_history
+
 
     # Constructors
     def _alignment_constructor(self, records, chunk_size):
@@ -158,6 +164,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         index = pandas.Index(index)
         self._column_metadata.index = index
         self._index = index
+        # Add to history
+        if self._history is not None:
+            self._history.add('.cols.set_index',
+                args=[index]
+                )
 
     @property
     def chunk_size(self):
@@ -210,10 +221,22 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         """list of list of str: Returns the list of sequences."""
         return self._alignment.chunked_sequences
 
+    @property
+    def history(self):
+        return self._history
+
+
     # Methods
     # ==========================================================================
 
-    def copy(self):
+    def copy(self, **kwargs):
+        # TODO: Copy over previous history
+        record = True
+        if '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (self._history is not None):
+            self._history.add('.copy')
         return self.__class__(
             self.name, self._alignment.copy(),
             chunk_size=self.chunk_size,
@@ -223,7 +246,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         )
 
     def set_chunk_size(self, value, copy=False, recasting_func=None, 
-                       reset_index=False):
+                       reset_index=False, **kwargs):
         if reset_index is not True:
             raise ValueError(
                 'cannot change chunk size without resetting the current index')
@@ -246,19 +269,62 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             df = recasting_func(
                 aln._column_metadata, curr_chunk_size, value)
         aln._column_metadata = df
+        # Add to history
+        record = True
+        if '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (aln._history is not None):
+            aln._history.add('.set_chunk_size',
+                args=[value],
+                kwargs={
+                    'copy': copy,
+                    'recasting_func': 
+                        repr(inspect.signature(recasting_func))
+                            .lstrip('<Signature ').rstrip('>'),
+                    'reset_index': reset_index
+                })
         if copy is True:
             return aln
 
-    def add_column_metadata(self, name, data):
+    def add_column_metadata(self, name, data, **kwargs):
         if name in self._column_metadata:
             raise ValueError('name already exists')
         self._column_metadata[name] = data
+        # Add to history
+        record = True
+        if '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (self._history is not None):
+            self._history.add('.set_chunk_size',
+                args=[name, data])
 
-    def remove_column_metadata(self, name):
-        self._column_metadata.drop(name, axis=1, inplace=True) 
+    def remove_column_metadata(self, name, **kwargs):
+        self._column_metadata.drop(name, axis=1, inplace=True, _record_history=False)
+        # Add to history
+        record = True
+        if '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (self._history is not None):
+            self._history.add('.remove_column_metadata',
+                args=[name])
 
-    def reset_index(self):
-        self.cols.reset_index()
+    def reset_index(self, copy=False, **kwargs):
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+        # Add to history
+        record = True
+        if '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (self._history is not None):
+            aln._history.add('.reset_index')
+        aln.cols.reset_index(copy=False, _record_history=False)
+        if copy is True:
+            return aln
 
     def variants(self):
         return list(self.cols.map(Counter))
@@ -273,24 +339,87 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return cons
 
     def drop(self, value, case_sensitive=False, copy=False, dry_run=False, 
-             mode='any'):
+             mode='any', **kwargs):
+        # Add to history
+        record = True
+        if dry_run:
+            record = False
+        elif '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (self._history is not None):
+            self._history.add('.drop',
+                args=[value],
+                kwargs={
+                    'case_sensitive': case_sensitive,
+                    'copy': copy,
+                    'dry_run': dry_run,
+                })
         return self.cols.drop(value, case_sensitive=case_sensitive,
-                              copy=copy, dry_run=dry_run, mode=mode)
+                              copy=copy, dry_run=dry_run, mode=mode,
+                              _record_history=False)
 
     def drop_except(self, value, case_sensitive=False, copy=False,
-                    dry_run=False, mode='any'):
+                    dry_run=False, mode='any', **kwargs):
+        # Add to history
+        record = True
+        if dry_run:
+            record = False
+        elif '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (self._history is not None):
+            self._history.add('.drop_except',
+                args=[value],
+                kwargs={
+                    'case_sensitive': case_sensitive,
+                    'copy': copy,
+                    'dry_run': dry_run,
+                    'mode': mode,
+                })
         return self.cols.drop_except(value, case_sensitive=case_sensitive,
-                                     copy=copy, dry_run=dry_run, mode=mode)
+                                     copy=copy, dry_run=dry_run, mode=mode,
+                                     _record_history=False)
 
     def drop_n(self, n_char='N', case_sensitive=False, copy=False,
-               dry_run=False):
+               dry_run=False, **kwargs):
+        # Add to history
+        record = True
+        if dry_run:
+            record = False
+        elif '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (self._history is not None):
+            self._history.add('.drop_n',
+                kwargs={
+                    'n_char': n_char,
+                    'case_sensitive': case_sensitive,
+                    'copy': copy,
+                    'dry_run': dry_run,
+                })
         return self.cols.drop_n(n_char=n_char, case_sensitive=case_sensitive,
-                                copy=copy, dry_run=dry_run)
+                                copy=copy, dry_run=dry_run, _record_history=False)
 
-    def drop_gap(self, gap_char='-', copy=False, dry_run=False):
-        return self.cols.drop_gap(gap_char=gap_char, copy=copy, dry_run=dry_run)
+    def drop_gap(self, gap_char='-', copy=False, dry_run=False, **kwargs):
+        # Add to history
+        record = True
+        if dry_run:
+            record = False
+        elif '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (self._history is not None):
+            self._history.add('.drop_gap',
+                kwargs={
+                    'gap_char': gap_char,
+                    'copy': copy,
+                    'dry_run': dry_run,
+                })
+        return self.cols.drop_gap(gap_char=gap_char, copy=copy, 
+                                  dry_run=dry_run, _record_history=False)
 
-    def join(self, others, reset_index=False, copy=False):
+    def join(self, others, reset_index=False, copy=False, **kwargs):
         aln = self
         if copy is True:
             aln = self.copy()
@@ -334,6 +463,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 [pandas.Series(aln._index)] + 
                 [pandas.Series(o._index) for o in others]
             ))
+        # Add to history
+        record = True
+        if '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (aln._history is not None):
+            aln._history.add('.join',
+                args=[others],
+                kwargs={
+                    'reset_index': reset_index,
+                    'copy': copy,
+                })
         if copy is True:
             return aln
 
@@ -423,3 +564,176 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+class History:
+    def __init__(self, *args, **kwargs):
+        self.records = []
+        # self.store_state_history = store_state_history
+
+    def add(self, operation, args=None, kwargs=None,
+            # before_state=None, after_state=None
+            ):
+        # if self.store_state:
+        #     if before_state:
+        #         raise ValueError('store_state_history is True but "before" state is not specfied')
+        #     if after_state:
+        #         raise ValueError('store_state_history is True but "after" state is not specfied')
+        record = Record(operation, args=args, kwargs=kwargs,
+                        # before_state=before_state, after_state=after_state
+                        )
+        self.records.append(record)
+    
+    def to_json(self, path=None):
+        return '[{}]'.format(
+            ', '.join([i.to_json() for i in self.records])
+        )
+
+    def to_markdown(self, path=None):
+        return '\n'.join([i.to_markdown() for i in self.records])
+
+    def to_string(self, str_formatter=None, strftime='%m/%d/%Y %H:%M:%S'):
+        return '\n'.join([
+            i.to_string(str_formatter=str_formatter, strftime=strftime)
+            for i in self.records
+        ])
+
+    def to_toml(self, path=None):
+        return '\n'.join([i.to_toml() for i in self.records])
+
+    def to_csv(self, path=None, sep='\t'):
+        return '\n'.join([i.to_csv(sep=sep) for i in self.records])
+
+    def __str__(self):
+        return '\n'.join([str(item) for item in self.records])
+
+    def __repr__(self):
+        return repr(self.records)
+
+    def __getitem__(self, k):
+        return self.record[k]
+
+    def __setitem__(self, k, v):
+        self.records[k] = v
+
+
+class Record:
+    def __init__(self, operation, args=None, kwargs=None,
+                #  before_state=None, after_state=None, 
+                 str_formatter=None, module=None):
+        self.operation = operation
+        self.optype = 'operation'
+        if module:
+            self.operation = '.'.join([module, self.operation])
+        self.args = [repr(arg).replace('\n', ' ') for arg in args] \
+            if args else []
+        self.kwargs = {key: repr(kwarg).replace('\n', ' ') 
+                       for key, kwarg in kwargs.items()} \
+            if kwargs else dict()
+        self.datetime = datetime.now()
+        self._threshold_args = 3
+        self._threshold_kwargs = 2
+        self.str_formatter = str_formatter
+
+    def to_json(self, path=None):
+        return json.dumps(
+            {self.optype: 
+                {
+                    'datetime': self.datetime.strftime('%m/%d/%Y %H:%M:%S'),
+                    'operation': self.operation,
+                    'args': self.args,
+                    'kwargs': self.kwargs,
+                }
+            }
+        )
+
+    def to_markdown(self, path=None):
+        params = ''
+        if len(self.args) > 0:
+            params += ', '.join(self.args)
+        if len(self.kwargs) > 0:
+            if len(self.args) > 0:
+                params += ', '
+            params += ', '.join(
+                ['{}={}'.format(k, v) for k, v in self.kwargs.items()]
+            )
+        return ('## {optype} {op}\n'
+                '  * date and time - {dt}\n'
+                '  * statement - `{op}({params})`\n'.format(
+                   dt=self.datetime.strftime('%m/%d/%Y %H:%M:%S'),
+                   op=self.operation,
+                   optype=self.optype,
+                   params=params,
+                ))
+
+    def to_string(self, str_formatter=None, strftime='%m/%d/%Y %H:%M:%S'):
+        if str_formatter:
+            return str_formatter(
+                operation=self.operation,
+                optype=self.optype,
+                args=self.args,
+                kwargs=self.kwargs,
+                datetime=self.datetime.strftime(strftime),
+            )
+        if self.str_formatter:
+            return self.str_formatter(
+                operation=self.operation,
+                optype=self.optype,
+                args=self.args,
+                kwargs=self.kwargs,
+                datetime=self.datetime,
+            )
+        args = [v for i, v in enumerate(self.args)
+                if i < self._threshold_args]
+        if len(self.args) > self._threshold_args:
+            args += ['...']
+        kwargs = ['{k}={v}'.format(k=kv[0], v=kv[1]) 
+                for i, kv in enumerate(self.kwargs.items())
+                if i < self._threshold_args]
+        if len(self.kwargs) > self._threshold_kwargs:
+            kwargs += ['...']
+        params = ''
+        if len(args) > 0:
+            params += ', '.join(args)
+        if len(kwargs) > 0:
+            if len(self.args) > 0:
+                params += ', '
+            params += ', '.join(kwargs)
+        return '{optype} {dt} {op}({params})'.format(
+            dt=self.datetime.strftime('%m/%d/%Y %H:%M:%S'),
+            optype=self.optype,
+            op=self.operation,
+            params=params,
+        )
+
+    def to_toml(self, path=None):
+        return ('[{optype}]\n'
+                'datetime = {dt}\n'
+                'operation = \'{op}\'\n'
+                'args = \'{args}\'\n'
+                'kwargs = \'{kwargs}\'\n'.format(
+                   dt=self.datetime.strftime('%m/%d/%Y %H:%M:%S'),
+                   op=self.operation,
+                   optype=self.optype,
+                   args=self.args,
+                   kwargs=str(self.kwargs),
+               ))
+
+    def to_csv(self, path=None, sep='\t'):
+        return sep.join([
+            self.optype,
+            self.datetime.strftime('%m/%d/%Y %H:%M:%S'),
+            self.operation,
+            str(self.args),
+            str(self.kwargs),
+        ])
+
+    def __str__(self):
+        return self.to_string()
+
+    def __repr__(self):
+        return '<{clsname} datetime={dt} statement={op}({params})>'.format(
+            clsname=self.__class__.__name__,
+            dt=self.datetime.strftime('%m/%d/%YT%H:%M:%S'),
+            op=self.operation,
+            params='...' if len(self.args) > 0 or len(self.kwargs) > 0 else ''
+        )

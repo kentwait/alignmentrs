@@ -18,15 +18,18 @@ __all__ = [
 
 class RecordsSerdeMixin:
     @classmethod
-    def from_records(cls, records, chunk_size=1, name=None, **kwargs):
-        cls(name, records, chunk_size=chunk_size, **kwargs)
+    def from_records(cls, records, chunk_size=1, name=None,
+                     store_history=True, **kwargs):
+        cls(name, records, chunk_size=chunk_size, store_history=store_history,
+            **kwargs)
 
     def to_records(self):
         return self._alignment.records
 
 class FastaSerdeMixin:
     @classmethod
-    def from_fasta(cls, path, name=None, chunk_size=1, column_metadata=None):
+    def from_fasta(cls, path, name=None, chunk_size=1, column_metadata=None,
+                   store_history=True, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -68,7 +71,8 @@ class FastaSerdeMixin:
             records = records[keep_records]
 
         return cls(name, records, chunk_size=chunk_size,
-                   column_metadata=col_meta)
+                   column_metadata=col_meta, store_history=store_history,
+                   **kwargs)
 
     def to_fasta(self, path=None, column_metadata=None):
         """Saves the alignment as a FASTA-formatted file.
@@ -117,7 +121,7 @@ class FastaSerdeMixin:
 
 class DictSerdeMixin:
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, store_history=True, **kwargs):
         records = [BaseRecord(r['id'], r['description'], r['sequence'], 
                               r['chunk_size'])
                    for r in d['alignment']]
@@ -125,7 +129,8 @@ class DictSerdeMixin:
             {k: v for k, v in d['column_metadata'].items()}
         return cls(d['name'], records, chunk_size=d['chunk_size'],
                    index=d['index'], metadata=d['metadata'],
-                   column_metadata=column_metadata)
+                   column_metadata=column_metadata, store_history=store_history,
+                   **kwargs)
 
     def to_dict(self, column_metadata=True):
         d = {
@@ -146,10 +151,11 @@ class DictSerdeMixin:
 
 class JsonSerdeMixin(DictSerdeMixin):
     @classmethod
-    def from_json(cls, path):
+    def from_json(cls, path, store_history=True, **kwargs):
         with open(path, 'r') as reader:
             d = json.load(reader)
-        return cls.from_dict(d)
+        return cls.from_dict(d, store_history=store_history,
+                             **kwargs)
 
     def to_json(self, path=None, column_metadata=True):
         d = self.to_dict(column_metadata)
@@ -165,10 +171,11 @@ class JsonSerdeMixin(DictSerdeMixin):
 
 class PickleSerdeMixin(DictSerdeMixin):
     @classmethod
-    def from_pickle(cls, path):
+    def from_pickle(cls, path, store_history=True, **kwargs):
         with open(path, 'rb') as reader:
             d = pickle.load(reader)
-        return cls.from_dict(d)
+        return cls.from_dict(d, store_history=store_history,
+                             **kwargs)
 
     def to_pickle(self, path, column_metadata=True):
         d = self.to_dict(column_metadata)
@@ -189,7 +196,9 @@ class PhylipSerdeMixin:
 
 class CsvSerdeMixin:
     @classmethod
-    def from_csv(cls, path, delimiter='\t', metadata=True, column_metadata=True):
+    def from_csv(cls, path, delimiter='\t', metadata=True,
+                 column_metadata=True, store_history=True,
+                 **kwargs):
         # self, name, records, chunk_size: int=1,
         # index=None, metadata: dict=None, column_metadata=None,
         data_path = os.path.abspath(path)
@@ -227,7 +236,8 @@ class CsvSerdeMixin:
             column_metadata_d = pandas.read_csv(meta_path, index_col=0, comment='#')
         return cls(name, records, chunk_size=chunk_size,
                    index=index, metadata=metadata_d,
-                   column_metadata=column_metadata_d)
+                   column_metadata=column_metadata_d, store_history=store_history,
+                   **kwargs)
 
 
     def to_csv(self, path=None, delimiter='\t', metadata=True, column_metadata=True):
