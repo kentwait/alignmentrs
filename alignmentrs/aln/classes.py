@@ -84,6 +84,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             self._col_metadata_constructor(column_metadata, self.index)
         self._rows = RowMutator(self)
         self._cols = ColMutator(self)
+        self._metadata = MetadataRedirect(self)
         # TODO: Add initial state information
         self._history = History() if store_history else None
 
@@ -183,6 +184,12 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return self._cols
 
     @property
+    def metadata(self):
+        # Redirects to _metadata "virtual object" to access
+        # metadata-specific methods
+        return self._metadata
+
+    @property
     def index(self):
         """pandas.core.indexes.base.Index: Returns the column index
         of the alignment."""
@@ -212,20 +219,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Add history by default
         if self._history is not None:
             self._history.add('.chunk_size', args=[value])
-
-    # TODO: add metadata virtual object and access using .metadata
-
-    @property
-    def column_metadata(self):
-        """pandas.core.frame.DataFrame: Returns the associated column
-        metadata as a pandas DataFrame."""
-        return self._column_metadata
-
-    @property
-    def row_metadata(self):
-        """pandas.core.frame.DataFrame: Returns the associated row
-        metadata as a pandas DataFrame."""
-        return self._row_metadata
 
     @property
     def nrows(self):
