@@ -15,6 +15,7 @@ from alignmentrs.aln.mixins import (RecordsSerdeMixin, FastaSerdeMixin,
 from alignmentrs.history import History, Record
 from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
 from .mutator import RowMutator, ColMutator
+from .metadata import MetadataRedirect
 
 
 __all__ = ['Alignment', 'CatAlignment']
@@ -77,7 +78,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self._alignment: BaseAlignment = \
             self._alignment_constructor(records, chunk_size)
         self._index = self._index_constructor(index)
-        self.comments = self._comments_constructor(comments)
+        self._comments = self._comments_constructor(comments)
         self._row_metadata = self._col_metadata_constructor(row_metadata)
         self._column_metadata = \
             self._col_metadata_constructor(column_metadata, self.index)
@@ -211,6 +212,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Add history by default
         if self._history is not None:
             self._history.add('.chunk_size', args=[value])
+
+    # TODO: add metadata virtual object and access using .metadata
 
     @property
     def column_metadata(self):
