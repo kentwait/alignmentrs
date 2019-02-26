@@ -1,6 +1,5 @@
 from collections import Counter
 from copy import deepcopy
-import warnings
 import os
 import inspect
 
@@ -13,21 +12,12 @@ from alignmentrs.util import idseq_to_display
 from alignmentrs.aln.mixins import (RecordsSerdeMixin, FastaSerdeMixin,
                                     JsonSerdeMixin, PickleSerdeMixin)
 from alignmentrs.history import History, Record
+from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
 from .mutator import RowMutator, ColMutator
 
 
 __all__ = ['Alignment', 'CatAlignment']
 
-
-class NoNameWarning(UserWarning):
-    """Warning for mismatched/incompatible alignments.
-    """
-    pass
-
-class DuplicateNameWarning(UserWarning):
-    """Warning for mismatched/incompatible alignments.
-    """
-    pass
 
 class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin, 
                 RecordsSerdeMixin, object):
