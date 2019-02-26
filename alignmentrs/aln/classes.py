@@ -43,7 +43,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         Other information related to the alignment.
     """
     def __init__(self, name, records, chunk_size: int=1,
-                 index=None, metadata: dict=None, column_metadata=None,
+                 index=None, metadata: dict=None, 
+                 row_metadata=None, column_metadata=None,
                  store_history=True, **kwargs):
         """Creates a new Alignment object from a sample BaseAlignment.
 
@@ -77,6 +78,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             self._alignment_constructor(records, chunk_size)
         self._index = self._index_constructor(index)
         self.metadata = self._metadata_constructor(metadata)
+        self._row_metadata = self._col_metadata_constructor(row_metadata)
         self._column_metadata = \
             self._col_metadata_constructor(column_metadata, self.index)
         self._rows = RowMutator(self)
@@ -146,6 +148,27 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             raise TypeError('column_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
         return df
 
+    def _row_metadata_constructor(self, row_metadata, index):
+        if row_metadata is None:
+            df = pandas.DataFrame({
+                'id': self.ids,
+                'description': self.descriptions
+            }, index=index)
+        elif isinstance(row_metadata, dict):
+            # Check if values match the length of the index
+            for key, val in row_metadata.items():
+                if len(val) != len(self.nrows):
+                    raise ValueError('{} value length does not match the number of rows'.format(key))
+            df = pandas.DataFrame(row_metadata, index=self.index)
+        elif isinstance(row_metadata, pandas.DataFrame):
+            if len(row_metadata) != len(self.nrows):
+                raise ValueError('length of row_metadata dataframe does not match the number of rows'.format(key))
+            row_metadata.index = pandas.Index(range(self.nrows))
+            df = row_metadata
+        else:
+            raise TypeError('row_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
+        return df
+
     # Properties
     @property
     def rows(self):
@@ -193,6 +216,12 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         """pandas.core.frame.DataFrame: Returns the associated column
         metadata as a pandas DataFrame."""
         return self._column_metadata
+
+    @property
+    def row_metadata(self):
+        """pandas.core.frame.DataFrame: Returns the associated row
+        metadata as a pandas DataFrame."""
+        return self._row_metadata
 
     @property
     def nrows(self):
