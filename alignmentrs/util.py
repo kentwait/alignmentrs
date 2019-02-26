@@ -39,6 +39,19 @@ def idseq_to_display(ids, chunked_sequences, template='{name}     {seq}',
     return '\n'.join(lines)
 
 
+def add_to_history(aln, op, *args, **kwargs):
+    # Add to history
+    record = True
+    if '_record_history' in kwargs.keys():
+        record = kwargs['_record_history']
+        del kwargs['_record_history']
+    if record and (aln._history is not None):
+        aln._history.add(op,
+            args=args,
+            kwargs=kwargs
+        )
+
+
 def fasta_file_to_lists(path, marker_kw=None):
     """Reads a FASTA formatted text file to a list.
 
