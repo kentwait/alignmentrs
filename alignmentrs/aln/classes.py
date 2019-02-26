@@ -164,16 +164,23 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         index = pandas.Index(index)
         self._column_metadata.index = index
         self._index = index
-        # Add to history
+        # Add history by default
         if self._history is not None:
-            self._history.add('.cols.set_index',
-                args=[index]
-                )
+            self._history.add('.index', args=[index])
 
     @property
     def chunk_size(self):
         """int: Returns the chunk size of the alignment."""
         return self._alignment.chunk_size
+
+    @chunk_size.setter
+    def chunk_size_setter(self, value):
+        """Change chunk size using default options.
+        For more control, use the `set_chunk_size` method."""
+        self.set_chunk_size(self, value, reset_index=True)
+        # Add history by default
+        if self._history is not None:
+            self._history.add('.chunk_size', args=[value])
 
     @property
     def column_metadata(self):
