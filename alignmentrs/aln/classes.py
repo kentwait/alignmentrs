@@ -55,32 +55,31 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     def __init__(self, name, records, chunk_size: int=1,
                  index=None, metadata: dict=None, column_metadata=None,
                  store_history=True, **kwargs):
-                # TODO: Update docstrings
         """Creates a new Alignment object from a sample BaseAlignment.
 
         Parameters
         ----------
         name : str
             Name of the alignment.
-        sample_alignment : BaseAlignment
-            Alignment of sample sequences.
-        linspace : BlockSpace, optional
-            Linear space that assigns coordinate values to alignment
-            columns. (default is None, the constructor will create a new
-            linear space starting from 0).
+        records : list of BaseRecord
+            Aligned sequences as a list of records.
+        chunk_size : int, optional
+            Character length of each column in the alignment.
+        index : pandas.Index optional
+            Index for alignment columns.
+        metadata : dict, optional
+            Other information related to the alignment. (default is None,
+            which creates a blank dictionary)
+        column_metadata : pandas.DataFrame or dict, optional
+            DataFrame containing annotation for columns.
+        store_history : bool, optional
+            Whether or not to store actions when the state of the Alignment changes.
         metadata : dict, optional
             Other information related to the alignment. (default is None,
             which creates a blank dictionary)
         **kwargs
             Other keyword arguments used to initialize states in the
             Alignment object.
-
-        Raises
-        ------
-        ValueError
-            Alignment is instantiated with an empty sample alignment, or
-            instantiated with sample and marker alingments of unequal number of
-            sites.
 
         """
         self.name = name
@@ -92,13 +91,15 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             self._col_metadata_constructor(column_metadata, self.index)
         self._rows = RowMutator(self)
         self._cols = ColMutator(self)
-        # TODO: Add logging to log and replay actions performed using the API
+        # TODO: Add initial state information
         self._history = History() if store_history else None
-        # self._store_state_history = store_state_history
-
 
     # Constructors
     def _alignment_constructor(self, records, chunk_size):
+        # Constructs a BaseAlignemnt from the input
+        # `records` can be a list of BaseRecord or a BaaseAlignment
+        # Otherwise, raises a TypeError
+        # TODO: Handle possibility of empty alignment
         if isinstance(records, list):
             if not sum((isinstance(rec, BaseRecord) for rec in records)):
                 raise TypeError('records must be a list of BaseRecord objects')
@@ -110,6 +111,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         raise TypeError('records must be a list of BaseRecord objects or a BaseAlignment')
 
     def _metadata_constructor(self, metadata):
+        # Constructs metadata dictionary
+        # `metadata` can be a ditionary or None
+        # TODO: Handle any kind of mapping instead of only a dictionary
         if metadata is None:
             return dict()
         elif isinstance(metadata, dict):
@@ -117,6 +121,10 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         raise TypeError('metadata must be a dictionary object')
 
     def _index_constructor(self, index):
+        # Constructs index from input.
+        # `index` can be pandas.Index, list or None.
+        # Otherwise, raises an error.
+        # TODO: Handle rangle, numpy array
         if index is None:
             return pandas.Index(range(self._alignment.ncols))
         elif isinstance(index, pandas.Index):
@@ -127,6 +135,10 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             'index must be a list or {} object'.format(pandas.Index.__mro__[0]))
 
     def _col_metadata_constructor(self, column_metadata, index):
+        # Constructs column metadata DataFrame from `column_metadata` and
+        # `index` inputs`.
+        # `column_metadata` must be None, dict, or pandas.DataFrame
+        # Otherwise raises TypeError. 
         if column_metadata is None:
             df = pandas.DataFrame(None, index=index)
         elif isinstance(column_metadata, dict):
@@ -147,10 +159,12 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     # Properties
     @property
     def rows(self):
+        # Redirects to _rows "virtual object" to access row-specific methods
         return self._rows
 
     @property
     def cols(self):
+        # Redirects to _cols "virtual object" to access column-specific methods
         return self._cols
 
     @property
@@ -160,7 +174,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return self._index
 
     @index.setter
-    def set_index(self, index):
+    def set_index(self, index: pandas.core.indexes.base.Index):
+        """Sets the column index of the alignment."""
         index = pandas.Index(index)
         self._column_metadata.index = index
         self._index = index
@@ -174,8 +189,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return self._alignment.chunk_size
 
     @chunk_size.setter
-    def chunk_size_setter(self, value):
-        """Change chunk size using default options.
+    def chunk_size_setter(self, value: int):
+        """Changes the number of characters in an alignment column
+        using default options.
         For more control, use the `set_chunk_size` method."""
         self.set_chunk_size(self, value, reset_index=True)
         # Add history by default
@@ -206,6 +222,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     @property
     def records(self):
+        """list of BaseRecord: Returns the list of records."""
         return self._alignment.records
 
     @property
@@ -230,6 +247,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     @property
     def history(self):
+        """History: Returns history of previous actions performed that may have
+        changed the state of the alignment."""
         return self._history
 
 
@@ -237,6 +256,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     # ==========================================================================
 
     def copy(self, **kwargs):
+        """Creates a deep copy of the alignment.
+        
+        Returns
+        -------
+        Alignment
+            The new alignment is an new independent copy.
+            Changes made in the new alignment will not affect the original, and
+            vice versa.
+
+        """
+
+        # TODO: Implement magic methods for copy and deepcopy instead
         # TODO: Copy over previous history
         record = True
         if '_record_history' in kwargs.keys():
@@ -254,6 +285,32 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     def set_chunk_size(self, value, copy=False, recasting_func=None, 
                        reset_index=False, **kwargs):
+        """Changes the number of characters for each alignment column
+        using default options.
+        
+        Parameters
+        ----------
+        value : int
+            Number of characters.
+        copy : bool, optional
+            Whether or not change the chunk size in a new copy or
+            perform the operation inplace. (default is False, performs the
+            change inplace)
+        recasting_func : function, optional
+            Function used to recast existing column metadata to the
+            new alignment. (default is None, the existing column metadata will be recasted using by averaging for numerical data,
+            or by mode for objects)
+        reset_index : bool, optional
+            Must be set to True. (the default is False, in order to explicitly
+            require permission)
+
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment with the
+            new chunk size. Otherwise, the operation is performed inplace and does not return any value.
+
+        """
         if reset_index is not True:
             raise ValueError(
                 'cannot change chunk size without resetting the current index')
@@ -269,9 +326,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             # current size -> 1's -> new size
             df = self._default_expander_func(
                 aln._column_metadata, curr_chunk_size)
-            print(curr_chunk_size, value, len(df))
+            # print(curr_chunk_size, value, len(df))
             df = self._default_reducer_func(df, value)
-            print(curr_chunk_size, value, len(df))
+            # print(curr_chunk_size, value, len(df))
         else:
             df = recasting_func(
                 aln._column_metadata, curr_chunk_size, value)
@@ -295,6 +352,23 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return aln
 
     def add_column_metadata(self, name, data, **kwargs):
+        """Adds a new column to the column metadata DataFrame.
+        The resulting column metadata DataFrame is extended by one column.
+        
+        Parameters
+        ----------
+        name : str
+            Name describing the metadata
+        data : list
+            Data to be added
+        
+        Raises
+        ------
+        ValueError
+            If the value of `name` is already one of the existing
+            column labels.
+        
+        """
         if name in self._column_metadata:
             raise ValueError('name already exists')
         self._column_metadata[name] = data
@@ -308,6 +382,14 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 args=[name, data])
 
     def remove_column_metadata(self, name, **kwargs):
+        """Removes a column from the column metadata DataFrame.
+        
+        Parameters
+        ----------
+        name : str
+            Label of column to remove.
+        
+        """
         self._column_metadata.drop(name, axis=1, inplace=True, _record_history=False)
         # Add to history
         record = True
@@ -319,6 +401,23 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 args=[name])
 
     def reset_index(self, copy=False, **kwargs):
+        """Resets the alignment index.
+        
+        Parameters
+        ----------
+        copy : bool, optional
+            Whether to reset the index on a copy of the alignment or
+            reset the index inplace. (default is False, the index of the
+            alignment is reset inplace)
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment with the
+            new index. Otherwise, the operation is performed inplace and does
+            not return any value.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -334,19 +433,81 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return aln
 
     def variants(self):
+        """Returns a list of Counter dictionaries containg the identities and
+        frequency of variants in each column of the alignment.
+
+        This is a shortcut for using the Counter constructor on the
+        `map` method for columns in the alignment.
+        
+        Returns
+        -------
+        list of Counter 
+
+        """
         return list(self.cols.map(Counter))
 
-    def consensus(self, half=True):
+    def consensus(self, threshold=0.5):
+        """Returns the consensus sequence of the alignment.
+        
+        Parameters
+        ----------
+        threshold : bool, optional
+            Percent threshold of rows a variant must occur in order to be
+            considered the consensus sequence for the column.
+            If no variant meets this threshold, `None` is used instead.
+            (default is 0.5, which means variants occuring greater than
+            or equal to 50% of the rows become the consensus sequence.)
+        
+        Returns
+        -------
+        list of str
+
+        """
         cons = []
         for cnts in self.cols.map(Counter):
             char, cnt = max(cnts.items(), key=lambda x: x[1])
-            if half is True and cnt < self.nrows/2:
+            if cnt < self.nrows * threshold:
                 char = None
             cons.append(char)
         return cons
 
     def drop(self, value, case_sensitive=False, copy=False, dry_run=False, 
              mode='any', **kwargs):
+        """Drops columns given a certain value.
+        
+        Parameters
+        ----------
+        value : str
+            Character/s to match against.
+        case_sensitive : bool, optional
+            Whether of not the character search is case sensitive.
+            (default is False, search is case insensitive)
+        copy : bool, optional
+            Whether to drop columns on a copy of the alignment or
+            perform the dropping inplace. 
+            (default is False, dropping is performed inplace)
+        dry_run : bool, optional
+            If True, shows the number of columns to be dropped (True)
+            and returns the list of column positions to be dropped.
+            No changes are made to the alignment at this point.
+            If False, columns with the value are removed.
+            (default is False, dropping is performed immediately)
+        mode : str, optional
+            Method used to decide when a column is dropped.
+            If the value is 'any', the column will be dropped when
+            at least one match is found.
+            If the value if 'all', the column will be dropped only if
+            the entire column matches the specified value.
+            (the default is 'any', any match drops the column)
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment after dropping
+            matching columns. Otherwise, dropping is performed inplace
+            and does not return any value.
+
+        """
         # Add to history
         record = True
         if dry_run:
@@ -368,6 +529,41 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     def drop_except(self, value, case_sensitive=False, copy=False,
                     dry_run=False, mode='any', **kwargs):
+        """Drops columns given a certain value.
+        
+        Parameters
+        ----------
+        value : str
+            Character/s to match against.
+        case_sensitive : bool, optional
+            Whether of not the character search is case sensitive.
+            (default is False, search is case insensitive)
+        copy : bool, optional
+            Whether to drop columns on a copy of the alignment or
+            perform the dropping inplace. 
+            (default is False, dropping is performed inplace)
+        dry_run : bool, optional
+            If True, shows the number of columns to be kept (True)
+            and returns the list of column positions to be kept.
+            No changes are made to the alignment at this point.
+            If False, columns matching the value are kept.
+            (default is False, dropping is performed immediately)
+        mode : str, optional
+            Method used to decide when a column is dropped.
+            If the value is 'any', the column will be kept when
+            at least one match is found.
+            If the value if 'all', the column will be kept only if
+            the entire column matches the specified value.
+            (the default is 'any', any match drops the column)
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment after dropping
+            columns that did not match the value. Otherwise, dropping is
+            performed inplace and does not return any value.
+
+        """
         # Add to history
         record = True
         if dry_run:
@@ -390,6 +586,42 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     def drop_n(self, n_char='N', case_sensitive=False, copy=False,
                dry_run=False, **kwargs):
+        """Drops columns that has the 'N' ambiguity character.
+        
+        Parameters
+        ----------
+        n_char : str, optional
+            Ambiguity character to match against.
+            (default is 'N')
+        case_sensitive : bool, optional
+            Whether of not the character search is case sensitive.
+            (default is False, search is case insensitive)
+        copy : bool, optional
+            Whether to drop columns on a copy of the alignment or
+            perform the dropping inplace. 
+            (default is False, dropping is performed inplace)
+        dry_run : bool, optional
+            If True, shows the number of columns to be dropped (True)
+            and returns the list of column positions to be dropped.
+            No changes are made to the alignment at this point.
+            If False, columns with the value are removed.
+            (default is False, dropping is performed immediately)
+        mode : str, optional
+            Method used to decide when a column is dropped.
+            If the value is 'any', the column will be dropped when
+            at least one match is found.
+            If the value if 'all', the column will be dropped only if
+            the entire column matches the specified value.
+            (the default is 'any', any match drops the column)
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment after dropping
+            columns with the ambiguity character. Otherwise, dropping is
+            performed inplace and does not return any value.
+
+        """
         # Add to history
         record = True
         if dry_run:
@@ -409,6 +641,41 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                                 copy=copy, dry_run=dry_run, _record_history=False)
 
     def drop_gap(self, gap_char='-', copy=False, dry_run=False, **kwargs):
+        """Drops columns that has the '-' gap character.
+        
+        Parameters
+        ----------
+        n_char : str, optional
+            Gap character to match against. (default is '-')
+        case_sensitive : bool, optional
+            Whether of not the character search is case sensitive.
+            (default is False, search is case insensitive)
+        copy : bool, optional
+            Whether to drop columns on a copy of the alignment or
+            perform the dropping inplace. 
+            (default is False, dropping is performed inplace)
+        dry_run : bool, optional
+            If True, shows the number of columns to be dropped (True)
+            and returns the list of column positions to be dropped.
+            No changes are made to the alignment at this point.
+            If False, columns with the value are removed.
+            (default is False, dropping is performed immediately)
+        mode : str, optional
+            Method used to decide when a column is dropped.
+            If the value is 'any', the column will be dropped when
+            at least one match is found.
+            If the value if 'all', the column will be dropped only if
+            the entire column matches the specified value.
+            (the default is 'any', any match drops the column)
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment after dropping
+            columns with the gap character. Otherwise, dropping is
+            performed inplace and does not return any value.
+
+        """
         # Add to history
         record = True
         if dry_run:
@@ -427,6 +694,28 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                                   dry_run=dry_run, _record_history=False)
 
     def join(self, others, reset_index=False, copy=False, **kwargs):
+        """Marges the current alignment with one or more other alignments.
+        This extends the number of columns in the alignment.
+        
+        Parameters
+        ----------
+        others : Alignment or list of Alignment
+            Other alignments to append to the current alignment.
+        reset_index : bool, optional
+            Whether to reset the index on a copy of the alignment or
+            reset the index inplace. (default is False, the index of the
+            alignment is reset inplace)
+        copy : bool, optional
+            Whether to keep the current alignment intact and create a new copy of the joined alignment or join the alignments inplace.
+            (default is False, joining is performed inplace)
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment after joining with the other alignment/s. Otherwise, dropping is
+            performed inplace and does not return any value.
+
+        """
         aln = self
         if copy is True:
             aln = self.copy()
