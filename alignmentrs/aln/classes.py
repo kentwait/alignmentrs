@@ -1,5 +1,5 @@
 from collections import Counter
-from copy import deepcopy
+from copy import copy, deepcopy
 import os
 import inspect
 import warnings
@@ -162,7 +162,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                     raise ValueError('{} value length does not match the number of rows'.format(key))
             df = df.join(pandas.DataFrame(row_metadata, index=self.ids))
         elif isinstance(row_metadata, pandas.DataFrame):
-            if not all(pandas.DataFrame.index == self.ids):
+            if not all(row_metadata.index == self.ids):
                 raise ValueError('index of row_metadata DataFrame does not match the ids in the alignment'.format(key))
             row_metadata.index = pandas.Index(self.ids)
             if 'description' in row_metadata.columns:
@@ -347,22 +347,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             vice versa.
 
         """
-
-        # TODO: Implement magic methods for copy and deepcopy instead
-        # TODO: Copy over previous history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._history is not None):
-            self._history.add('.copy')
-        return self.__class__(
-            self.name, self._alignment.copy(),
-            chunk_size=self.chunk_size,
-            index=self._index.copy(deep=True),
-            metadata=deepcopy(self.metadata),
-            column_metadata=self._column_metadata.copy(deep=True)
-        )
+        return deepcopy(self)
 
     def set_chunk_size(self, value, copy=False, recasting_func=None, 
                        reset_index=False, **kwargs):
@@ -919,3 +904,38 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if isinstance(other, self.__class__):
             return hash(self) == hash(other)
         return False
+
+    def __copy__(self):
+        cls = self.__class__
+        obj = cls.__new__(cls)
+        obj.name = self.name
+        obj._alignment = self._alignment
+        obj._index = self._index
+        obj._comments = self._comments
+        obj._row_metadata = self._row_metadata
+        obj._column_metadata = self._column_metadata
+        obj._rows = RowMutator(obj)
+        obj._cols = ColMutator(obj)
+        obj._metadata = MetadataRedirect(obj)
+        obj._history = self._history
+        # Add to history
+        if obj._history is not None:
+            obj._history.add('copy')
+        return obj
+
+    def __deepcopy__(self, memo):
+        obj = self.__class__(
+            deepcopy(self.name),
+            self._alignment.copy(),
+            chunk_size=deepcopy(self.chunk_size),
+            index=self._index.copy(deep=True),
+            comments=deepcopy(self._comments), 
+            row_metadata=self._row_metadata.copy(deep=True),
+            column_metadata=self._column_metadata.copy(deep=True),
+            store_history=False if self._history is None else True
+        )
+        # obj._history = deepcopy(self.history, memo)
+        # Add to history
+        if obj._history is not None:
+            obj._history.add('deepcopy')
+        return obj
