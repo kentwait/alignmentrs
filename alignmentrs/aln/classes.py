@@ -868,4 +868,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return hash(self.to_dict(column_metadata=True).items())
 
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        # Implements ability to compare to other objects using a hash
+        # May give the same hash value but not necessarily be the same object
+        if isinstance(other, self.__class__):
+            return hash(self) == hash(other)
+        return False
