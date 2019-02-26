@@ -148,22 +148,23 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             raise TypeError('column_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
         return df
 
-    def _row_metadata_constructor(self, row_metadata, index):
+    def _row_metadata_constructor(self, row_metadata):
+        # Constructs row metadata DataFrame from `row_metadata`
         if row_metadata is None:
             df = pandas.DataFrame({
                 'id': self.ids,
                 'description': self.descriptions
-            }, index=index)
+            }, index=self.ids)
         elif isinstance(row_metadata, dict):
             # Check if values match the length of the index
             for key, val in row_metadata.items():
                 if len(val) != len(self.nrows):
                     raise ValueError('{} value length does not match the number of rows'.format(key))
-            df = pandas.DataFrame(row_metadata, index=self.index)
+            df = pandas.DataFrame(row_metadata, index=self.ids)
         elif isinstance(row_metadata, pandas.DataFrame):
-            if len(row_metadata) != len(self.nrows):
-                raise ValueError('length of row_metadata dataframe does not match the number of rows'.format(key))
-            row_metadata.index = pandas.Index(range(self.nrows))
+            if not all(pandas.DataFrame.index == self.ids):
+                raise ValueError('index of row_metadata DataFrame does not match the ids in the alignment'.format(key))
+            row_metadata.index = pandas.Index(self.ids)
             df = row_metadata
         else:
             raise TypeError('row_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
