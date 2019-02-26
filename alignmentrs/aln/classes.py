@@ -79,7 +79,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             self._alignment_constructor(records, chunk_size)
         self._index = self._index_constructor(index)
         self._comments = self._comments_constructor(comments)
-        self._row_metadata = self._col_metadata_constructor(row_metadata)
+        self._row_metadata = self._row_metadata_constructor(row_metadata)
         self._column_metadata = \
             self._col_metadata_constructor(column_metadata, self.index)
         self._rows = RowMutator(self)
@@ -152,22 +152,25 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     def _row_metadata_constructor(self, row_metadata):
         # Constructs row metadata DataFrame from `row_metadata`
-        if row_metadata is None:
-            df = pandas.DataFrame({
-                'id': self.ids,
-                'description': self.descriptions
-            }, index=self.ids)
-        elif isinstance(row_metadata, dict):
+        df = pandas.DataFrame({
+            'description': self.descriptions
+        }, index=self.ids)
+        if isinstance(row_metadata, dict):
             # Check if values match the length of the index
             for key, val in row_metadata.items():
                 if len(val) != len(self.nrows):
                     raise ValueError('{} value length does not match the number of rows'.format(key))
-            df = pandas.DataFrame(row_metadata, index=self.ids)
+            df = df.join(pandas.DataFrame(row_metadata, index=self.ids))
         elif isinstance(row_metadata, pandas.DataFrame):
             if not all(pandas.DataFrame.index == self.ids):
                 raise ValueError('index of row_metadata DataFrame does not match the ids in the alignment'.format(key))
             row_metadata.index = pandas.Index(self.ids)
-            df = row_metadata
+            if 'description' in row_metadata.columns:
+                df = row_metadata
+            else:
+                df = df.join(row_metadata)
+        elif row_metadata is None:
+            pass
         else:
             raise TypeError('row_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
         return df
@@ -366,55 +369,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 })
         if copy is True:
             return aln
-
-    def add_column_metadata(self, name, data, **kwargs):
-        """Adds a new column to the column metadata DataFrame.
-        The resulting column metadata DataFrame is extended by one column.
-        
-        Parameters
-        ----------
-        name : str
-            Name describing the metadata
-        data : list
-            Data to be added
-        
-        Raises
-        ------
-        ValueError
-            If the value of `name` is already one of the existing
-            column labels.
-        
-        """
-        if name in self._column_metadata:
-            raise ValueError('name already exists')
-        self._column_metadata[name] = data
-        # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._history is not None):
-            self._history.add('.set_chunk_size',
-                args=[name, data])
-
-    def remove_column_metadata(self, name, **kwargs):
-        """Removes a column from the column metadata DataFrame.
-        
-        Parameters
-        ----------
-        name : str
-            Label of column to remove.
-        
-        """
-        self._column_metadata.drop(name, axis=1, inplace=True, _record_history=False)
-        # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._history is not None):
-            self._history.add('.remove_column_metadata',
-                args=[name])
 
     def reset_index(self, copy=False, **kwargs):
         """Resets the alignment index.
@@ -862,8 +816,12 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if self:
             aln = idseq_to_display(self.ids, self.chunked_sequences)
             parts += ['', aln, '']
-        parts.append('metadata_keys = [{}]'.format(
-            ', '.join(list(self.metadata.keys()))
+        parts.append('[Alignment.Metadata]')
+        parts.append('comment_keys = [{}]'.format(
+            ', '.join(list(self._comments.keys()))
+        ))
+        parts.append('row_metadata_keys = [{}]'.format(
+            ', '.join(list(self._row_metadata.keys()))
         ))
         parts.append('column_metadata_keys = [{}]'.format(
             ', '.join(list(self._column_metadata.keys()))

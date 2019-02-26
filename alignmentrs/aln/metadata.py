@@ -183,8 +183,6 @@ class MetadataRedirect:
         ))
         return '\n'.join(parts)
 
-    # TODO: Return comments, number of comments;
-    # row_metadata, number of columns, column names;
-    # col_metadata, number of columns, column names
+    # TODO: Add some kind of str representation for print
     # def __str__(self):
     #     pass
