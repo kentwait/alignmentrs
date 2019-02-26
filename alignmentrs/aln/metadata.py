@@ -169,12 +169,19 @@ class MetadataRedirect:
                 args=[name])
 
     def __repr__(self):
-        return '<Metadata comments={}, row_metadata={}, ' \
-               'column_metadata={}>'.format(
-            len(self._instance._comments),
-            len(self._instance._row_metadata.columns),
-            len(self._instance._column_metadata.columns),
-        )
+        # Returns the stringed representation of the alignment.
+        parts = []
+        parts.append('[Alignment.Metadata]')
+        parts.append('comment_keys = [{}]'.format(
+            ', '.join(list(self._instance._comments.keys()))
+        ))
+        parts.append('row_metadata_keys = [{}]'.format(
+            ', '.join(list(self._instance._row_metadata.keys()))
+        ))
+        parts.append('column_metadata_keys = [{}]'.format(
+            ', '.join(list(self._instance._column_metadata.keys()))
+        ))
+        return '\n'.join(parts)
 
     # TODO: Return comments, number of comments;
     # row_metadata, number of columns, column names;
