@@ -1,3 +1,5 @@
+import pandas
+
 from alignmentrs.util import add_to_history
 
 
@@ -155,6 +157,43 @@ class MetadataRedirect:
             name,
             **kwargs
         )
+
+    def replace_id(self, index, value, **kwargs):
+        self._replace_basealignment_values('ids', [index], [value])
+        # Change row metadata index by completely rebuilding the index
+        idx = self._instance._row_metadata.index.to_list()
+        idx[index] = value
+        self._instance._row_metadata.index = pandas.Index(idx)
+        # Add to history
+        add_to_history(
+            self._instance, '.metadata.replace_id',
+            index, value,
+            **kwargs,
+        )
+
+    def replace_description(self, index, value, **kwargs):
+        self._replace_basealignment_values('descriptions', [index], [value])
+        if 'description' in self._instance._row_metadata.keys():
+            self._instance._row_metadata['description'].iloc[index] = value
+        # Add to history
+        add_to_history(
+            self._instance, '.metadata.replace_description',
+            index, value,
+            **kwargs,
+        )
+
+    def replace_sequence(self, index, value, **kwargs):
+        self._replace_basealignment_values('sequences', [index], [value])
+        # Add to history
+        add_to_history(
+            self._instance, '.metadata.replace_sequence',
+            index, value,
+            **kwargs,
+        )
+
+    def _replace_basealignment_values(self, attr, indices, vals):
+        self._instance._alignment.__getattribute__(
+            'replace_{}'.format(attr))(indices, vals)
 
     def __repr__(self):
         # Returns the stringed representation of the alignment.
