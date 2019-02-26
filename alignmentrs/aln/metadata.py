@@ -1,3 +1,5 @@
+from alignmentrs.util import add_to_history
+
 
 class MetadataRedirect:
     def __init__(self, instance):
@@ -34,13 +36,11 @@ class MetadataRedirect:
         else:
             raise ValueError('where must be \'row\', \'col\', or \'comment\'')
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.metadata.add_metadata',
-                args=[name, data, where])
+        add_to_history(
+            self._instance, '.metadata.add_metadata',
+            name, data, where
+            **kwargs
+        )
 
     def add_comment(self, name, comment, **kwargs):
         if not isinstance(name, str):
@@ -49,13 +49,11 @@ class MetadataRedirect:
             raise ValueError('name already exists')
         self._instance._comments[name] = str(comment)
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.metadata.add_comment',
-                args=[name, comment])
+        add_to_history(
+            self._instance, '.metadata.add_comment',
+            name, comment,
+            **kwargs
+        )
 
     def add_row_metadata(self, name, data, **kwargs):
         """Adds a new column to the row metadata DataFrame.
@@ -79,13 +77,11 @@ class MetadataRedirect:
             raise ValueError('name already exists')
         self._instance._row_metadata[name] = data
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.metadata.add_row_metadata',
-                args=[name, data])
+        add_to_history(
+            self._instance, '.metadata.add_row_metadata',
+            name, data,
+            **kwargs
+        )
 
     def add_column_metadata(self, name, data, **kwargs):
         """Adds a new column to the column metadata DataFrame.
@@ -109,26 +105,22 @@ class MetadataRedirect:
             raise ValueError('name already exists')
         self._instance._column_metadata[name] = data
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.metadata.add_column_metadata',
-                args=[name, data])
+        add_to_history(
+            self._instance, '.metadata.add_column_metadata',
+            name, data,
+            **kwargs
+        )
 
     def remove_comment(self, name, **kwargs):
         if not isinstance(name, str):
             raise ValueError('name must be str')
         del self._instance._comments[name]
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.metadata.remove_comment',
-                args=[name])
+        add_to_history(
+            self._instance, '.metadata.remove_comment',
+            name,
+            **kwargs
+        )
 
     def remove_row_metadata(self, name, **kwargs):
         """Removes a column from the row metadata DataFrame.
@@ -141,13 +133,11 @@ class MetadataRedirect:
         """
         self._instance._row_metadata.drop(name, axis=1, inplace=True, _record_history=False)
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.metadata.remove_row_metadata',
-                args=[name])
+        add_to_history(
+            self._instance, '.metadata.remove_row_metadata',
+            name,
+            **kwargs
+        )
 
     def remove_column_metadata(self, name, **kwargs):
         """Removes a column from the column metadata DataFrame.
@@ -160,13 +150,11 @@ class MetadataRedirect:
         """
         self._instance._column_metadata.drop(name, axis=1, inplace=True, _record_history=False)
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.metadata.remove_column_metadata',
-                args=[name])
+        add_to_history(
+            self._instance, '.metadata.remove_column_metadata',
+            name,
+            **kwargs
+        )
 
     def __repr__(self):
         # Returns the stringed representation of the alignment.

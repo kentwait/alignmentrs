@@ -44,9 +44,11 @@ def add_to_history(aln, op, *args, **kwargs):
     record = True
     if '_record_history' in kwargs.keys():
         record = kwargs['_record_history']
-        del kwargs['_record_history']
+        kwargs = {k: v for k, v in kwargs.items() if k != '_record_history'}
     if record and (aln._history is not None):
-        aln._history.add(op,
+        aln._history.add(
+            op,
+            aln._state(),
             args=args,
             kwargs=kwargs
         )

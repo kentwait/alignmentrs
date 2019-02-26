@@ -88,6 +88,13 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self._metadata = MetadataRedirect(self)
         # TODO: Add initial state information
         self._history = History() if store_history else None
+        add_to_history(
+            self, self.__class__.__name__, name, records,
+            index=index, comments=comments, 
+            row_metadata=row_metadata, column_metadata=column_metadata,
+            store_history=store_history,
+            **kwargs
+        )
 
     # Constructors
     def _alignment_constructor(self, records, chunk_size):
@@ -200,14 +207,15 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return self._index
 
     @index.setter
-    def set_index(self, index: pandas.core.indexes.base.Index):
+    def index(self, index: pandas.core.indexes.base.Index):
         """Sets the column index of the alignment."""
         index = pandas.Index(index)
         self._column_metadata.index = index
         self._index = index
         # Add history by default
-        if self._history is not None:
-            self._history.add('.index', args=[index])
+        add_to_history(
+            self, '.index', index
+        )
 
     @property
     def chunk_size(self):
@@ -215,11 +223,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return self._alignment.chunk_size
 
     @chunk_size.setter
-    def chunk_size_setter(self, value: int):
+    def chunk_size(self, value: int):
         """Changes the number of characters in an alignment column
         using default options.
         For more control, use the `set_chunk_size` method."""
-        self.set_chunk_size(self, value, reset_index=True)
+        self.set_chunk_size(value, reset_index=True)
         # Add history by default
         add_to_history(self, '.chunk_size', value)
 
@@ -393,10 +401,13 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 aln._column_metadata, curr_chunk_size, value)
         aln._column_metadata = df
         # Add to history
-        func_sig = repr(inspect.signature(recasting_func)) \
-            .lstrip('<Signature ').rstrip('>')
+        if recasting_func is not None:
+            func_sig = repr(inspect.signature(recasting_func)) \
+                .lstrip('<Signature ').rstrip('>')
+        else:
+            func_sig = 'None'
         add_to_history(
-            aln, '.set_record_as_column_metadata', value,
+            aln, '.set_chunk_size', value,
             copy=copy,
             recasting_func=func_sig,
             reset_index=reset_index,
@@ -428,7 +439,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             aln = self._instance.copy()
         aln.cols.reset_index(copy=False, _record_history=False)
         # Add to history
-        add_to_history(aln, '.reset_index', **kwargs)
+        add_to_history(aln, '.reset_index', copy=copy, **kwargs)
         if copy is True:
             return aln
 
@@ -566,7 +577,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Add to history
         if not dry_run:
             add_to_history(
-                res if copy else self, '.drop', value,
+                res if copy else self, '.drop_except', value,
                 case_sensitive=case_sensitive,
                 copy=copy,
                 dry_run=dry_run,
@@ -619,7 +630,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Add to history
         if not dry_run:
             add_to_history(
-                res if copy else self, '.drop',
+                res if copy else self, '.drop_n',
                 n_char=n_char,
                 case_sensitive=case_sensitive,
                 copy=copy,
@@ -664,20 +675,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             performed inplace and does not return any value.
 
         """
-        # Add to history
-        record = True
-        if dry_run:
-            record = False
-        elif '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._history is not None):
-            self._history.add('.drop_gap',
-                kwargs={
-                    'gap_char': gap_char,
-                    'copy': copy,
-                    'dry_run': dry_run,
-                })
         res = self.cols.drop_gap(gap_char=gap_char, copy=copy, 
                                  dry_run=dry_run, _record_history=False)
         # Add to history
@@ -807,7 +804,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         }
 
     def _state(self):
-        return dict(**self._alignment_state, **self._metadata_state)
+        return dict(**self._alignment_state(), **self._metadata_state())
 
     # Python magic methods
     # ==========================================================================
@@ -915,5 +912,5 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Add to history
         if obj._history is not None:
             obj._history = deepcopy(self._history, memo)
-            obj._history.add('deepcopy')
+            obj._history.add('deepcopy', obj._state())
         return obj

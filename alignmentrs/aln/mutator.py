@@ -6,6 +6,7 @@ import pandas
 
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import BaseRecord
+from alignmentrs.util import add_to_history
 
 
 __all__ = ['RowMutator', 'ColMutator']
@@ -29,16 +30,12 @@ class RowMutator:
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-                aln._history.add('.rows.insert',
-                    args=[position, records],
-                    kwargs={
-                        'copy': copy,
-                    })
+        add_to_history(
+            self._instance, '.rows.insert',
+            position, records,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -48,16 +45,11 @@ class RowMutator:
             aln = self._instance.copy()
         aln.insert(0, records, copy=copy, _record_history=False)
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.rows.prepend',
-                args=[records],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            self._instance, '.rows.prepend', records,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -73,16 +65,11 @@ class RowMutator:
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.rows.append',
-                args=[records],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            self._instance, '.rows.append', records,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -98,16 +85,11 @@ class RowMutator:
         else:
             raise TypeError('positions must be an int or a list of int')
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.rows.remove',
-                args=[positions],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            self._instance, '.rows.remove', positions,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -123,16 +105,11 @@ class RowMutator:
         else:
             raise TypeError('positions must be an int or a list of int')
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.rows.retain',
-                args=[positions],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            self._instance, '.rows.retain', positions,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -146,15 +123,6 @@ class RowMutator:
             raise TypeError('positions must be an int or a list of int')
         remove_positions = self._instance._alignment.invert_rows(positions)
         new_baln = self._instance._alignment.drain_records(remove_positions)
-        # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.rows.drain',
-                args=[positions]
-                )
         aln = self._instance.__class__(
             self._instance.name,
             new_baln, 
@@ -162,6 +130,16 @@ class RowMutator:
             index=self._instance._index.copy(deep=True), 
             metadata=deepcopy(self._instance.metadata), 
             column_metadata=self._instance._column_metadata.copy(deep=True))
+        # Add to history
+        add_to_history(
+            self._instance, '.rows.drain[from]', positions,
+            **kwargs
+        )
+        add_to_history(
+            aln, '.rows.drain[to]', positions,
+            **kwargs
+        )
+        return aln
 
     def replace(self, positions, records, copy=False, **kwargs):
         aln = self._instance
@@ -176,16 +154,11 @@ class RowMutator:
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.rows.replace',
-                args=[positions, records],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            self._instance, '.rows.replace', positions, records,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -201,16 +174,11 @@ class RowMutator:
         else:        
             raise TypeError('positions must be an int or a list of int')
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.rows.replace',
-                args=[positions],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            self._instance, '.rows.reorder', positions,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -233,29 +201,25 @@ class RowMutator:
             parts.append('False = {}/{}'.format(
                 len(remove_positions), aln.nrows))
             print('\n'.join(parts))
-            return {'function': function, True: positions, False: remove_positions}
+            return {
+                'function': function,
+                True: positions,
+                False: remove_positions
+            }
         if inverse:
             aln.rows.remove(positions, _record_history=False)
         else:
             aln.rows.remove(remove_positions, _record_history=False)
         # Add to history
-        record = True
-        if dry_run:
-            record = False
-        elif '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.rows.filter',
-                args=[
-                    repr(inspect.signature(function))
-                        .lstrip('<Signature ').rstrip('>')
-                ],
-                kwargs={
-                    'copy': copy,
-                    'dry_run': dry_run,
-                    'inverse': inverse,
-                })
+        func_sig = repr(inspect.signature(function)) \
+            .lstrip('<Signature ').rstrip('>')
+        add_to_history(
+            aln, '.rows.filter', func_sig,
+            copy=copy,
+            dry_run=dry_run,
+            inverse=inverse,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -295,7 +259,6 @@ class RowMutator:
             raise TypeError('key must be int, list of int, or a slice')
         return self._instance._alignment.get_records(keys)
 
-
     def __len__(self):
         return self._instance.nrows
 
@@ -330,29 +293,22 @@ class ColMutator:
         else:
             raise TypeError(
                 'values must be a list of str or a list of list of str')
-
         aln._alignment.insert_cols(position, values)
         aln._index, aln._column_metadata = \
             self._insert_metadata(aln, position, column_values)
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.insert',
-                args=[position, values],
-                kwargs={
-                    'copy': copy,
-                    'column_values': column_values,
-                    'reset_index': reset_index,
-                })
+        add_to_history(
+            self._instance, '.cols.insert', position, values,
+            copy=copy,
+            column_values=column_values,
+            reset_index=reset_index,
+            **kwargs
+        )
         if copy is True:
             return aln
 
-    def prepend(self, values, copy=False,
-               column_values=None, reset_index=False,
-               **kwargs):
+    def prepend(self, values, copy=False, column_values=None, reset_index=False,
+                **kwargs):
         if reset_index is not True:
             raise ValueError(
                 'cannot perform an prepend without resetting the current index')
@@ -362,23 +318,18 @@ class ColMutator:
         self.insert(0, values, copy=copy, column_values=column_values,       
                     reset_index=reset_index, )
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.insert',
-                args=[values],
-                kwargs={
-                    'copy': copy,
-                    'column_values': column_values,
-                    'reset_index': reset_index,
-                })
+        add_to_history(
+            self._instance, '.cols.prepend', values,
+            copy=copy,
+            column_values=column_values,
+            reset_index=reset_index,
+            **kwargs
+        )
         if copy is True:
             return aln
 
-    def append(self, values, copy=False,
-               column_values=None, reset_index=False, **kwargs):
+    def append(self, values, copy=False, column_values=None, reset_index=False, 
+               **kwargs):
         if reset_index is not True:
             raise ValueError(
                 'cannot perform an append without resetting the current index')
@@ -400,18 +351,13 @@ class ColMutator:
         aln._index, aln._column_metadata = \
             self._insert_metadata(aln, position, column_values)
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.append',
-                args=[values],
-                kwargs={
-                    'copy': copy,
-                    'column_values': column_values,
-                    'reset_index': reset_index,
-                })
+        add_to_history(
+            self._instance, '.cols.append', values,
+            copy=copy,
+            column_values=column_values,
+            reset_index=reset_index,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -431,16 +377,11 @@ class ColMutator:
         aln._index = aln._index[retain_positions]
         aln._column_metadata = aln._column_metadata.iloc[retain_positions]
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.remove',
-                args=[positions],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            self._instance, '.cols.remove', positions,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -460,16 +401,11 @@ class ColMutator:
         aln._index = aln._index[positions]
         aln._column_metadata = aln._column_metadata.iloc[positions]
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.retain',
-                args=[positions],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            self._instance, '.cols.retain', positions,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -487,15 +423,6 @@ class ColMutator:
             ._column_metadata.iloc[remove_positions].copy(deep=True)
         self._instance._column_metadata = self._instance \
             ._column_metadata.iloc[positions].copy(deep=True)
-        # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.drain',
-                args=[positions],
-                )
         aln = self._instance.__class__(
             self._instance.name,
             new_baln, 
@@ -503,6 +430,16 @@ class ColMutator:
             index=pandas.Index(new_col_metadata.index), 
             metadata=deepcopy(self._instance.metadata), 
             column_metadata=new_col_metadata)
+        # Add to history
+        add_to_history(
+            self._instance, '.cols.drain[from]', positions,
+            **kwargs
+        )
+        add_to_history(
+            aln, '.cols.drain[to]', positions,
+            **kwargs
+        )
+        return aln
 
     def replace(self, positions, values, copy=False, **kwargs):
         aln = self._instance
@@ -521,16 +458,11 @@ class ColMutator:
             raise TypeError('values must be a list of str, or list of list of str')
         aln._alignment.replace_cols(positions, values)
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.replace',
-                args=[positions, values],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            aln, '.cols.replace', positions, values,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -549,16 +481,11 @@ class ColMutator:
         aln._index = aln._index[positions]
         aln._column_metadata = aln._column_metadata.iloc[positions]
         # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.reorder',
-                args=[positions],
-                kwargs={
-                    'copy': copy,
-                })
+        add_to_history(
+            aln, '.cols.reorder', positions,
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -581,29 +508,25 @@ class ColMutator:
             parts.append('False = {}/{}'.format(
                 len(remove_positions), aln.ncols))
             print('\n'.join(parts))
-            return {'function': function, True: positions, False: remove_positions}
+            return {
+                'function': function,
+                True: positions,
+                False: remove_positions
+            }
         if inverse:
             aln.cols.remove(positions, _record_history=False)
         else:
             aln.cols.remove(remove_positions, _record_history=False)
         # Add to history
-        record = True
-        if dry_run:
-            record = False
-        elif '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.filter',
-                args=[
-                    repr(inspect.signature(function))
-                        .lstrip('<Signature ').rstrip('>')
-                ],
-                kwargs={
-                    'copy': copy,
-                    'dry_run': dry_run,
-                    'inverse': inverse,
-                })
+        func_sig = repr(inspect.signature(function)) \
+            .lstrip('<Signature ').rstrip('>')
+        add_to_history(
+            aln, '.cols.filter', func_sig,
+            copy=copy,
+            dry_run=dry_run,
+            inverse=inverse,
+            **kwargs
+        )
         if copy is True:
             return aln
 
@@ -640,24 +563,19 @@ class ColMutator:
                 raise ValueError('invalid mode')
         else:
             raise ValueError('value is larger than chunk size')
+        res = self.filter(func, copy=copy, dry_run=dry_run, inverse=True,
+                          _record_history=False)
         # Add to history
-        record = True
-        if dry_run:
-            record = False
-        elif '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.cols.drop',
-                args=[value],
-                kwargs={
-                    'case_sensitive': case_sensitive,
-                    'copy': copy,
-                    'dry_run': dry_run,
-                    'mode': mode,
-                })
-        return self.filter(func, copy=copy, dry_run=dry_run, inverse=True,
-                           _record_history=False)
+        if not dry_run:
+            add_to_history(
+                res if copy else self._instance, '.cols.drop', value,
+                case_sensitive=case_sensitive,
+                copy=copy,
+                dry_run=dry_run,
+                mode=mode,
+                **kwargs
+            )
+        return res
 
     def drop_except(self, value, case_sensitive=False, copy=False, 
                     dry_run=False, mode='any', **kwargs):
@@ -692,64 +610,56 @@ class ColMutator:
                 raise ValueError('invalid mode')
         else:
             raise ValueError('value is larger than chunk size')
+        res = self.filter(func, copy=copy, dry_run=dry_run, inverse=False,
+                          _record_history=False)
         # Add to history
-        record = True
-        if dry_run:
-            record = False
-        elif '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.cols.drop_except',
-                args=[value],
-                kwargs={
-                    'case_sensitive': case_sensitive,
-                    'copy': copy,
-                    'dry_run': dry_run,
-                    'mode': mode,
-                })
-        return self.filter(func, copy=copy, dry_run=dry_run, inverse=False,
-                           _record_history=False)
+        if not dry_run:
+            add_to_history(
+                res if copy else self._instance, '.cols.drop_except', value,
+                case_sensitive=case_sensitive,
+                copy=copy,
+                dry_run=dry_run,
+                mode=mode,
+                **kwargs
+            )
+        return res
 
     def drop_n(self, n_char='N', case_sensitive=False, copy=False, 
-               dry_run=False, **kwargs):
-        # Add to history
-        record = True
-        if dry_run:
-            record = False
-        elif '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.cols.drop_n',
-                kwargs={
-                    'n_char': n_char,
-                    'case_sensitive': case_sensitive,
-                    'copy': copy,
-                    'dry_run': dry_run,
-                })
-        return self.drop(n_char, case_sensitive=case_sensitive,
-                         copy=copy, dry_run=dry_run,
+               dry_run=False, mode='any', **kwargs):
+        res = self.drop(n_char, case_sensitive=case_sensitive,
+                         copy=copy, dry_run=dry_run, mode=mode,
                          _record_history=False)
+        # Add to history
+        if not dry_run:
+            add_to_history(
+                res if copy else self._instance, '.cols.drop_n',
+                n_char=n_char,
+                case_sensitive=case_sensitive,
+                copy=copy,
+                dry_run=dry_run,
+                mode=mode,
+                **kwargs
+            )
+        return res
 
-    def drop_gap(self, gap_char='-', copy=False, dry_run=False, **kwargs):
+    def drop_gap(self, gap_char='-', copy=False, dry_run=False, mode='any',
+                 **kwargs):
+        case_sensitive = True
+        res = self.drop(gap_char, case_sensitive=case_sensitive, copy=copy,
+                        dry_run=dry_run, mode=mode,
+                        _record_history=False)
         # Add to history
-        record = True
-        if dry_run:
-            record = False
-        elif '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            self._instance._history.add('.cols.drop_gap',
-                kwargs={
-                    'gap_char': gap_char,
-                    'copy': copy,
-                    'dry_run': dry_run,
-                })
-        return self.drop(gap_char, case_sensitive=True,
-                         copy=copy, dry_run=dry_run,
-                         _record_history=False)
+        if not dry_run:
+            add_to_history(
+                res if copy else self._instance, '.cols.drop_gap',
+                gap_char=gap_char,
+                case_sensitive=case_sensitive,
+                copy=copy,
+                dry_run=dry_run,
+                mode=mode,
+                **kwargs
+            )
+        return res
 
     def map(self, function, skip_n=None, chunk_size=None):
         for col in self.iter(skip_n=skip_n, chunk_size=chunk_size):
@@ -776,17 +686,15 @@ class ColMutator:
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
-        # Add to history
-        record = True
-        if '_record_history' in kwargs.keys():
-            record = kwargs['_record_history']
-            del kwargs['_record_history']
-        if record and (self._instance._history is not None):
-            aln._history.add('.cols.reset_index',
-                )
         aln._index = pandas.Index(len(self._index))
         aln._column_metadata.reset_index(
             drop=True, inplace=True, _record_history=False)
+        # Add to history
+        add_to_history(
+            aln, '.cols.reset_index',
+            copy=copy,
+            **kwargs
+        )
         if copy is True:
             return aln
 
