@@ -274,6 +274,68 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     # Methods
     # ==========================================================================
 
+    def set_record_as_column_metadata(self, i, func, name=None, copy=False,
+                                      **kwargs):
+        """Transforms a record into column metadata. Removes the record from the
+        alignment.
+        
+        Parameters
+        ----------
+        i : int
+            Index or record identifier.
+        func : function
+            Function used to transform the record's sequence into
+            column metadata values. The functions takes a chunk of sequence as
+            input and returns a corresponding value.
+        name : str, optional
+            Name of the column metadata. (default is None, if not specified,
+            the record ID will be used as the name.)
+        copy : bool, optional
+            Whether to perform the operation on a new copy or 
+            do it inplace. (default is False, modifies the alignment inplace)
+
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment. Otherwise, the operation is performed inplace and does not return any value.
+
+        """
+        aln = self
+        if copy is True:
+            aln = self.copy()
+        # Get int index if str
+        if isinstance(i, str):
+            indices = self._alignment.row_names_to_indices(i)
+            if len(indices) > 1:
+                raise ValueError('more than one match for "{}" found'.format(i))
+            elif len(indices) == 0:
+                raise ValueError('no match found for "{}"'.format(i))
+            i = indices[0]
+        # Add to metadata
+        data = [func(v) for v in self.rows[i].sequence]        
+        if name is None:
+            name = self.rows[i].id
+        self._column_metadata[name] = data
+        self.rows.remove(i)
+        # Add to history
+        record = True
+        if '_record_history' in kwargs.keys():
+            record = kwargs['_record_history']
+            del kwargs['_record_history']
+        if record and (aln._history is not None):
+            aln._history.add('.set_record_as_column_metadata',
+                args=[
+                    i, 
+                    repr(inspect.signature(func))
+                        .lstrip('<Signature ').rstrip('>')
+                ],
+                kwargs={
+                    'name': name,
+                    'copy': copy
+                })
+        if copy is True:
+            return aln        
+
     def copy(self, **kwargs):
         """Creates a deep copy of the alignment.
         

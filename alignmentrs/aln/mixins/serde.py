@@ -111,13 +111,6 @@ class FastaSerdeMixin:
         with open(path, 'w') as writer:
             print(fasta_str, file=writer)
 
-    def set_record_as_column_metadata(self, i, func, name=None):
-        data = [func(v) for v in self.rows[i].sequence]
-        if name is None:
-            name = self.rows[i].id
-        self._column_metadata[name] = data
-        self.rows.remove(i)
-
 
 class DictSerdeMixin:
     @classmethod
