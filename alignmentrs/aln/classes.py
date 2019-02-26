@@ -43,7 +43,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         Other information related to the alignment.
     """
     def __init__(self, name, records, chunk_size: int=1,
-                 index=None, metadata: dict=None, 
+                 index=None, comments: dict=None, 
                  row_metadata=None, column_metadata=None,
                  store_history=True, **kwargs):
         """Creates a new Alignment object from a sample BaseAlignment.
@@ -77,7 +77,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self._alignment: BaseAlignment = \
             self._alignment_constructor(records, chunk_size)
         self._index = self._index_constructor(index)
-        self.metadata = self._metadata_constructor(metadata)
+        self.comments = self._comments_constructor(comments)
         self._row_metadata = self._col_metadata_constructor(row_metadata)
         self._column_metadata = \
             self._col_metadata_constructor(column_metadata, self.index)
@@ -102,15 +102,15 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return records
         raise TypeError('records must be a list of BaseRecord objects or a BaseAlignment')
 
-    def _metadata_constructor(self, metadata):
+    def _comments_constructor(self, comments):
         # Constructs metadata dictionary
         # `metadata` can be a ditionary or None
         # TODO: Handle any kind of mapping instead of only a dictionary
-        if metadata is None:
+        if comments is None:
             return dict()
-        elif isinstance(metadata, dict):
-            return metadata
-        raise TypeError('metadata must be a dictionary object')
+        elif isinstance(comments, dict):
+            return comments
+        raise TypeError('comments must be a dictionary of keys and values')
 
     def _index_constructor(self, index):
         # Constructs index from input.
