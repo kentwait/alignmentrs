@@ -905,24 +905,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return hash(self) == hash(other)
         return False
 
-    def __copy__(self):
-        cls = self.__class__
-        obj = cls.__new__(cls)
-        obj.name = self.name
-        obj._alignment = self._alignment
-        obj._index = self._index
-        obj._comments = self._comments
-        obj._row_metadata = self._row_metadata
-        obj._column_metadata = self._column_metadata
-        obj._rows = RowMutator(obj)
-        obj._cols = ColMutator(obj)
-        obj._metadata = MetadataRedirect(obj)
-        obj._history = self._history
-        # Add to history
-        if obj._history is not None:
-            obj._history.add('copy')
-        return obj
-
     def __deepcopy__(self, memo):
         obj = self.__class__(
             deepcopy(self.name),
@@ -937,5 +919,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # obj._history = deepcopy(self.history, memo)
         # Add to history
         if obj._history is not None:
+            obj._history = deepcopy(self._history, memo)
             obj._history.add('deepcopy')
         return obj
