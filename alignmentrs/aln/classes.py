@@ -2,6 +2,7 @@ from collections import Counter
 from copy import deepcopy
 import os
 import inspect
+import warnings
 
 import pandas
 import numpy
@@ -765,11 +766,16 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     @staticmethod
     def _default_expander_func(df, n):
+        # The default way to expand the dataframe into a dataframe with more
+        # rows is to replicate the dataframe by some multiple.
         return pandas.DataFrame(
                 {col: numpy.repeat(df.values, n) for col in df})
 
     @staticmethod
     def _default_reducer_func(df, n):
+        # The default way to reduce the dataframe into a dataframe with fewer
+        # rows is to get the mean if the data is numerical, otherwise get
+        # the most frequently occurring (mode).
         def apply_func(x, col):
             if x[col].dtype != numpy.dtype('O'):
                 return max(Counter(x[col]).items(), key=lambda y: y[1])[0]
@@ -785,6 +791,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     # ==========================================================================
 
     def __getitem__(self, key):
+        # Allows access to records and columns by indexing
+        # If the key is a str or list of str, this is interpreted
+        # to mean that records should be returned.
+        # If the key is an int or list of ints, this is interpreted
+        # that columns should be returned.
         if isinstance(key, str):
             return self.rows.__getitem__(key)
         elif isinstance(key, list) and \
@@ -808,12 +819,14 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     #     raise TypeError('key must be str or int')
 
     def __iter__(self):
+        # Does not implement __iter__ because its meaning is ambiguous.
         raise NotImplementedError(
             'Use .rows.iter() or .rows.iter_sequences() '
             'to iterate over records or sample sequences, respectively.\n'
             'Use .cols.iter() to iterate across columns in the alignment.')
 
     def __repr__(self):
+        # Returns the stringed representation of the alignment.
         parts = []
         parts.append('[Alignment]')
         parts.append('name = {}'.format(self.name))
@@ -832,19 +845,26 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return '\n'.join(parts)
 
     def __str__(self):
+        # Returns the string representation of the alignment used for printing.
         return str(self._alignment)
 
     def __len__(self):
+        # len() is not implemented becuase its meaning is ambiguous
+        # for an alignment
         raise NotImplementedError(
             'Use .nrows to get the number of samples, or '
             '.ncols to get the number of columns in the alignment.')
 
     def __bool__(self):
+        # Returns True if the instance has one or more records,
+        # and that the records have one or more columns
         if self.ncols == 0 or self.nrows == 0:
             return False
         return True
 
     def __hash__(self):
+        # Generates an integer hash using the dictionary representation
+        # of the instance
         return hash(self.to_dict(column_metadata=True).items())
 
     def __eq__(self, other):
