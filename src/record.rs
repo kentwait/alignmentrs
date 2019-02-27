@@ -123,14 +123,14 @@ impl PyObjectProtocol for BaseRecord {
     // default is to output as fasta format
     fn __str__(&self) -> PyResult<String> {
         if self.description.len() > 0 {
-            return Ok(format!(">{id} {desc}\n{seq_len}",
+            return Ok(format!(">{id} {desc}\n{seq}",
                 id=self.id,
                 desc=self.description,
-                seq_len=self.len_str()?))
+                seq=self.sequence_str()?))
         }
-        return Ok(format!(">{id}\n{seq_len}",
+        return Ok(format!(">{id}\n{seq}",
                 id=self.id,
-                seq_len=self.len_str()?))
+                seq=self.sequence_str()?))
     }
 }
 
