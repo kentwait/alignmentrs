@@ -118,14 +118,18 @@ class DictSerdeMixin:
         records = [BaseRecord(r['id'], r['description'], r['sequence'], 
                               r['chunk_size'])
                    for r in d['alignment']]
+        row_metadata = None if 'row_metadata' not in d.keys() else \
+            {k: v for k, v in d['row_metadata'].items()}
         column_metadata = None if 'column_metadata' not in d.keys() else \
             {k: v for k, v in d['column_metadata'].items()}
         return cls(d['name'], records, chunk_size=d['chunk_size'],
-                   index=d['index'], metadata=d['metadata'],
-                   column_metadata=column_metadata, store_history=store_history,
+                   index=d['index'],
+                   row_metadata=row_metadata,
+                   column_metadata=column_metadata,
+                   store_history=store_history,
                    **kwargs)
 
-    def to_dict(self, column_metadata=True):
+    def to_dict(self, row_metadata=True, column_metadata=True):
         d = {
             'name': self.name,
             'index': self._index.to_list(),
@@ -135,10 +139,13 @@ class DictSerdeMixin:
                 for r in self._alignment.records
             ],
             'chunk_size': self.chunk_size,
-            'metadata': self.metadata,
+            'comments': self._comments,
         }
+        if row_metadata:
+            d['row_metadata'] = self._row_metadata.to_dict(orient='list')
         if column_metadata:
             d['column_metadata'] = self._column_metadata.to_dict(orient='list')
+        # TODO: Store history
         return d
 
 
@@ -150,8 +157,10 @@ class JsonSerdeMixin(DictSerdeMixin):
         return cls.from_dict(d, store_history=store_history,
                              **kwargs)
 
-    def to_json(self, path=None, column_metadata=True):
-        d = self.to_dict(column_metadata)
+    def to_json(self, path=None, row_metadata=True, column_metadata=True):
+        d = self.to_dict(
+            row_metadata=row_metadata,
+            column_metadata=column_metadata)
         json_str = json.dumps(d)
         if path is None:
             return json_str
