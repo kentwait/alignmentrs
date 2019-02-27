@@ -98,7 +98,7 @@ class FastaSerdeMixin:
             meta_str = '\n'.join([
                 '>meta|{}\n{}'.format(
                     k, 
-                    ''.join(list(map(str, self.column_metadata[k].to_list())))
+                    ''.join(list(map(str, self._column_metadata[k].to_list())))
                 )
                 for k in column_metadata
             ])
@@ -138,7 +138,7 @@ class DictSerdeMixin:
             'metadata': self.metadata,
         }
         if column_metadata:
-            d['column_metadata'] = self.column_metadata.to_dict(orient='list')
+            d['column_metadata'] = self._column_metadata.to_dict(orient='list')
         return d
 
 

@@ -18,6 +18,32 @@ class RowMutator:
         self._axis = 0
 
     def insert(self, position, records, copy=False, **kwargs):
+        """Inserts one or more records into the alignment naively (without realignment).
+        
+        Parameters
+        ----------
+        position : int or str
+            Position to be inserted at. If str, 
+        records : BaseRecord or list of BaseRecord
+            Record/s to be inserted.
+        copy : bool, optional
+            Whether to insert records on a copy of the alignment, keeping
+            the current alignment unchanged, or insert records inplace. 
+            (default is False, insertiong is performed inplace)
+        
+        Raises
+        ------
+        TypeError
+            Value of records is not a BaseRecord or List of BaseRecord
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment with the
+            inserted records. Otherwise, insertion is performed inplace
+            and does not return any value.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -25,7 +51,7 @@ class RowMutator:
         if isinstance(records, BaseRecord):
             aln._alignment.insert_records(position, records)
         elif isinstance(records, list) and \
-            sum((isinstance(rec, BaseAlignment) for rec in records)):
+            sum((isinstance(rec, BaseRecord) for rec in records)):
             aln._alignment.insert_records(position, records)
         else:
             raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
@@ -40,6 +66,31 @@ class RowMutator:
             return aln
 
     def prepend(self, records, copy=False, **kwargs):
+        """Inserts one or more records before all the existing records in the
+        alignment naively (without realignment).
+        
+        Parameters
+        ---------- 
+        records : BaseRecord or list of BaseRecord
+            Record/s to be inserted.
+        copy : bool, optional
+            Whether to insert records on a copy of the alignment, keeping
+            the current alignment unchanged, or insert records inplace. 
+            (default is False, insertiong is performed inplace)
+        
+        Raises
+        ------
+        TypeError
+            Value of records is not a BaseRecord or List of BaseRecord
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment with the
+            inserted records. Otherwise, insertion is performed inplace
+            and does not return any value.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -54,6 +105,31 @@ class RowMutator:
             return aln
 
     def append(self, records, copy=False, **kwargs):
+        """Inserts one or more records after all the existing records in the
+        alignment naively (without realignment).
+        
+        Parameters
+        ---------- 
+        records : BaseRecord or list of BaseRecord
+            Record/s to be inserted.
+        copy : bool, optional
+            Whether to insert records on a copy of the alignment, keeping
+            the current alignment unchanged, or insert records inplace. 
+            (default is False, insertiong is performed inplace)
+        
+        Raises
+        ------
+        TypeError
+            Value of records is not a BaseRecord or List of BaseRecord
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment with the
+            inserted records. Otherwise, insertion is performed inplace
+            and does not return any value.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -74,9 +150,35 @@ class RowMutator:
             return aln
 
     def remove(self, positions, copy=False, **kwargs):
+        """Removes one or more records from the alignment naively
+        (without realignment).
+        
+        Parameters
+        ---------- 
+        positions : int, list of int
+            Positions to remove.
+        copy : bool, optional
+            Whether to remove records from a copy of the alignment, keeping
+            the current alignment intact, or remove the records inplace. 
+            (default is False, insertiong is performed inplace)
+        
+        Raises
+        ------
+        TypeError
+            Value of records is not a BaseRecord or List of BaseRecord
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment, removing
+            the specified records. Otherwise, removal is performed inplace
+            and does not return any value.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
+        # TODO: Handle str, list of str
         if isinstance(positions, int):
             aln._alignment.remove_record(positions)
         elif isinstance(positions, list) and \
@@ -94,6 +196,31 @@ class RowMutator:
             return aln
 
     def retain(self, positions, copy=False, **kwargs):
+        """Retains one or more records from the alignment, and
+        removes all the others.
+        
+        Parameters
+        ---------- 
+        positions : int, list of int
+            Positions to retain.
+        copy : bool, optional
+            Whether to remove records from a copy of the alignment, keeping
+            the current alignment intact, or remove the records inplace. 
+            (default is False, insertiong is performed inplace)
+        
+        Raises
+        ------
+        TypeError
+            Value of records is not a BaseRecord or List of BaseRecord
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment containing
+            only the specified records. Otherwise, removal is performed inplace
+            and does not return any value.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -114,6 +241,26 @@ class RowMutator:
             return aln
 
     def drain(self, positions, **kwargs):
+        """Removes one or more records from the alignment, and returns
+        these records as a new alignment.
+        
+        Parameters
+        ---------- 
+        positions : int, list of int
+            Positions to drain from the alignment.
+        
+        Raises
+        ------
+        TypeError
+            Value of records is not a BaseRecord or List of BaseRecord
+        
+        Returns
+        -------
+        Alignment
+            Returns a deep copy of the Alignment containing the drained
+            records.
+
+        """
         if isinstance(positions, int):
             positions = [positions]
         elif isinstance(positions, list) and \
@@ -142,6 +289,32 @@ class RowMutator:
         return aln
 
     def replace(self, positions, records, copy=False, **kwargs):
+        """Replace one or more records in the alignment.
+        
+        Parameters
+        ---------- 
+        positions : int, list of int
+            Positions to replace.
+        records : BaseRecord or list of BaseRecord
+            Record/s to replace with.
+        copy : bool, optional
+            Whether to remove records from a copy of the alignment, keeping
+            the current alignment intact, or remove the records inplace. 
+            (default is False, insertiong is performed inplace)
+        
+        Raises
+        ------
+        TypeError
+            Value of records is not a BaseRecord or List of BaseRecord
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment containing
+            only the specified records. Otherwise, removal is performed inplace
+            and does not return any value.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
@@ -163,6 +336,30 @@ class RowMutator:
             return aln
 
     def reorder(self, positions, copy=False, **kwargs):
+        """Reorder records in the alignment based on a given order.
+        
+        Parameters
+        ---------- 
+        positions : list of int
+            Position list.
+        copy : bool, optional
+            Whether to remove records from a copy of the alignment, keeping
+            the current alignment intact, or remove the records inplace. 
+            (default is False, insertiong is performed inplace)
+        
+        Raises
+        ------
+        TypeError
+            Value of records is not a BaseRecord or List of BaseRecord
+        
+        Returns
+        -------
+        Alignment or None
+            If copy is True, returns a deep copy of the Alignment containing
+            only the specified records. Otherwise, removal is performed inplace
+            and does not return any value.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
