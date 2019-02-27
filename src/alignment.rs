@@ -601,13 +601,14 @@ impl BaseAlignment {
         let ncols = cols.len();
         for row in rows.into_iter().map(|x| x as usize) {
             let sequence: Vec<String> = self.records[row].sequence.iter().enumerate()
-                .filter(|(i, _)| row == *i )
+                .filter(|(i, _)| cols.contains(&(*i as i32)) )
                 .map(|(_, item)| item.to_string() )
                 .collect();
             // Make sure sequence length == ncols
             if sequence.len() != ncols {
                 return Err(exceptions::ValueError::py_err(
-                    "Unexpected number of columns"))
+                    format!("Unexpected number of columns: {} != {}",
+                        sequence.len(), ncols)))
             }
             records.push(BaseRecord{
                 id: self.records[row].id.to_string(),
