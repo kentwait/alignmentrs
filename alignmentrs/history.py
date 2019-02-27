@@ -96,7 +96,7 @@ class Record:
         return ('## {optype} {op}\n'
                 '  * date and time - {dt}\n'
                 '  * statement - `{op}({params})`\n'
-                '  * state - {state}\n'.format(
+                '  * state - `{state}`\n'.format(
                    dt=self.datetime.strftime('%m/%d/%Y %H:%M:%S'),
                    op=self.operation,
                    optype=self.optype,
