@@ -408,8 +408,9 @@ class RowMutator:
         else:
             aln.rows.remove(remove_positions, _record_history=False)
         # Add to history
-        func_sig = repr(inspect.signature(function)) \
-            .lstrip('<Signature ').rstrip('>')
+        func_sig = function.__qualname__ + \
+            repr(inspect.signature(function)) \
+                .lstrip('<Signature ').rstrip('>')
         add_to_history(
             aln, '.rows.filter', func_sig,
             copy=copy,
@@ -565,6 +566,9 @@ class ColMutator:
         if isinstance(positions, int):
             positions = [positions]
         elif isinstance(positions, list) and \
+            len(positions) == 0:
+            pass
+        elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)):
             pass
         else:
@@ -715,8 +719,9 @@ class ColMutator:
         else:
             aln.cols.remove(remove_positions, _record_history=False)
         # Add to history
-        func_sig = repr(inspect.signature(function)) \
-            .lstrip('<Signature ').rstrip('>')
+        func_sig = function.__qualname__ + \
+            repr(inspect.signature(function)) \
+                .lstrip('<Signature ').rstrip('>')
         add_to_history(
             aln, '.cols.filter', func_sig,
             copy=copy,

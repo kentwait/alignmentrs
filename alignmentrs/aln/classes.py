@@ -326,8 +326,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self._column_metadata[name] = data
         self.rows.remove(i)
         # Add to history
-        func_sig = repr(inspect.signature(func)) \
-            .lstrip('<Signature ').rstrip('>')
+        func_sig = func.__qualname__ + \
+            repr(inspect.signature(func)) \
+                .lstrip('<Signature ').rstrip('>')
         add_to_history(
             aln, '.set_record_as_column_metadata', i, func_sig,
             name=name,
@@ -402,7 +403,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         aln._column_metadata = df
         # Add to history
         if recasting_func is not None:
-            func_sig = repr(inspect.signature(recasting_func)) \
+            func_sig = recasting_func.__qualname__ + \
+            repr(inspect.signature(recasting_func)) \
                 .lstrip('<Signature ').rstrip('>')
         else:
             func_sig = 'None'
