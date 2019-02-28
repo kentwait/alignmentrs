@@ -1,6 +1,7 @@
 from copy import deepcopy
 import numbers
 import inspect
+import itertools
 
 import pandas
 
@@ -147,6 +148,19 @@ class RowData:
     #     )
     #     if copy is True:
     #         return aln
+
+    def get(self, positions, **kwargs):
+        aln = self._instance.copy()
+        # TODO: Handle str, list of str
+        if isinstance(positions, int):
+            positions = [positions]
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)) == len(positions):
+            pass
+        else:
+            raise TypeError('positions must be an int or a list of int')
+        aln.data.retain_rows(positions)
+        return aln
 
     def remove(self, positions, copy=False, **kwargs):
         """Removes one or more records from the alignment naively
@@ -518,6 +532,18 @@ class ColData:
     #     )
     #     if copy is True:
     #         return aln
+    def get(self, positions, **kwargs):
+        aln = self._instance.copy()
+        # TODO: Handle str, list of str
+        if isinstance(positions, int):
+            positions = [positions]
+        elif isinstance(positions, list) and \
+            sum((isinstance(pos, int) for pos in positions)) == len(positions):
+            pass
+        else:
+            raise TypeError('positions must be an int or a list of int')
+        aln.data.retain_cols(positions)
+        return aln
 
     def remove(self, positions, copy=False, **kwargs):
         aln = self._instance
@@ -642,8 +668,14 @@ class ColData:
         # Function accepts a list of str, outputs true or false
         if not(function is not None and callable(function)):
             raise TypeError('missing filter function')
-        positions = [i for i, col in enumerate(aln.iter(chunk_size=chunk_size)) 
-                     if function(col)]
+        positions = [
+            i for i, col in enumerate(aln.col.iter(chunk_size=chunk_size)) 
+            if function(col)
+        ]
+        if chunk_size > 1:
+            positions = list(itertools.chain(
+                *[range(i*chunk_size, (i*chunk_size)+chunk_size)
+                  for i in positions]))
         remove_positions = aln.data.invert_cols(positions)
         if dry_run:
             parts = []
@@ -774,7 +806,6 @@ class ColData:
 
     def iter(self, skip_n=None, chunk_size=None):
         cnt = 0
-        out = []
         if skip_n is None:
             if chunk_size is None:
                 skip_n = 1
