@@ -9,7 +9,7 @@ from libalignmentrs.record import BaseRecord
 from alignmentrs.util import add_to_history
 
 
-__all__ = ['RowData', 'ColMutator']
+__all__ = ['RowData', 'ColData']
 
 
 class RowData:
@@ -467,7 +467,7 @@ class RowData:
         return self._instance.__str__()
 
 
-class ColMutator:
+class ColData:
     def __init__(self, instance):
         self._instance = instance
         self._axis = 1
