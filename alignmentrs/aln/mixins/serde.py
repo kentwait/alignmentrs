@@ -1,7 +1,8 @@
-from collections import OrderedDict
+from collections import OrderedDict, ChainMap
 import os
 import json
 import pickle
+import re
 
 import pandas
 
@@ -31,8 +32,8 @@ class RecordsSerdeMixin:
 
 class FastaSerdeMixin:
     @classmethod
-    def from_fasta(cls, path, name=None, chunk_size=1, column_metadata=None,
-                   store_history=True, **kwargs):
+    def from_fasta(cls, path, name=None, chunk_size=1,
+                   parse_column_metadata=None, store_history=True, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -43,7 +44,7 @@ class FastaSerdeMixin:
             Name of the new alignment.
             (default is None, takes the name from the comments
             or uses the filename)
-        comment_parser : function, optional
+        parse_column_metadata : function, optional
             Function that takes a list of comment lines as input
             and outputs a dictionary that organizes comments into
             keys and values. (default is None, lines starting with 
@@ -57,27 +58,18 @@ class FastaSerdeMixin:
 
         """
         records, _ = fasta_to_records(path)
-        col_meta = dict()
-        if column_metadata is not None and isinstance(column_metadata, dict):
-            keep_records = []
-            for i, record in enumerate(records):
-                if record.id.startswith('meta|'):
-                    _, k = record.id.lsplit('|', 1)
-                    if k in column_metadata.keys():
-                        func = column_metadata[k]
-                        data = func(record.sequence)
-                        col_meta[k] = data
-                    else:
-                        keep_records.append(i)
-                else:
-                    keep_records.append(i)
-            records = records[keep_records]
-
+        col_meta = []
+        r = re.compile(r'meta\|(\S+)\=(\S+)')
+        if parse_column_metadata:
+            for record in enumerate(records):
+                matches = dict(r.findall(record.description))
+                col_meta.append(matches)
+        col_meta = dict(ChainMap(*col_meta))
         return cls(name, records, chunk_size=chunk_size,
                    column_metadata=col_meta, store_history=store_history,
                    **kwargs)
 
-    def to_fasta(self, path=None, column_metadata=None):
+    def to_fasta(self, path=None, include_column_metadata=None):
         """Saves the alignment as a FASTA-formatted file.
         Some metadata may not be lost.
 
@@ -90,17 +82,21 @@ class FastaSerdeMixin:
             ie. alignment name and coordinates.
             (default is False, information are not written as FASTA comments
             to ensure maximum compatibility)
-        include_metadata : bool, optional
-            Whether or not to output metadata as comments.
-            (default is False, information are not written as FASTA comments
+        include_column_metadata : list, optional
+            List of keys of columns in column metadata to include
+            (default is None, information are not written as FASTA comments
             to ensure maximum compatibility)
 
         """
+        id_desc_seq = ((i, row['description'], self.data[i]) 
+                       for i, row in self.row_metadata.iterrows())
+        col_meta = ' '.join([
+            'meta|{}={}'.format(k, str(v))
+            for k, v in self.column_metadata.to_dict(orient='list').items()
+        ])
         fasta_str = '\n'.join([
-            '>{} {}\n{}'.format(i, row['description'], self.data[i]) 
-                if row['description'] else
-                '>{}\n{}'.format(i, self.data[i])
-            for i, row in self.row_metadata.iterrows()    
+            self._record_formatter(sid, desc, seq, col_meta)
+            for sid, desc, seq in id_desc_seq
         ])
         # TODO: Add ability to add row metedata thats not the description
         if path is None:
@@ -111,6 +107,15 @@ class FastaSerdeMixin:
         with open(path, 'w') as writer:
             print(fasta_str, file=writer)
 
+    @staticmethod
+    def _record_formatter(sid, desc, seq, col_meta):
+        if len(desc) > 0 and len(col_meta) > 0:
+            return '>{} {} {}\n{}'.format(sid, desc, col_meta, seq)
+        elif len(desc) == 0 and len(col_meta) > 0:
+            return '>{} {}\n{}'.format(sid, col_meta, seq)
+        elif len(desc) > 0 and len(col_meta) == 0:
+            return '>{} {}\n{}'.format(sid, desc, seq)
+        return '>{}\n{}'.format(sid, seq)
 
 class DictSerdeMixin:
     @classmethod
