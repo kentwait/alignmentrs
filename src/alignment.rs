@@ -267,7 +267,7 @@ impl BaseAlignment {
         }
         for row in 0..self.data.len() {
             let sequence: String = self.data[row].char_indices()
-                .filter(|(i, x)| !cols.contains(&(*i as i32)))
+                .filter(|(i, _)| !cols.contains(&(*i as i32)))
                 .map(|(_, x)| x )
                 .collect();
             self.data[row] = sequence;
