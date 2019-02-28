@@ -271,8 +271,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self.column_metadata[name] = data
         self.row.remove(i)
         # Remove from row metadata
-        self.row_metadata = pandas.concatenate(
-            self.row_metadata.iloc[:i], self.row_metadata.iloc[i+1:])
+        self.row_metadata = self.row_metadata.iloc[:i].append(self.row_metadata.iloc[i+1:])
 
         # Add to history
         func_sig = func.__qualname__ + \
