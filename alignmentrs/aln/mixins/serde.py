@@ -32,8 +32,8 @@ class RecordsSerdeMixin:
 
 class FastaSerdeMixin:
     @classmethod
-    def from_fasta(cls, path, name=None, chunk_size=1,
-                   parse_column_metadata=None, store_history=True, **kwargs):
+    def from_fasta(cls, path, name=None, parse_column_metadata=None, 
+                   store_history=True, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -65,9 +65,8 @@ class FastaSerdeMixin:
                 matches = dict(r.findall(record.description))
                 col_meta.append(matches)
         col_meta = dict(ChainMap(*col_meta))
-        return cls(name, records, chunk_size=chunk_size,
-                   column_metadata=col_meta, store_history=store_history,
-                   **kwargs)
+        return cls(records, name=name, column_metadata=col_meta, 
+                   store_history=store_history, **kwargs)
 
     def to_fasta(self, path=None, include_column_metadata=None):
         """Saves the alignment as a FASTA-formatted file.

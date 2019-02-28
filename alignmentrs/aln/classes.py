@@ -12,7 +12,8 @@ from libalignmentrs.record import Record
 from alignmentrs.util import idseq_to_display
 from alignmentrs.aln.mixins import (RecordsSerdeMixin, FastaSerdeMixin,
                                     JsonSerdeMixin, PickleSerdeMixin)
-from alignmentrs.history import History, Record as Record_
+from alignmentrs.history import History
+from alignmentrs.history import Record as Record_
 from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
 from alignmentrs.util import add_to_history
 from .mutator import RowData, ColData
@@ -78,7 +79,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self.row_metadata = \
             self._row_metadata_constructor(records, row_metadata)
         if index is None:
-            index = pandas.Index(self.data.ncols)
+            index = pandas.Index(range(self.data.ncols))
         self.column_metadata = \
             self._col_metadata_constructor(records, column_metadata, index)
         self.comments = comments
@@ -100,9 +101,10 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Otherwise, raises a TypeError
         # TODO: Handle possibility of empty alignment
         if isinstance(records, list):
-            if not sum((isinstance(rec, Record) for rec in records)):
-                raise TypeError('records must be a list of Record objects')
-            return BaseAlignment(records)
+            if sum((isinstance(rec, Record) for rec in records)) \
+                == len(records):
+                return BaseAlignment(records)
+            raise TypeError('records must be a list of Record objects')
         elif isinstance(records, BaseAlignment):
             return records.copy()
         raise TypeError('records must be a list of Record objects or a BaseAlignment')
@@ -676,7 +678,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             'name': self.name,
             'nrows': self.nrows,
             'ncols': self.ncols,
-            'chunk_size': self.chunk_size,
         }
 
     def _metadata_state(self):
