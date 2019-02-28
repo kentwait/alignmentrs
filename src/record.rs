@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use pyo3::{PyObjectProtocol, exceptions};
+use pyo3::PyObjectProtocol;
 
 
 #[pyclass(subclass)]
@@ -14,33 +14,23 @@ pub struct BaseRecord {
     #[prop(get,set)]
     pub description: String,
     
-    pub sequence: Vec<String>,
-
-    #[prop(get)]
-    pub chunk_size: i32,
+    #[prop(get,set)]
+    pub sequence: String,
 
 }
 
 #[pymethods]
 impl BaseRecord {
     #[new]
-    /// Creates a new BaseRecord object from sequence_id, sequence_description
-    /// and sequence_str.
-    fn __new__(obj: &PyRawObject, id: &str, description: &str, sequence_str: &str, chunk_size: i32) -> PyResult<()> {
-        if sequence_str.chars().count() % (chunk_size as usize) != 0 {
-            return Err(exceptions::IndexError::py_err(
-                "invalid chunk_size: sequence cannot be cleanly divided into substrings"))
-        }
+    /// Creates a new BaseRecord object from id, sequence_description
+    /// and sequence.
+    fn __new__(obj: &PyRawObject, id: &str, description: &str,
+               sequence: &str) -> PyResult<()> {
         obj.init(|_| {
-            let chars: Vec<char> = sequence_str.chars().collect();
-            let sequence: Vec<String> = chars.chunks(chunk_size as usize)
-                .map(|chunk| chunk.iter().collect::<String>())
-                .collect();
             BaseRecord {
                 id: id.to_string(),
                 description: description.to_string(),
-                sequence: sequence,
-                chunk_size: chunk_size,
+                sequence: sequence.to_string(),
             }
         })
     }
@@ -49,47 +39,6 @@ impl BaseRecord {
     pub fn len(&self) -> PyResult<i32> {
         Ok(self.sequence.len() as i32)
     }
-
-    #[getter]
-    pub fn len_str(&self) -> PyResult<i32> {
-        Ok((self.sequence.len() as i32)  * self.chunk_size)
-    }
-
-    #[setter(chunk_size)]
-    pub fn set_chunk_size(&mut self, chunk_size: i32) -> PyResult<()> {
-        if self.len_str()? % chunk_size != 0 {
-            return Err(exceptions::IndexError::py_err(
-                "invalid chunk_size: sequence cannot be cleanly divided into substrings"))
-        }
-        let chars: Vec<char> = self.sequence.join("").chars().collect();
-        let sequence: Vec<String> = chars.chunks(chunk_size as usize)
-            .map(|chunk| chunk.iter().collect::<String>())
-            .collect();
-        self.sequence = sequence;
-        Ok(())
-    }
-
-    #[getter(sequence)]
-    pub fn get_sequence(&self) -> PyResult<Vec<String>> {
-        Ok(self.sequence.clone())
-    }
-
-    #[setter(sequence)]
-    pub fn set_sequence(&mut self, sequence_str: &str) -> PyResult<()> {
-        let chars: Vec<char> = sequence_str.chars().collect();
-        let sequence: Vec<String> = chars.chunks(self.chunk_size as usize)
-            .map(|chunk| chunk.iter().collect::<String>())
-            .collect();
-        self.sequence = sequence;
-        Ok(())
-    }
-
-    #[getter]
-    pub fn sequence_str(&self) -> PyResult<String> {
-        Ok(self.sequence.join(""))
-    }
-
-    // TODO: Get/set chunk
 }
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
@@ -97,11 +46,10 @@ impl BaseRecord {
 impl PyObjectProtocol for BaseRecord {
     fn __repr__(&self) -> PyResult<String> {
         // threshold is 15, 6 ... 6
-        let seq: String = match self.len_str() {
+        let seq: String = match self.len() {
             Ok(x) if x >= 15 => {
-                let sequence: String = self.sequence_str()?;
                 let mut seq = String::new();
-                for (i, c) in sequence.char_indices() {
+                for (i, c) in self.sequence.char_indices() {
                     if i < 6 {
                         seq.push(c);
                     } else if i >= 6 && i < 6 + 3 {
@@ -112,11 +60,11 @@ impl PyObjectProtocol for BaseRecord {
                 }
                 seq
             },
-            _ => self.sequence_str()?.clone()
+            _ => self.sequence()?.clone()
         };
         Ok(format!(
-            "BaseRecord(id={id}, sequence=\"{seq}\", length={len}, chunk_size={chunk_size}",
-            id=self.id, seq=seq, len=self.len_str()?, chunk_size=self.chunk_size
+            "Record(id={id}, sequence=\"{seq}\", length={len})",
+            id=self.id, seq=seq, len=self.len()?
         ))
     }
 
@@ -126,11 +74,11 @@ impl PyObjectProtocol for BaseRecord {
             return Ok(format!(">{id} {desc}\n{seq}",
                 id=self.id,
                 desc=self.description,
-                seq=self.sequence_str()?))
+                seq=self.sequence))
         }
         return Ok(format!(">{id}\n{seq}",
                 id=self.id,
-                seq=self.sequence_str()?))
+                seq=self.sequence))
     }
 }
 
