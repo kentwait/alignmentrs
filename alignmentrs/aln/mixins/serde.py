@@ -6,8 +6,8 @@ import pickle
 import pandas
 
 from libalignmentrs.alignment import BaseAlignment
-from libalignmentrs.record import BaseRecord
-from libalignmentrs.readers import fasta_to_records
+from libalignmentrs.record import Record
+# from libalignmentrs.readers import fasta_to_records
 
 
 __all__ = [
@@ -18,13 +18,16 @@ __all__ = [
 
 class RecordsSerdeMixin:
     @classmethod
-    def from_records(cls, records, chunk_size=1, name=None,
+    def from_records(cls, records, name=None, index=None, comments=None, 
+                     row_metadata=None, column_metadata=None,
                      store_history=True, **kwargs):
-        cls(name, records, chunk_size=chunk_size, store_history=store_history,
-            **kwargs)
+        cls(records, name=name, index=index, comments=comments, 
+            row_metadata=row_metadata, column_metadata=column_metadata,
+            store_history=store_history, **kwargs)
 
     def to_records(self):
-        return self._alignment.records
+        return [Record(i, row['description'], self.data[i])
+                for i, row in self.row_metadata.iterrows()]
 
 class FastaSerdeMixin:
     @classmethod
@@ -93,16 +96,13 @@ class FastaSerdeMixin:
             to ensure maximum compatibility)
 
         """
-        fasta_str = '\n'.join([str(rec) for rec in self._alignment.records])
-        if column_metadata is not None and isinstance(column_metadata, list):
-            meta_str = '\n'.join([
-                '>meta|{}\n{}'.format(
-                    k, 
-                    ''.join(list(map(str, self._column_metadata[k].to_list())))
-                )
-                for k in column_metadata
-            ])
-            fasta_str += column_metadata
+        fasta_str = '\n'.join([
+            '>{} {}\n{}'.format(i, row['description'], self.data[i]) 
+                if row['description'] else
+                '>{}\n{}'.format(i, self.data[i])
+            for i, row in self.row_metadata.iterrows()    
+        ])
+        # TODO: Add ability to add row metedata thats not the description
         if path is None:
             return fasta_str
         dirpath = os.path.dirname(os.path.abspath(path))
@@ -115,15 +115,13 @@ class FastaSerdeMixin:
 class DictSerdeMixin:
     @classmethod
     def from_dict(cls, d, store_history=True, **kwargs):
-        records = [BaseRecord(r['id'], r['description'], r['sequence'], 
-                              r['chunk_size'])
-                   for r in d['alignment']]
-        row_metadata = None if 'row_metadata' not in d.keys() else \
-            {k: v for k, v in d['row_metadata'].items()}
-        column_metadata = None if 'column_metadata' not in d.keys() else \
-            {k: v for k, v in d['column_metadata'].items()}
-        return cls(d['name'], records, chunk_size=d['chunk_size'],
-                   index=d['index'],
+        name = d['name']
+        records = [Record(r['id'], r['description'], r['sequence'])
+                   for r in d['data']]
+        row_metadata = d['row_metadata']
+        column_metadata = d['column_metadata']
+        index = d['index']
+        return cls(records, name=name, index=index,
                    row_metadata=row_metadata,
                    column_metadata=column_metadata,
                    store_history=store_history,
@@ -132,19 +130,12 @@ class DictSerdeMixin:
     def to_dict(self, row_metadata=True, column_metadata=True):
         d = {
             'name': self.name,
-            'index': self._index.to_list(),
-            'alignment': [
-                {'id': r.id, 'description': r.description,
-                 'sequence': r.sequence_str, 'chunk_size': r.chunk_size}
-                for r in self._alignment.records
-            ],
-            'chunk_size': self.chunk_size,
+            'data': self.data.sequences,
             'comments': self._comments,
+            'row_metadata': self.row_metadata.to_dict(orient='list'),
+            'column_metadata': self.column_metadata.to_dict(orient='list'),
+            'index': self.column_metadata.index.to_list(),
         }
-        if row_metadata:
-            d['row_metadata'] = self._row_metadata.to_dict(orient='list')
-        if column_metadata:
-            d['column_metadata'] = self._column_metadata.to_dict(orient='list')
         # TODO: Store history
         return d
 
@@ -196,84 +187,84 @@ class PhylipSerdeMixin:
     pass
 
 
-class CsvSerdeMixin:
-    @classmethod
-    def from_csv(cls, path, delimiter='\t', metadata=True,
-                 column_metadata=True, store_history=True,
-                 **kwargs):
-        # self, name, records, chunk_size: int=1,
-        # index=None, metadata: dict=None, column_metadata=None,
-        data_path = os.path.abspath(path)
+# class CsvSerdeMixin:
+#     @classmethod
+#     def from_csv(cls, path, delimiter='\t', metadata=True,
+#                  column_metadata=True, store_history=True,
+#                  **kwargs):
+#         # self, name, records, chunk_size: int=1,
+#         # index=None, metadata: dict=None, column_metadata=None,
+#         data_path = os.path.abspath(path)
 
-        metadata_d = dict()
-        name = None
-        chunk_size = 1
-        index = None
-        records = []
-        in_sequence = False
-        with open(data_path, 'r') as reader:
-            for line in reader.readlines():
-                line = line.rstrip()
-                if line.startswith('#'):
-                    line = line.lstrip()
-                    key, value = [string.strip() for string in line.lstrip().split('=')]
-                    if key == 'name':
-                        name = value
-                    elif key == 'chunk_size':
-                        chunk_size = value
-                    elif key == 'index':
-                        # TODO: Add re test for security
-                        index = pandas.Index(eval(value))
-                    else:
-                        metadata[key] = value
-                elif line.startswith('id'):
-                    in_sequence = True
-                    continue
-                elif in_sequence is True:
-                    sid, desc, seq = line.split(delimiter)
-                    records.append(BaseRecord(sid, desc, seq, chunk_size))
-        if column_metadata:
-            l, r = path.rsplit('.', 1)
-            meta_path = l + '.cols.' + r
-            column_metadata_d = pandas.read_csv(meta_path, index_col=0, comment='#')
-        return cls(name, records, chunk_size=chunk_size,
-                   index=index, metadata=metadata_d,
-                   column_metadata=column_metadata_d, store_history=store_history,
-                   **kwargs)
+#         metadata_d = dict()
+#         name = None
+#         chunk_size = 1
+#         index = None
+#         records = []
+#         in_sequence = False
+#         with open(data_path, 'r') as reader:
+#             for line in reader.readlines():
+#                 line = line.rstrip()
+#                 if line.startswith('#'):
+#                     line = line.lstrip()
+#                     key, value = [string.strip() for string in line.lstrip().split('=')]
+#                     if key == 'name':
+#                         name = value
+#                     elif key == 'chunk_size':
+#                         chunk_size = value
+#                     elif key == 'index':
+#                         # TODO: Add re test for security
+#                         index = pandas.Index(eval(value))
+#                     else:
+#                         metadata[key] = value
+#                 elif line.startswith('id'):
+#                     in_sequence = True
+#                     continue
+#                 elif in_sequence is True:
+#                     sid, desc, seq = line.split(delimiter)
+#                     records.append(BaseRecord(sid, desc, seq, chunk_size))
+#         if column_metadata:
+#             l, r = path.rsplit('.', 1)
+#             meta_path = l + '.cols.' + r
+#             column_metadata_d = pandas.read_csv(meta_path, index_col=0, comment='#')
+#         return cls(name, records, chunk_size=chunk_size,
+#                    index=index, metadata=metadata_d,
+#                    column_metadata=column_metadata_d, store_history=store_history,
+#                    **kwargs)
 
 
-    def to_csv(self, path=None, delimiter='\t', metadata=True, column_metadata=True):
-        lines = []
-        lines.append('# name = {}'.format(self.name))
-        lines.append('# index = {}'.format(self.index.to_list()))
-        lines.append('# chunk_size = {}'.format(self._alignment.chunk_size))
-        if metadata is True:
-            lines += [
-                '# {} = {}'.format(k, v) for k, v in metadata.items()
-            ]
-        lines.append(delimiter.join(['id', 'description', 'sequence']))
-        lines += [
-            delimiter.join([r.id, r.description.replace('\t', ' '),
-                            r.sequence])
-            for r in self._alignment.records
-        ]
-        dirpath = os.path.dirname(os.path.abspath(path))
-        if not os.path.isdir(dirpath):
-            raise OSError('{} does not exist'.format(dirpath))
-        if not path.endswith('.csv'):
-            data_path = path + '.csv'
-            meta_path = path + '.cols.csv'
-        else:
-            data_path = path
-            l, r = path.rsplit('.', 1)
-            meta_path = l + '.cols.' + r
-        csv_str = '\n'.join(lines)
-        if path is None:
-            return csv_str
-        dirpath = os.path.dirname(os.path.abspath(path))
-        if not os.path.isdir(dirpath):
-            raise OSError('{} does not exist'.format(dirpath))
-        with open(data_path, 'w') as writer:
-            print(csv_str, file=writer)
-        if column_metadata is True:
-            self._column_metadata.to_csv(meta_path)
+#     def to_csv(self, path=None, delimiter='\t', metadata=True, column_metadata=True):
+#         lines = []
+#         lines.append('# name = {}'.format(self.name))
+#         lines.append('# index = {}'.format(self.index.to_list()))
+#         lines.append('# chunk_size = {}'.format(self._alignment.chunk_size))
+#         if metadata is True:
+#             lines += [
+#                 '# {} = {}'.format(k, v) for k, v in metadata.items()
+#             ]
+#         lines.append(delimiter.join(['id', 'description', 'sequence']))
+#         lines += [
+#             delimiter.join([r.id, r.description.replace('\t', ' '),
+#                             r.sequence])
+#             for r in self._alignment.records
+#         ]
+#         dirpath = os.path.dirname(os.path.abspath(path))
+#         if not os.path.isdir(dirpath):
+#             raise OSError('{} does not exist'.format(dirpath))
+#         if not path.endswith('.csv'):
+#             data_path = path + '.csv'
+#             meta_path = path + '.cols.csv'
+#         else:
+#             data_path = path
+#             l, r = path.rsplit('.', 1)
+#             meta_path = l + '.cols.' + r
+#         csv_str = '\n'.join(lines)
+#         if path is None:
+#             return csv_str
+#         dirpath = os.path.dirname(os.path.abspath(path))
+#         if not os.path.isdir(dirpath):
+#             raise OSError('{} does not exist'.format(dirpath))
+#         with open(data_path, 'w') as writer:
+#             print(csv_str, file=writer)
+#         if column_metadata is True:
+#             self._column_metadata.to_csv(meta_path)
