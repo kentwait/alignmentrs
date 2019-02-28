@@ -779,15 +779,21 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # (self, records, name=None, index=None, comments: dict=None,    
         #          row_metadata=None, column_metadata=None, store_history=True,
         #          **kwargs)
-        obj = self.__class__(
-            self.data.copy(),
-            name=deepcopy(self.name, memo),
-            index=self._index.copy(deep=True),
-            comments=deepcopy(self.comments, memo), 
-            row_metadata=self.row_metadata.copy(deep=True),
-            column_metadata=self.column_metadata.copy(deep=True),
-            store_history=False if self.history is None else True
-        )
+        obj = self.__class__.__new__(self.__class__)
+
+        if '_instance' in self.__dict__.keys():
+            obj = self._instance.__class__.__new__(self._instance.__class__)
+            self = self._instance
+
+        obj.data = self.data.copy()
+        obj.name = deepcopy(self.name, memo)
+        obj.row_metadata = self.row_metadata.copy(deep=True)
+        obj.column_metadata = self.column_metadata.copy(deep=True)
+        obj.comments = deepcopy(self.comments, memo)
+        obj._history = deepcopy(self._history, memo)
+        obj.row = RowData(obj)
+        obj.col = ColData(obj)
+        
         # obj._history = deepcopy(self.history, memo)
         # TODO: Add history after deepcopy
         # Add to history
