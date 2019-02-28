@@ -186,7 +186,7 @@ class RowData:
         else:
             raise TypeError('positions must be an int or a list of int')
         aln.data.remove_rows(positions)
-        indices = aln.row_metadata.index[positions]
+        indices = aln.row_metadata.index.iloc[positions]
         aln.row_metadata.drop(indices, axis=0, inplace=True)
         # Add to history
         add_to_history(
@@ -535,7 +535,7 @@ class ColData:
             raise TypeError('positions must be an int or a list of int')
         retain_positions = aln.data.invert_cols(positions)        
         aln.data.remove_cols(positions)
-        indices = aln.row_metadata.index[positions]
+        indices = aln.row_metadata.index.iloc[positions]
         aln.column_metadata.drop(indices, axis=0, inplace=True)
         # Add to history
         add_to_history(
@@ -667,37 +667,18 @@ class ColData:
 
     def drop(self, value, case_sensitive=False, copy=False, dry_run=False,
              mode='any', **kwargs):
-        if len(value) < self._instance.chunk_size:
-            if case_sensitive and mode == 'any':
-                func = lambda x: \
-                    sum([value in chars for chars in x]) > 0
-            elif case_sensitive and mode == 'all':
-                func = lambda x: \
-                    sum([value in chars for chars in x]) == len(x)
-            elif not case_sensitive and mode == 'any':
-                func = lambda x: \
-                    sum([value.upper() in chars.upper() for chars in x]) > 0
-            elif not case_sensitive and mode == 'all':
-                func = lambda x: \
-                    sum([value.upper() in chars.upper() for chars in x]) \
-                        == len(x)
-            else:
-                raise ValueError('invalid mode')
-        elif len(value) == self._instance.chunk_size:
-            if case_sensitive and mode == 'any':
-                func = lambda x: value in x
-            elif case_sensitive and mode == 'all':
-                func = lambda x: [value]*len(x) == x
-            elif not case_sensitive and mode == 'any':
-                func = lambda x: \
-                    value.upper() in [chars.upper() for chars in x]
-            elif not case_sensitive and mode == 'all':
-                func = lambda x: \
-                    [value.upper()]*len(x) == [chars.upper() for chars in x]
-            else:
-                raise ValueError('invalid mode')
+        if case_sensitive and mode == 'any':
+            func = lambda x: value in x
+        elif case_sensitive and mode == 'all':
+            func = lambda x: [value]*len(x) == x
+        elif not case_sensitive and mode == 'any':
+            func = lambda x: \
+                value.upper() in [chars.upper() for chars in x]
+        elif not case_sensitive and mode == 'all':
+            func = lambda x: \
+                [value.upper()]*len(x) == [chars.upper() for chars in x]
         else:
-            raise ValueError('value is larger than chunk size')
+            raise ValueError('invalid mode')
         res = self.filter(func, copy=copy, dry_run=dry_run, inverse=True,
                           _record_history=False)
         # Add to history
@@ -714,37 +695,18 @@ class ColData:
 
     def drop_except(self, value, case_sensitive=False, copy=False, 
                     dry_run=False, mode='any', **kwargs):
-        if len(value) < self._instance.chunk_size:
-            if case_sensitive and mode == 'any':
-                func = lambda x: \
-                    sum([value in chars for chars in x]) > 0
-            elif case_sensitive and mode == 'all':
-                func = lambda x: \
-                    sum([value in chars for chars in x]) == len(x)
-            elif not case_sensitive and mode == 'any':
-                func = lambda x: \
-                    sum([value.upper() in chars.upper() for chars in x]) > 0
-            elif not case_sensitive and mode == 'all':
-                func = lambda x: \
-                    sum([value.upper() in chars.upper() for chars in x]) \
-                        == len(x)
-            else:
-                raise ValueError('invalid mode')
-        elif len(value) == self._instance.chunk_size:
-            if case_sensitive and mode == 'any':
-                func = lambda x: value in x
-            elif case_sensitive and mode == 'all':
-                func = lambda x: [value]*len(x) == x
-            elif not case_sensitive and mode == 'any':
-                func = lambda x: \
-                    value.upper() in [chars.upper() for chars in x]
-            elif not case_sensitive and mode == 'all':
-                func = lambda x: \
-                    [value.upper()]*len(x) == [chars.upper() for chars in x]
-            else:
-                raise ValueError('invalid mode')
+        if case_sensitive and mode == 'any':
+            func = lambda x: value in x
+        elif case_sensitive and mode == 'all':
+            func = lambda x: [value]*len(x) == x
+        elif not case_sensitive and mode == 'any':
+            func = lambda x: \
+                value.upper() in [chars.upper() for chars in x]
+        elif not case_sensitive and mode == 'all':
+            func = lambda x: \
+                [value.upper()]*len(x) == [chars.upper() for chars in x]
         else:
-            raise ValueError('value is larger than chunk size')
+            raise ValueError('invalid mode')
         res = self.filter(func, copy=copy, dry_run=dry_run, inverse=False,
                           _record_history=False)
         # Add to history

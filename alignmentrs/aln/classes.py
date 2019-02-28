@@ -56,8 +56,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             Name of the alignment.
         records : list of Record
             Aligned sequences as a list of records.
-        chunk_size : int, optional
-            Character length of each column in the alignment.
         index : pandas.Index optional
             Index for alignment columns.
         comments : dict, optional
