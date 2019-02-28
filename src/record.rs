@@ -4,10 +4,10 @@ use pyo3::PyObjectProtocol;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
-/// BaseRecord(id, description, sequence)
+/// Record(id, description, sequence)
 /// 
-/// BaseRecord represents a single sequence sample.
-pub struct BaseRecord {
+/// Record represents a single sequence sample.
+pub struct Record {
     #[prop(get,set)]
     pub id: String,
 
@@ -20,14 +20,14 @@ pub struct BaseRecord {
 }
 
 #[pymethods]
-impl BaseRecord {
+impl Record {
     #[new]
-    /// Creates a new BaseRecord object from id, sequence_description
+    /// Creates a new Record object from id, sequence_description
     /// and sequence.
     fn __new__(obj: &PyRawObject, id: &str, description: &str,
                sequence: &str) -> PyResult<()> {
         obj.init(|_| {
-            BaseRecord {
+            Record {
                 id: id.to_string(),
                 description: description.to_string(),
                 sequence: sequence.to_string(),
@@ -43,7 +43,7 @@ impl BaseRecord {
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
 #[pyproto]
-impl PyObjectProtocol for BaseRecord {
+impl PyObjectProtocol for Record {
     fn __repr__(&self) -> PyResult<String> {
         // threshold is 15, 6 ... 6
         let seq: String = match self.len() {
@@ -85,7 +85,7 @@ impl PyObjectProtocol for BaseRecord {
 // Register python functions to PyO3
 #[pymodinit]
 fn record(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<BaseRecord>()?;
+    m.add_class::<Record>()?;
 
     Ok(())
 }
