@@ -215,6 +215,22 @@ impl BaseAlignment {
         Ok(out)
     }
 
+    pub fn get_chunk(&self, col: i32, chunk_size: i32) 
+    -> PyResult<Vec<String>> {
+        check_empty_alignment(self)?;
+        check_col_index(self, col as usize)?;
+        let mut sequences: Vec<String> = Vec::new();
+        let col = col as usize;
+        let chunk_size = chunk_size as usize;
+        for seq in self.data.iter() {
+            let seq_vec: Vec<char> = seq.chars().collect();
+            let sequence: String = seq_vec[col..col+chunk_size].to_vec()        
+                .into_iter().collect();
+            sequences.push(sequence);
+        }
+        Ok(sequences)
+    }
+
     // insert
     // fn insert_col(&mut self, col: usize, value: Vec<&str>) -> PyResult<()> {
     //     self.insert_cols(col, vec![value])
