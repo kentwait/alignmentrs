@@ -186,7 +186,7 @@ class RowData:
         else:
             raise TypeError('positions must be an int or a list of int')
         aln.data.remove_rows(positions)
-        indices = aln.row_metadata.index.iloc[positions]
+        indices = aln.row_metadata.index[positions]
         aln.row_metadata.drop(indices, axis=0, inplace=True)
         # Add to history
         add_to_history(
@@ -535,7 +535,7 @@ class ColData:
             raise TypeError('positions must be an int or a list of int')
         retain_positions = aln.data.invert_cols(positions)        
         aln.data.remove_cols(positions)
-        indices = aln.row_metadata.index.iloc[positions]
+        indices = aln.column_metadata.index[positions]
         aln.column_metadata.drop(indices, axis=0, inplace=True)
         # Add to history
         add_to_history(
