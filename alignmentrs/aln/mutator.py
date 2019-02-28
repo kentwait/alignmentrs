@@ -9,10 +9,10 @@ from libalignmentrs.record import BaseRecord
 from alignmentrs.util import add_to_history
 
 
-__all__ = ['RowMutator', 'ColMutator']
+__all__ = ['RowData', 'ColMutator']
 
 
-class RowMutator:
+class RowData:
     def __init__(self, instance):
         self._instance = instance
         self._axis = 0
