@@ -27,7 +27,7 @@ class RecordsSerdeMixin:
             store_history=store_history, **kwargs)
 
     def to_records(self):
-        return [Record(i, row['description'], self.data[i])
+        return [Record(i, row['description'], self.data.get_row(i))
                 for i, row in self.row_metadata.iterrows()]
 
 class FastaSerdeMixin:
@@ -87,7 +87,7 @@ class FastaSerdeMixin:
             to ensure maximum compatibility)
 
         """
-        id_desc_seq = ((i, row['description'], self.data[i]) 
+        id_desc_seq = ((i, row['description'], self.data.get_row(i)) 
                        for i, row in self.row_metadata.iterrows())
         col_meta = ' '.join([
             'meta|{}={}'.format(k, str(v))

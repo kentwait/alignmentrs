@@ -196,7 +196,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     @property
     def records(self):
         """list of Record: Returns the list of records."""
-        return [Record(i, row['description'], self.data[i])
+        return [Record(i, row['description'], self.data.get_row(i))
                 for i, row in self.row_metadata.iterrows()]
 
     @property
