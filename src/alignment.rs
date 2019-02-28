@@ -59,6 +59,12 @@ impl BaseAlignment {
     }
 
     // Row methods
+    pub fn get_row(&self, row: i32) -> PyResult<String> {
+        check_empty_alignment(self)?;
+        check_row_index(self, row as usize)?;
+        Ok(self.data[row as usize].to_string())
+    }
+
 
     pub fn get_rows(&self, rows: Vec<i32>) -> PyResult<Vec<String>> {
         check_empty_alignment(self)?;
@@ -106,40 +112,34 @@ impl BaseAlignment {
         Ok(())
     }
 
-    /// retain_record(index, /)
-    /// --
-    /// 
-    /// Keeps one entry according to the given row index and
-    /// removes everything else.
-    fn retain_record(&mut self, id: i32) -> PyResult<()> {
-        self.retain_records(vec![id])
-    }
-
     /// retain_records(indices, /)
     /// 
     /// Keep entries at the specified row indices, and removes
     /// everything else.
-    fn retain_records(&mut self, rows: Vec<i32>) -> PyResult<()> {
+    fn retain_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows: Vec<i32> = self.invert_rows(rows)?;
         self.remove_rows(rows)
     }
 
-    // fn drain_records(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
-    //     check_empty_alignment(self)?;
-    //     rows.sort_unstable();
-    //     rows.dedup();
-    //     if let Some(x) = rows.iter().max() {
-    //         check_row_index(self, *x as usize)?;
-    //     }
-    //     let mut records: Vec<Record> = Vec::new();
-    //     rows.reverse();
-    //     for row in rows.into_iter().map(|x| x as usize) {
-    //         records.insert(0, self.records[row].clone());
-    //         self.records.remove(row);
-    //     }
-    //     Ok(BaseAlignment{ records, chunk_size: self.chunk_size}) 
-    // }
+    fn drain_rows(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
+        check_empty_alignment(self)?;
+        rows.sort_unstable();
+        rows.dedup();
+        if let Some(x) = rows.iter().max() {
+            check_row_index(self, *x as usize)?;
+        }
+        let mut data: Vec<String> = Vec::new();
+        let mut i: i32 = 0;
+        while i != self.data.len() as i32 {
+            if rows.contains(&i) {
+                data.push(self.data.remove(i as usize));
+            } else {
+                i += 1;
+            }
+        }
+        Ok(BaseAlignment{ data }) 
+    }
 
     // fn replace_record(&mut self, row: i32, value: &Record) -> PyResult<()> {
     //     self.replace_records(vec![row], vec![value])
@@ -164,7 +164,7 @@ impl BaseAlignment {
     /// --
     /// 
     /// Reorders the sequences inplace based on a list of current row indices.
-    fn reorder_records(&mut self, rows: Vec<i32>) -> PyResult<()> {
+    fn reorder_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
         check_length_match(&rows, &self.data)?;
         check_empty_alignment(self)?;
         if let Some(x) = rows.iter().max() {
