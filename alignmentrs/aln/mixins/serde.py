@@ -7,7 +7,7 @@ import pandas
 
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import Record
-# from libalignmentrs.readers import fasta_to_records
+from libalignmentrs.readers import fasta_to_records
 
 
 __all__ = [
@@ -56,7 +56,7 @@ class FastaSerdeMixin:
             descriptions, and sequences in the FASTA file.
 
         """
-        records, _ = fasta_to_records(path, chunk_size)
+        records, _ = fasta_to_records(path)
         col_meta = dict()
         if column_metadata is not None and isinstance(column_metadata, dict):
             keep_records = []

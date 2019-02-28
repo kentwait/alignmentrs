@@ -7,4 +7,4 @@ extern crate regex;
 pub mod alignment;
 pub mod record;
 pub mod position;
-// pub mod readers;
+pub mod readers;
