@@ -624,26 +624,36 @@ class ColData:
             return aln
 
     def filter(self, function, copy=False, dry_run=False, inverse=False,
-               **kwargs):
+               chunk_size=1, **kwargs):
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
+        
+        printout_title = 'Filter'
+        if '_printout_title' in kwargs.keys():
+            printout_title = kwargs['_printout_title']
+        printout_true = True
+        if '_printout_true' in kwargs.keys():
+            printout_true = kwargs['_printout_true'] + ' (True)'
+        printout_false = False
+        if '_printout_false' in kwargs.keys():
+            printout_false = kwargs['_printout_false']  + ' (False)'
+
         # Function accepts a list of str, outputs true or false
         if not(function is not None and callable(function)):
             raise TypeError('missing filter function')
-        positions = [i for i in range(aln.ncols) 
-                     if function(aln.data.get_col(i))]
+        positions = [i for i, col in enumerate(aln.iter(chunk_size=chunk_size)) 
+                     if function(col)]
         remove_positions = aln.data.invert_cols(positions)
         if dry_run:
             parts = []
-            parts.append('[Filter]')
-            parts.append('True = {}/{}'.format(
-                len(positions), aln.ncols))
-            parts.append('False = {}/{}'.format(
-                len(remove_positions), aln.ncols))
+            parts.append('[{}]'.format(printout_title))
+            parts.append('{} = {}/{}'.format(
+                printout_true, len(positions), aln.ncols))
+            parts.append('{} = {}/{}'.format(
+                printout_false, len(remove_positions), aln.ncols))
             print('\n'.join(parts))
             return {
-                'function': function,
                 True: positions,
                 False: remove_positions
             }
