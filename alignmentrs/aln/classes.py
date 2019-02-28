@@ -8,14 +8,14 @@ import pandas
 import numpy
 
 from libalignmentrs.alignment import BaseAlignment
-from libalignmentrs.record import BaseRecord
+from libalignmentrs.record import Record
 from alignmentrs.util import idseq_to_display
 from alignmentrs.aln.mixins import (RecordsSerdeMixin, FastaSerdeMixin,
                                     JsonSerdeMixin, PickleSerdeMixin)
-from alignmentrs.history import History, Record
+from alignmentrs.history import History, Record as Record_
 from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
 from alignmentrs.util import add_to_history
-from .mutator import RowMutator, ColMutator
+from .mutator import RowData, ColData
 from .metadata import MetadataRedirect
 
 
@@ -44,51 +44,44 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     metadata : dict
         Other information related to the alignment.
     """
-    def __init__(self, name, records, chunk_size: int=1,
-                 index=None, comments: dict=None, 
-                 row_metadata=None, column_metadata=None,
-                 store_history=True, **kwargs):
+    def __init__(self, records, name=None, index=None, comments: dict=None,    
+                 row_metadata=None, column_metadata=None, store_history=True,
+                 **kwargs):
         """Creates a new Alignment object from a sample BaseAlignment.
 
         Parameters
         ----------
         name : str
             Name of the alignment.
-        records : list of BaseRecord
+        records : list of Record
             Aligned sequences as a list of records.
         chunk_size : int, optional
             Character length of each column in the alignment.
         index : pandas.Index optional
             Index for alignment columns.
-        metadata : dict, optional
+        comments : dict, optional
             Other information related to the alignment. (default is None,
             which creates a blank dictionary)
+        row_metadata : pandas.DataFrame or dict, optional
+            DataFrame containing annotation for columns.
         column_metadata : pandas.DataFrame or dict, optional
             DataFrame containing annotation for columns.
         store_history : bool, optional
             Whether or not to store actions when the state of the Alignment changes.
-        metadata : dict, optional
-            Other information related to the alignment. (default is None,
-            which creates a blank dictionary)
         **kwargs
             Other keyword arguments used to initialize states in the
             Alignment object.
 
         """
         self.name = name
-        self._alignment: BaseAlignment = \
-            self._alignment_constructor(records, chunk_size)
-        self._index = self._index_constructor(index)
-        # Add chunking information to index
-        self._comments = self._comments_constructor(comments)
-        self._row_metadata = self._row_metadata_constructor(row_metadata)
-        self._column_metadata = \
-            self._col_metadata_constructor(column_metadata, self.index)
-        self._rows = RowMutator(self)
-        self._cols = ColMutator(self)
-        self._metadata = MetadataRedirect(self)
-        # TODO: do not show metadata not assigned for that chunk
-        # TODO: Add initial state information
+        self.data: BaseAlignment = self.data_constructor(records)
+        self.row_metadata = \
+            self._row_metadata_constructor(records, row_metadata)
+        if index is None:
+            index = pandas.Index(self.data.ncols)
+        self.column_metadata = \
+            self._col_metadata_constructor(records, column_metadata, index)
+        self.comments = comments
         self._history = History() if store_history else None
         add_to_history(
             self, self.__class__.__name__, name, records,
@@ -97,22 +90,22 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             store_history=store_history,
             **kwargs
         )
+        self.row = RowData(self)
+        self.col = ColData(self)
 
     # Constructors
-    def _alignment_constructor(self, records, chunk_size):
+    def data_constructor(self, records):
         # Constructs a BaseAlignemnt from the input
-        # `records` can be a list of BaseRecord or a BaaseAlignment
+        # `records` can be a list of Record or a BaaseAlignment
         # Otherwise, raises a TypeError
         # TODO: Handle possibility of empty alignment
         if isinstance(records, list):
-            if not sum((isinstance(rec, BaseRecord) for rec in records)):
-                raise TypeError('records must be a list of BaseRecord objects')
-            return BaseAlignment(records, chunk_size)
+            if not sum((isinstance(rec, Record) for rec in records)):
+                raise TypeError('records must be a list of Record objects')
+            return BaseAlignment(records)
         elif isinstance(records, BaseAlignment):
-            if records.chunk_size != chunk_size:
-                records.chunk_size = chunk_size
-            return records
-        raise TypeError('records must be a list of BaseRecord objects or a BaseAlignment')
+            return records.copy()
+        raise TypeError('records must be a list of Record objects or a BaseAlignment')
 
     def _comments_constructor(self, comments):
         # Constructs metadata dictionary
@@ -124,57 +117,43 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return comments
         raise TypeError('comments must be a dictionary of keys and values')
 
-    def _index_constructor(self, index):
-        # Constructs index from input.
-        # `index` can be pandas.Index, list or None.
-        # Otherwise, raises an error.
-        # TODO: Handle rangle, numpy array
-        if index is None:
-            return pandas.Index(range(self._alignment.ncols))
-        elif isinstance(index, pandas.Index):
-            return index
-        elif isinstance(index, list):
-            return pandas.Index(index)
-        raise TypeError(
-            'index must be a list or {} object'.format(pandas.Index.__mro__[0]))
-
-    def _col_metadata_constructor(self, column_metadata, index):
+    def _col_metadata_constructor(self, records, column_metadata, index):
         # Constructs column metadata DataFrame from `column_metadata` and
         # `index` inputs`.
         # `column_metadata` must be None, dict, or pandas.DataFrame
-        # Otherwise raises TypeError. 
+        # Otherwise raises TypeError.
         if column_metadata is None:
             df = pandas.DataFrame(None, index=index)
         elif isinstance(column_metadata, dict):
             # Check if values match the length of the index
             for key, val in column_metadata.items():
-                if len(val) != len(self.index):
-                    raise ValueError('{} value length does not match the number of columns'.format(key))
-            df = pandas.DataFrame(column_metadata, index=self.index)
+                if len(val) != len(index):
+                    raise ValueError('{} value length does not match the number of columns')
+            df = pandas.DataFrame(column_metadata, index=index)
         elif isinstance(column_metadata, pandas.DataFrame):
-            if len(column_metadata) != len(self.index):
-                raise ValueError('length of column_metadata dataframe does not match the number of columns'.format(key))
-            column_metadata.index = self.index
+            if len(column_metadata) != len(index):
+                raise ValueError('length of column_metadata dataframe does not match the number of columns')
             df = column_metadata
+            df.index = index
         else:
             raise TypeError('column_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
         return df
 
-    def _row_metadata_constructor(self, row_metadata):
+    def _row_metadata_constructor(self, records, row_metadata):
         # Constructs row metadata DataFrame from `row_metadata`
+        index = pandas.Index([rec.id for rec in records])
         df = pandas.DataFrame({
-            'description': self.descriptions
-        }, index=self.ids)
+            'description': [rec.description for rec in records]
+        }, index=index)
         if isinstance(row_metadata, dict):
             # Check if values match the length of the index
             for key, val in row_metadata.items():
                 if len(val) != len(self.nrows):
                     raise ValueError('{} value length does not match the number of rows'.format(key))
-            df = df.join(pandas.DataFrame(row_metadata, index=self.ids))
+            df = df.join(pandas.DataFrame(row_metadata, index=index))
         elif isinstance(row_metadata, pandas.DataFrame):
-            if not all(row_metadata.index == self.ids):
-                raise ValueError('index of row_metadata DataFrame does not match the ids in the alignment'.format(key))
-            row_metadata.index = pandas.Index(self.ids)
+            if not all(row_metadata.index == index):
+                raise ValueError('index of row_metadata DataFrame does not match the ids in the alignment')
             if 'description' in row_metadata.columns:
                 df = row_metadata
             else:
@@ -187,98 +166,67 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     # Properties
     @property
-    def rows(self):
-        # Redirects to _rows "virtual object" to access row-specific methods
-        return self._rows
-
-    @property
-    def cols(self):
-        # Redirects to _cols "virtual object" to access column-specific methods
-        return self._cols
-
-    @property
-    def metadata(self):
-        # Redirects to _metadata "virtual object" to access
-        # metadata-specific methods
-        return self._metadata
-
-    @property
     def index(self):
         """pandas.core.indexes.base.Index: Returns the column index
         of the alignment."""
-        return self._index
+        return self.column_metadata.index
 
     @index.setter
-    def index(self, index: pandas.core.indexes.base.Index):
+    def index(self, index):
         """Sets the column index of the alignment."""
         index = pandas.Index(index)
-        self._column_metadata.index = index
-        self._index = index
+        self.column_metadata.index = index
         # Add history by default
         add_to_history(
             self, '.index', index
         )
 
     @property
-    def chunk_size(self):
-        """int: Returns the chunk size of the alignment."""
-        return self._alignment.chunk_size
-
-    @chunk_size.setter
-    def chunk_size(self, value: int):
-        """Changes the number of characters in an alignment column
-        using default options.
-        For more control, use the `set_chunk_size` method."""
-        self.set_chunk_size(value, reset_index=True)
-        # Add history by default
-        add_to_history(self, '.chunk_size', value)
-
-    @property
     def nrows(self):
         """int: Returns the number of rows in the alignment."""
-        return self._alignment.nrows
+        return self.data.nrows
 
     @property
     def ncols(self):
         """int: Returns the number of columns in the alignment."""
-        return self._alignment.ncols
-
-    @property
-    def nchars(self):
-        """int: Returns the number of aligned characters
-        (ncols * chunk_size)."""
-        return self._alignment.nchars
+        return self.data.ncols
 
     @property
     def records(self):
-        """list of BaseRecord: Returns the list of records."""
-        return self._alignment.records
+        """list of Record: Returns the list of records."""
+        return [Record(i, row['description'], self.data[i])
+                for i, row in self.row_metadata.iterrows()]
 
     @property
     def ids(self):
         """list of str: Returns the list of identifiers."""
-        return self._alignment.ids
-
-    @property
-    def descriptions(self):
-        """list of str: Returns the list of descriptions."""
-        return self._alignment.descriptions
+        return self.row_metadata.index.to_list()
 
     @property
     def sequences(self):
         """list of str: Returns the list of sequences."""
-        return self._alignment.sequences
-
-    @property
-    def chunked_sequences(self):
-        """list of list of str: Returns the list of sequences."""
-        return self._alignment.chunked_sequences
+        return self.data
 
     @property
     def history(self):
         """History: Returns history of previous actions performed that may have
         changed the state of the alignment."""
         return self._history
+
+    @property
+    def row_and_metadata(self):
+        df = self.row_metadata.copy(deep=True)
+        df['sequence'] = self.data.sequences
+        return df
+
+    @property
+    def column_and_metadata(self):
+        df = self.column_metadata.copy(deep=True)
+        df['sequence'] = [
+            ''.join(seq_vec)
+            for seq_vec in self.data.get_cols(list(range(self.ncols)))
+        ]
+        return df
 
 
     # Methods
@@ -313,20 +261,17 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         aln = self
         if copy is True:
             aln = self.copy()
-        # Get int index if str
-        if isinstance(i, str):
-            indices = self._alignment.row_names_to_indices(i)
-            if len(indices) > 1:
-                raise ValueError('more than one match for "{}" found'.format(i))
-            elif len(indices) == 0:
-                raise ValueError('no match found for "{}"'.format(i))
-            i = indices[0]
-        # Add to metadata
-        data = [func(v) for v in self.rows[i].sequence]        
+
+        # Add to column metadata
+        data = [func(v) for v in self.row[i].sequence]        
         if name is None:
-            name = self.rows[i].id
+            name = self.row[i].id
         self._column_metadata[name] = data
-        self.rows.remove(i)
+        self.row.remove(i)
+        # Remove from row metadata
+        self.row_metadata = pandas.concatenate(
+            self.row_metadata.iloc[:i], self.row_metadata.iloc[i+1:])
+
         # Add to history
         func_sig = func.__qualname__ + \
             repr(inspect.signature(func)) \
@@ -353,85 +298,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
         """
         return deepcopy(self)
-
-    def set_chunk_size(self, value, copy=False, recasting_func=None, 
-                       reset_index=False, **kwargs):
-        """Changes the number of characters for each alignment column
-        using default options.
-        
-        Parameters
-        ----------
-        value : int
-            Number of characters.
-        copy : bool, optional
-            Whether or not change the chunk size in a new copy or
-            perform the operation inplace. (default is False, performs the
-            change inplace)
-        recasting_func : function, optional
-            Function used to recast existing column metadata to the
-            new alignment. (default is None, the existing column metadata will be recasted using by averaging for numerical data,
-            or by mode for objects)
-        reset_index : bool, optional
-            Must be set to True. (the default is False, in order to explicitly
-            require permission)
-
-        Returns
-        -------
-        Alignment or None
-            If copy is True, returns a deep copy of the Alignment with the
-            new chunk size. Otherwise, the operation is performed inplace and does not return any value.
-
-        """
-        if reset_index is not True:
-            raise ValueError(
-                'cannot change chunk size without resetting the current index')
-        aln = self
-        if copy is True:
-            aln = self.copy()
-        # Changing chunk size to invalid size will raise an error
-        curr_chunk_size = aln.chunk_size
-        aln._alignment.chunk_size = value
-
-        # Adjust column metadata
-        if recasting_func is None:
-            # current size -> 1's -> new size
-            df = self._default_expander_func(
-                aln._column_metadata, curr_chunk_size)
-            # print(curr_chunk_size, value, len(df))
-            if value != 1:
-                df = self._default_reducer_func(df, value)
-            # print(curr_chunk_size, value, len(df))
-        elif isinstance(recasting_func, dict):
-            data_d = {}
-            for name in aln._column_metadata:
-                if name in recasting_func.keys():
-                    data_d[name] = recasting_func[name](
-                        aln._column_metadata[name], curr_chunk_size, value)
-                else:
-                    col_data = self._default_expander_func(
-                        aln._column_metadata[name], curr_chunk_size)
-                    # print(curr_chunk_size, value, len(df))
-                    if value != 1:
-                        col_data = self._default_reducer_func(col_data, value)
-                    data_d[name] = col_data
-            df = pandas.DataFrame(data_d)
-        aln._column_metadata = df
-        # Add to history
-        # if recasting_func is not None:
-        #     func_sig = recasting_func.__qualname__ + \
-        #     repr(inspect.signature(recasting_func)) \
-        #         .lstrip('<Signature ').rstrip('>')
-        # else:
-        #     func_sig = 'None'
-        # add_to_history(
-        #     aln, '.set_chunk_size', value,
-        #     copy=copy,
-        #     recasting_func=func_sig,
-        #     reset_index=reset_index,
-        #     **kwargs
-        # )
-        if copy is True:
-            return aln
 
     def reset_index(self, copy=False, **kwargs):
         """Resets the alignment index.
@@ -472,7 +338,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         list of Counter 
 
         """
-        return list(self.cols.map(Counter))
+        return list(self.col.map(Counter))
 
     def consensus(self, threshold=0.5):
         """Returns the consensus sequence of the alignment.
@@ -492,7 +358,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
         """
         cons = []
-        for cnts in self.cols.map(Counter):
+        for cnts in self.col.map(Counter):
             char, cnt = max(cnts.items(), key=lambda x: x[1])
             if cnt < self.nrows * threshold:
                 char = None
@@ -536,7 +402,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             and does not return any value.
 
         """
-        res = self.cols.drop(value, case_sensitive=case_sensitive,
+        res = self.col.drop(value, case_sensitive=case_sensitive,
                               copy=copy, dry_run=dry_run, mode=mode,
                               _record_history=False)
         # Add to history
@@ -588,7 +454,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             performed inplace and does not return any value.
 
         """
-        res = self.cols.drop_except(value, case_sensitive=case_sensitive,
+        res = self.col.drop_except(value, case_sensitive=case_sensitive,
                                     copy=copy, dry_run=dry_run, mode=mode,
                                     _record_history=False)
         # Add to history
@@ -641,7 +507,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             performed inplace and does not return any value.
 
         """
-        res = self.cols.drop_n(n_char=n_char, case_sensitive=case_sensitive,
+        res = self.col.drop_n(n_char=n_char, case_sensitive=case_sensitive,
                                copy=copy, dry_run=dry_run, 
                                _record_history=False)
         # Add to history
@@ -692,7 +558,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             performed inplace and does not return any value.
 
         """
-        res = self.cols.drop_gap(gap_char=gap_char, copy=copy, 
+        res = self.col.drop_gap(gap_char=gap_char, copy=copy, 
                                  dry_run=dry_run, _record_history=False)
         # Add to history
         if not dry_run:
@@ -732,18 +598,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if copy is True:
             aln = self.copy()
         if isinstance(others, Alignment):
-            balns = [others._alignment]
+            balns = [others.data]
             others = [others]
         elif isinstance(others, list) and \
             sum((isinstance(o, Alignment) for o in others)) == len(others):
-            balns = [o._alignment for o in others]
+            balns = [o.data for o in others]
         else:
             raise ValueError(
                 'others must be an Alignment or ''a list of Alignment objects')
         # check if chunks are the same
         # check if number of records are the same
         curr_ncols = aln.ncols
-        aln._alignment.concat(balns)
+        aln.data.concat(balns)
         # Concat dataframes
         aln._column_metadata = pandas.concat(
             [aln._column_metadata] + 
@@ -805,7 +671,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                  .apply(lambda x: pandas.Series(
                     {col: apply_func(x, col) for col in df}))
 
-    def _alignment_state(self):
+    def data_state(self):
         return {
             'name': self.name,
             'nrows': self.nrows,
@@ -821,7 +687,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         }
 
     def _state(self):
-        return dict(**self._alignment_state(), **self._metadata_state())
+        return dict(**self.data_state(), **self._metadata_state())
 
     # Python magic methods
     # ==========================================================================
@@ -833,22 +699,22 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # If the key is an int or list of ints, this is interpreted
         # that columns should be returned.
         if isinstance(key, str):
-            return self.rows.__getitem__(key)
+            return self.row.__getitem__(key)
         elif isinstance(key, list) and \
             sum((isinstance(val, str) for val in key)):
-            return self.rows.__getitem__(key)
+            return self.row.__getitem__(key)
         elif isinstance(key, int) or isinstance(key, slice):
-            return self.cols.__getitem__(key)
+            return self.col.__getitem__(key)
         elif isinstance(key, list) and \
             sum((isinstance(val, int) for val in key)):
-            return self.cols.__getitem__(key)
+            return self.col.__getitem__(key)
         raise TypeError('key must be str or int')
 
     # def __delitem__(self, key):
     #     if isinstance(key, str):
     #         if key in self.ids:
-    #             i = self._alignment.row_names_to_indices([key])
-    #             return self._alignment.remove_records(i)
+    #             i = self.data.row_names_to_indices([key])
+    #             return self.data.remove_records(i)
     #         raise KeyError('key did not match any identifier')
     #     elif isinstance(key, int):
     #         return self.remove_cols(key)
@@ -868,25 +734,24 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         parts.append('name = {}'.format(self.name))
         parts.append('nrows = {}'.format(self.nrows))
         parts.append('ncols = {}'.format(self.ncols))
-        parts.append('chunk_size = {}'.format(self.chunk_size))
         if self:
-            aln = idseq_to_display(self.ids, self.chunked_sequences)
+            aln = idseq_to_display(self.ids, 1)
             parts += ['', aln, '']
         parts.append('[Alignment.Metadata]')
         parts.append('comment_keys = [{}]'.format(
             ', '.join(list(self._comments.keys()))
         ))
         parts.append('row_metadata_keys = [{}]'.format(
-            ', '.join(list(self._row_metadata.keys()))
+            ', '.join(list(self.row_metadata.keys()))
         ))
         parts.append('column_metadata_keys = [{}]'.format(
-            ', '.join(list(self._column_metadata.keys()))
+            ', '.join(list(self.column_metadata.keys()))
         ))
         return '\n'.join(parts)
 
     def __str__(self):
         # Returns the string representation of the alignment used for printing.
-        return str(self._alignment)
+        return str(self.data)
 
     def __len__(self):
         # len() is not implemented becuase its meaning is ambiguous
@@ -915,19 +780,22 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return False
 
     def __deepcopy__(self, memo):
+        # (self, records, name=None, index=None, comments: dict=None,    
+        #          row_metadata=None, column_metadata=None, store_history=True,
+        #          **kwargs)
         obj = self.__class__(
-            deepcopy(self.name),
-            self._alignment.copy(),
-            chunk_size=deepcopy(self.chunk_size),
+            self.data.copy(),
+            name=deepcopy(self.name, memo),
             index=self._index.copy(deep=True),
-            comments=deepcopy(self._comments), 
-            row_metadata=self._row_metadata.copy(deep=True),
-            column_metadata=self._column_metadata.copy(deep=True),
-            store_history=False if self._history is None else True
+            comments=deepcopy(self.comments, memo), 
+            row_metadata=self.row_metadata.copy(deep=True),
+            column_metadata=self.column_metadata.copy(deep=True),
+            store_history=False if self.history is None else True
         )
         # obj._history = deepcopy(self.history, memo)
+        # TODO: Add history after deepcopy
         # Add to history
-        if obj._history is not None:
-            obj._history = deepcopy(self._history, memo)
-            obj._history.add('deepcopy', obj._state())
+        # if obj._history is not None:
+        #     obj._history = deepcopy(self._history, memo)
+        #     obj._history.add('deepcopy', obj._state())
         return obj
