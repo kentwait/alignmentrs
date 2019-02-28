@@ -593,7 +593,7 @@ class ColMutator:
         if isinstance(positions, int):
             positions = [positions]
         elif isinstance(positions, list) and \
-            sum((isinstance(pos, int) for pos in positions)):
+            sum((isinstance(pos, int) for pos in positions)) == len(positions):
             pass
         else:        
             raise TypeError('positions must be an int or a list of int')

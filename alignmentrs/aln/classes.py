@@ -79,6 +79,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self._alignment: BaseAlignment = \
             self._alignment_constructor(records, chunk_size)
         self._index = self._index_constructor(index)
+        # Add chunking information to index
         self._comments = self._comments_constructor(comments)
         self._row_metadata = self._row_metadata_constructor(row_metadata)
         self._column_metadata = \
@@ -86,6 +87,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self._rows = RowMutator(self)
         self._cols = ColMutator(self)
         self._metadata = MetadataRedirect(self)
+        # TODO: do not show metadata not assigned for that chunk
         # TODO: Add initial state information
         self._history = History() if store_history else None
         add_to_history(
@@ -335,6 +337,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             copy=copy,
             **kwargs
         )
+        # TODO: Remove from row metadata
         if copy is True:
             return aln        
 
@@ -395,26 +398,38 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             df = self._default_expander_func(
                 aln._column_metadata, curr_chunk_size)
             # print(curr_chunk_size, value, len(df))
-            df = self._default_reducer_func(df, value)
+            if value != 1:
+                df = self._default_reducer_func(df, value)
             # print(curr_chunk_size, value, len(df))
-        else:
-            df = recasting_func(
-                aln._column_metadata, curr_chunk_size, value)
+        elif isinstance(recasting_func, dict):
+            data_d = {}
+            for name in aln._column_metadata:
+                if name in recasting_func.keys():
+                    data_d[name] = recasting_func[name](
+                        aln._column_metadata[name], curr_chunk_size, value)
+                else:
+                    col_data = self._default_expander_func(
+                        aln._column_metadata[name], curr_chunk_size)
+                    # print(curr_chunk_size, value, len(df))
+                    if value != 1:
+                        col_data = self._default_reducer_func(col_data, value)
+                    data_d[name] = col_data
+            df = pandas.DataFrame(data_d)
         aln._column_metadata = df
         # Add to history
-        if recasting_func is not None:
-            func_sig = recasting_func.__qualname__ + \
-            repr(inspect.signature(recasting_func)) \
-                .lstrip('<Signature ').rstrip('>')
-        else:
-            func_sig = 'None'
-        add_to_history(
-            aln, '.set_chunk_size', value,
-            copy=copy,
-            recasting_func=func_sig,
-            reset_index=reset_index,
-            **kwargs
-        )
+        # if recasting_func is not None:
+        #     func_sig = recasting_func.__qualname__ + \
+        #     repr(inspect.signature(recasting_func)) \
+        #         .lstrip('<Signature ').rstrip('>')
+        # else:
+        #     func_sig = 'None'
+        # add_to_history(
+        #     aln, '.set_chunk_size', value,
+        #     copy=copy,
+        #     recasting_func=func_sig,
+        #     reset_index=reset_index,
+        #     **kwargs
+        # )
         if copy is True:
             return aln
 
