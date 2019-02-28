@@ -2,17 +2,13 @@ use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 // use pyo3::class::gc::{PyGCProtocol, PyVisit, PyTraverseError};
 
-use crate::record::BaseRecord;
+use crate::record::Record;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
 pub struct BaseAlignment {
 
-    #[prop(get)]
-    pub records: Vec<BaseRecord>,
-
-    #[prop(get)]
-    pub chunk_size: i32,
+    pub data: Vec<String>,
 
 }
 
@@ -21,252 +17,82 @@ impl BaseAlignment {
     #[new]
     /// Creates a new BaseAlignment object from a list of ids, descriptions,
     /// and sequences.
-    fn __new__(obj: &PyRawObject, records: Vec<&BaseRecord>, chunk_size: i32) -> PyResult<()> {
+    fn __new__(obj: &PyRawObject, records: Vec<&Record>) -> PyResult<()> {
         // TODO: Check if all vectors have the same size.
-        let mut new_records: Vec<BaseRecord> = Vec::new();
-        for b in records.into_iter() {
-            let mut record: BaseRecord = b.clone();
-            match record.set_chunk_size(chunk_size) {
-                Err(x) => return Err(x),
-                _ => ()
-            };
-            new_records.push(record);
+        let mut data: Vec<String> = Vec::new();
+        for record in records.into_iter() {
+            data.push(record.sequence.to_string());
         }
         obj.init(|_| {
-            BaseAlignment { 
-                records: new_records,
-                chunk_size,
-            }
+            BaseAlignment{ data }
         })
     }
     
     #[getter]
     /// int: Returns the number of rows in the BaseAlignment.
     pub fn nrows(&self) -> PyResult<i32> {
-        Ok(self.records.len() as i32)
+        Ok(self.data.len() as i32)
     }
 
     #[getter]
     /// int: Returns the number of columns in the alignment.
     pub fn ncols(&self) -> PyResult<i32> {
-        if self.records.len() == 0 {
+        if self.data.len() == 0 {
             return Ok(0)
         }
-        self.records[0].len()
+        Ok(self.data[0].len() as i32)
     }
 
     #[getter]
     /// int: Returns the number of aligned characters (ncols * chunk_size).
     pub fn nchars(&self) -> PyResult<i32> {
-        if self.records.len() == 0 {
+        if self.data.len() == 0 {
             return Ok(0)
         }
-        self.records[0].len_str()
-    }
-
-    #[getter]
-    /// list of str: Returns the list of identifiers.
-    pub fn ids(&self) -> PyResult<Vec<String>> {
-        let values: Vec<String> = self.records.iter()
-            .map(|r| r.id.to_string() )
-            .collect();
-        Ok(values)
-    }
-
-    #[getter]
-    /// list of str: Returns the list of descriptions.
-    pub fn descriptions(&self) -> PyResult<Vec<String>> {
-        let values: Vec<String> = self.records.iter()
-            .map(|r| r.description.to_string() )
-            .collect();
-        Ok(values)
+        Ok(self.data[0].len() as i32)
     }
 
     #[getter]
     /// list of str: Returns the list of sequences.
     pub fn sequences(&self) -> PyResult<Vec<String>> {
-        let values: Vec<String> = self.records.iter()
-            .map(|r| r.sequence.join("") )
-            .collect();
-        Ok(values)
+        Ok(self.data.clone())
     }
-
-    #[getter]
-    /// list of str: Returns the list of sequences.
-    pub fn chunked_sequences(&self) -> PyResult<Vec<Vec<String>>> {
-        let values: Vec<Vec<String>> = self.records.iter()
-            .map(|r| r.sequence.clone() )
-            .collect();
-        Ok(values)
-    }
-
-    #[setter(chunk_size)]
-    pub fn set_chunk_size(&mut self, chunk_size: i32) -> PyResult<()> {
-        for i in 0..self.records.len() {
-            self.records[i].set_chunk_size(chunk_size)?;
-        }
-        self.chunk_size = chunk_size;
-        Ok(())
-    }
-
 
     // Row methods
 
-    /// get_record(row_index, /)
-    /// --
-    /// 
-    /// Returns a new Record object containing the id, description,
-    /// and sequence at the specified index.
-    pub fn get_record(&self, row: i32) -> PyResult<BaseRecord> {
-        match self.get_records(vec![row]) {
-            Ok(vals) => Ok(vals[0].clone()),
-            Err(x) => Err(x)
-        }
-    }
-
-    /// get_records(row_indices, /)
-    /// --
-    /// 
-    /// Returns a new RawAlignment object containing the sequences
-    /// specified by a list of indices.
-    pub fn get_records(&self, rows: Vec<i32>) -> PyResult<Vec<BaseRecord>> {
+    pub fn get_rows(&self, rows: Vec<i32>) -> PyResult<Vec<String>> {
         check_empty_alignment(self)?;
         if let Some(x) = rows.iter().max() {
             check_row_index(self, *x as usize)?;
         }
-        let mut records: Vec<BaseRecord> = Vec::new();
+        let mut sequences: Vec<String> = Vec::new();
         for row in rows.into_iter().map(|x| x as usize) {
-            records.push(self.records[row].clone());
-        }
-        Ok(records)
-    }
-
-    /// get_records_by_name(names, /)
-    /// --
-    /// 
-    /// Returns a new RawAlignment object containing the sequences
-    /// specified using a list of names/ids.
-    pub fn get_records_by_name(&self, names: Vec<&str>) -> PyResult<Vec<BaseRecord>> {
-        check_empty_alignment(self)?;
-        let rows = self.row_names_to_indices(names)?;
-        self.get_records(rows)
-    }
-
-    /// get_records_by_prefix(prefixes, /)
-    /// --
-    /// 
-    /// Returns a new RawAlignment object containing the sequences
-    /// that match the given list of prefixes.
-    pub fn get_records_by_prefix(&self, prefixes: Vec<&str>) -> PyResult<Vec<BaseRecord>> {
-        check_empty_alignment(self)?;
-        let rows = self.row_prefix_to_indices(prefixes)?;
-        self.get_records(rows)
-    }
-
-    /// get_records_by_suffix(suffixes, /)
-    /// --
-    /// 
-    /// Returns a new RawAlignment object containing the sequences
-    /// that match the given list of suffixes.
-    pub fn get_records_by_suffix(&self, suffixes: Vec<&str>) -> PyResult<Vec<BaseRecord>> {
-        check_empty_alignment(self)?;
-        let rows = self.row_suffix_to_indices(suffixes)?;
-        self.get_records(rows)
-    }
-
-    pub fn get_row(&self, row: i32) -> PyResult<Vec<String>> {
-        match self.get_rows(vec![row]) {
-            Ok(vals) => Ok(vals[0].clone()),
-            Err(x) => Err(x)
-        }
-    }
-
-    pub fn get_rows(&self, rows: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
-        check_empty_alignment(self)?;
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        let mut sequences: Vec<Vec<String>> = Vec::new();
-        for row in rows.into_iter().map(|x| x as usize) {
-            sequences.push(self.records[row].sequence.clone());
+            sequences.push(self.data[row].to_string());
         }
         Ok(sequences)
-    }
-
-    pub fn get_rows_by_name(&self, names: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        check_empty_alignment(self)?;
-        let rows = self.row_names_to_indices(names)?;
-        self.get_rows(rows)
-    }
-
-    pub fn get_rows_by_prefix(&self, prefixes: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        check_empty_alignment(self)?;
-        let rows = self.row_prefix_to_indices(prefixes)?;
-        self.get_rows(rows)
-    }
-
-    pub fn get_rows_by_suffix(&self, suffixes: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        check_empty_alignment(self)?;
-        let rows = self.row_suffix_to_indices(suffixes)?;
-        self.get_rows(rows)
-    }
-
-    /// insert_record(position, id, description, sequence, /)
-    /// --
-    /// 
-    /// Inserts one entry into the multiple sequence alignment
-    /// at the specified position.
-    fn insert_record(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
-        self.insert_records(row, vec![value])
     }
 
     /// insert_records(position, ids, descriptions, sequences, /)
     /// 
     /// Inserts one or more samples at the specified position.
-    fn insert_records(&mut self, mut row: i32, values: Vec<&BaseRecord>) -> PyResult<()> {
-        if self.nrows()? < row {
-            return Err(exceptions::IndexError::py_err(
-                "row index out of range."))
-        }
-        for value in values.into_iter() {
-            self.records.insert(row as usize, value.clone());
-            row += 1;
-        }
-        Ok(())
-    }
-
-    /// append_record(id, description, sequence, /)
-    /// --
-    /// 
-    /// Appends one entry at the end of the multiple sequence alignment.
-    fn append_record(&mut self, value: &BaseRecord) -> PyResult<()> {
-        self.append_records(vec![value])
-    }
-
-    /// append_records(ids, descriptions, sequences, /)
-    /// 
-    /// Appends one or more samples at the end of the list.
-    fn append_records(&mut self, values: Vec<&BaseRecord>) -> PyResult<()> {
-        for value in values.into_iter() {
-            self.records.push(value.clone());
-        }
-        Ok(())
-    }
-
-    /// remove_record(index, /)
-    /// --
-    /// 
-    /// Removes one entry corresponding to the specified row index.
-    fn remove_record(&mut self, row: i32) -> PyResult<()> {
-        self.remove_records(vec![row])
-    }
+    // fn insert_records(&mut self, mut row: i32, values: Vec<&Record>) -> PyResult<()> {
+    //     if self.nrows()? < row {
+    //         return Err(exceptions::IndexError::py_err(
+    //             "row index out of range."))
+    //     }
+    //     for value in values.into_iter() {
+    //         self.records.insert(row as usize, value.clone());
+    //         row += 1;
+    //     }
+    //     Ok(())
+    // }
 
     /// remove_records(indices, /)
     /// --
     /// 
     /// Removes many entries simulatenously based on a
     /// list of row indices.
-    fn remove_records(&mut self, mut rows: Vec<i32>) -> PyResult<()> {
+    fn remove_rows(&mut self, mut rows: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         rows.sort_unstable();
         rows.dedup();
@@ -275,36 +101,9 @@ impl BaseAlignment {
         }
         rows.reverse();
         for row in rows.iter().map(|x| *x as usize) {
-            self.records.remove(row);
+            self.data.remove(row);
         }
         Ok(())
-    }
-
-    /// remove_records_by_name(names, /)
-    /// 
-    /// Removes samples matching the given sample ID's inplace.
-    fn remove_records_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        let rows = self.row_names_to_indices(names)?;
-        self.remove_records(rows)
-    }
-
-    /// remove_records_by_prefix(prefixes, /)
-    /// 
-    /// Removes samples matching at least one of the given prefixes inplace.
-    fn remove_records_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        let rows = self.row_prefix_to_indices(names)?;
-        self.remove_records(rows)
-    }
-
-    /// remove_records_by_suffix(suffixes, /)
-    /// 
-    /// Removes samples matching at least one of the given suffixes inplace.
-    fn remove_records_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        let rows = self.row_suffix_to_indices(names)?;
-        self.remove_records(rows)
     }
 
     /// retain_record(index, /)
@@ -323,77 +122,65 @@ impl BaseAlignment {
     fn retain_records(&mut self, rows: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows: Vec<i32> = self.invert_rows(rows)?;
-        self.remove_records(rows)
+        self.remove_rows(rows)
     }
 
-    fn drain_records(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
-        check_empty_alignment(self)?;
-        rows.sort_unstable();
-        rows.dedup();
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        let mut records: Vec<BaseRecord> = Vec::new();
-        rows.reverse();
-        for row in rows.into_iter().map(|x| x as usize) {
-            records.insert(0, self.records[row].clone());
-            self.records.remove(row);
-        }
-        Ok(BaseAlignment{ records, chunk_size: self.chunk_size}) 
-    }
+    // fn drain_records(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
+    //     check_empty_alignment(self)?;
+    //     rows.sort_unstable();
+    //     rows.dedup();
+    //     if let Some(x) = rows.iter().max() {
+    //         check_row_index(self, *x as usize)?;
+    //     }
+    //     let mut records: Vec<Record> = Vec::new();
+    //     rows.reverse();
+    //     for row in rows.into_iter().map(|x| x as usize) {
+    //         records.insert(0, self.records[row].clone());
+    //         self.records.remove(row);
+    //     }
+    //     Ok(BaseAlignment{ records, chunk_size: self.chunk_size}) 
+    // }
 
-    fn replace_record(&mut self, row: i32, value: &BaseRecord) -> PyResult<()> {
-        self.replace_records(vec![row], vec![value])
-    }
+    // fn replace_record(&mut self, row: i32, value: &Record) -> PyResult<()> {
+    //     self.replace_records(vec![row], vec![value])
+    // }
 
-    fn replace_records(&mut self, rows: Vec<i32>, values: Vec<&BaseRecord>) -> PyResult<()> {
-        check_length_match(&rows, &values)?;
-        check_empty_alignment(self)?;
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
-            // TODO: Make function that checks if records have the same length and string length
-            check_length_match_i32(values[i].len_str()?, self.records[i].len_str()?)?;
-            check_length_match_i32(values[i].len()?, self.records[i].len()?)?;
-            self.records[row] = values[i].clone();
-        }
-        Ok(())
-    }
+    // fn replace_records(&mut self, rows: Vec<i32>, values: Vec<&Record>) -> PyResult<()> {
+    //     check_length_match(&rows, &values)?;
+    //     check_empty_alignment(self)?;
+    //     if let Some(x) = rows.iter().max() {
+    //         check_row_index(self, *x as usize)?;
+    //     }
+    //     for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
+    //         // TODO: Make function that checks if records have the same length and string length
+    //         check_length_match_i32(values[i].len_str()?, self.records[i].len_str()?)?;
+    //         check_length_match_i32(values[i].len()?, self.records[i].len()?)?;
+    //         self.records[row] = values[i].clone();
+    //     }
+    //     Ok(())
+    // }
 
     /// reorder_records(ids, /)
     /// --
     /// 
     /// Reorders the sequences inplace based on a list of current row indices.
     fn reorder_records(&mut self, rows: Vec<i32>) -> PyResult<()> {
-        check_length_match(&rows, &self.records)?;
+        check_length_match(&rows, &self.data)?;
         check_empty_alignment(self)?;
         if let Some(x) = rows.iter().max() {
             check_row_index(self, *x as usize)?;
         }
-        let mut records: Vec<BaseRecord> = Vec::with_capacity(rows.len());
-            for row in rows.iter() {
-                records.push(self.records[(*row) as usize].clone());
-            }
-            self.records = records;
+        let mut data: Vec<String> = Vec::with_capacity(rows.len());
+        for row in rows.into_iter().map(|x| x as usize) {
+            data.push(self.data[row].clone());
+        }
+        self.data = data;
         Ok(())
     }
 
 
 
     // Column methods
-    
-
-    /// get_col(col_index, /)
-    /// --
-    /// 
-    /// Returns the specified alignment column as a new Record object.
-    pub fn get_col(&self, i: i32) -> PyResult<Vec<String>> {
-        match self.get_cols(vec![i]) {
-            Ok(vals) => Ok(vals[0].clone()),
-            Err(x) => Err(x)
-        }
-    }
 
     /// get_cols(col_indices, /)
     /// --
@@ -405,49 +192,41 @@ impl BaseAlignment {
         if let Some(x) = cols.iter().max() {
             check_col_index(self, *x as usize)?;
         }
-        let mut records: Vec<Vec<String>> = Vec::new();
+        let mut out: Vec<Vec<String>> = Vec::new();
         for i in cols.into_iter().map(|x| x as usize) {
-            let sequence: Vec<String> = self.records.iter()
-                .map(|rec| rec.sequence[i].clone())
-                .collect();
-            records.push(sequence);
+            let mut sequences: Vec<String> = Vec::new();
+            for seq in self.data.iter() {
+                let seq_vec: Vec<char> = seq.chars().collect();
+                sequences.push(seq_vec[i].to_string());
+            }
+            out.push(sequences);
         }
-        Ok(records)
-    }
-
-    pub fn get_chunk(&self, i: usize, chunk_size: usize) -> PyResult<Vec<String>> {
-        let sequences: Vec<String> = self.records.iter()
-            .map(|rec| {
-                let chars: Vec<char> = rec.sequence.join("").chars().collect();
-                chars[i..i+chunk_size].into_iter().collect::<String>()
-            })
-            .collect();
-        Ok(sequences)
+        Ok(out)
     }
 
     // insert
-    fn insert_col(&mut self, col: usize, value: Vec<&str>) -> PyResult<()> {
-        self.insert_cols(col, vec![value])
-    }
+    // fn insert_col(&mut self, col: usize, value: Vec<&str>) -> PyResult<()> {
+    //     self.insert_cols(col, vec![value])
+    // }
 
-    fn insert_cols(&mut self, mut col: usize, values: Vec<Vec<&str>>)
-    -> PyResult<()> {
-        if values.len() == 0 {
-            return Ok(())
-        }
-        // TODO: Add immediate return to other methods when value length is 0
-        check_col_index(self, col)?;
-        check_length_match(&values[0], &self.records)?;
-        check_chunk_size(self, &values[0])?;
-        for value in values.iter() {
-            for i in 0..self.records.len() {
-                self.records[i].sequence.insert(
-                    col as usize, value[i].to_string());
-            }
-            col += 1;
-        }
-        Ok(())
-    }
+    // fn insert_cols(&mut self, mut col: usize, values: Vec<Vec<&str>>)
+    // -> PyResult<()> {
+    //     if values.len() == 0 {
+    //         return Ok(())
+    //     }
+    //     // TODO: Add immediate return to other methods when value length is 0
+    //     check_col_index(self, col)?;
+    //     check_length_match(&values[0], &self.data)?;
+    //     check_chunk_size(self, &values[0])?;
+    //     for value in values.iter() {
+    //         for i in 0..self.records.len() {
+    //             self.records[i].sequence.insert(
+    //                 col as usize, value[i].to_string());
+    //         }
+    //         col += 1;
+    //     }
+    //     Ok(())
+    // }
 
     // for value in values.into_iter() {
     //     self.records.insert(row as usize, value.clone());
@@ -456,31 +235,23 @@ impl BaseAlignment {
     // Ok(())
 
     // append
-    fn append_col(&mut self, value: Vec<&str>) -> PyResult<()> {
-        self.append_cols(vec![value])
-    }
+    // fn append_col(&mut self, value: Vec<&str>) -> PyResult<()> {
+    //     self.append_cols(vec![value])
+    // }
 
-    fn append_cols(&mut self, values: Vec<Vec<&str>>) -> PyResult<()> {
-        if values.len() == 0 {
-            return Ok(())
-        }
-        check_length_match(&values[0], &self.records)?;
-        check_chunk_size(self, &values[0])?;
-        for i in 0..self.records.len() {
-            for value in values.iter() {
-                self.records[i].sequence.push(value[i].to_string());
-            }
-        }
-        Ok(())
-    }
-
-    /// remove_col(index, /)
-    /// --
-    /// 
-    /// Removes one column corresponding to the specified column index.
-    fn remove_col(&mut self, col: i32) -> PyResult<()> {
-        self.remove_cols(vec![col])
-    }
+    // fn append_cols(&mut self, values: Vec<Vec<&str>>) -> PyResult<()> {
+    //     if values.len() == 0 {
+    //         return Ok(())
+    //     }
+    //     check_length_match(&values[0], &self.records)?;
+    //     check_chunk_size(self, &values[0])?;
+    //     for i in 0..self.records.len() {
+    //         for value in values.iter() {
+    //             self.records[i].sequence.push(value[i].to_string());
+    //         }
+    //     }
+    //     Ok(())
+    // }
 
     /// remove_cols(indices, /)
     /// --
@@ -494,22 +265,14 @@ impl BaseAlignment {
         if let Some(x) = cols.iter().max() {
             check_col_index(self, *x as usize)?;
         }
-        cols.reverse();
-        for row in 0..self.records.len() {
-            for col in cols.iter() {
-                self.records[row].sequence.remove(*col as usize);
-            }
+        for row in 0..self.data.len() {
+            let sequence: String = self.data[row].char_indices()
+                .filter(|(i, x)| !cols.contains(&(*i as i32)))
+                .map(|(_, x)| x )
+                .collect();
+            self.data[row] = sequence;
         }
         Ok(())
-    }
-
-    /// retain_col(index, /)
-    /// --
-    /// 
-    /// Keeps one alignment column according to the given column index and
-    /// removes everything else.
-    fn retain_col(&mut self, col: i32) -> PyResult<()> {
-        self.retain_cols(vec![col])
     }
 
     /// retain_cols(indices, /)
@@ -536,30 +299,30 @@ impl BaseAlignment {
     /// --
     /// 
     /// Replaces the all the characters in an alignment column.
-    fn replace_col(&mut self, col: i32, value: Vec<&str>) -> PyResult<()> {
-        self.replace_cols(vec![col], vec![value])
-    }
+    // fn replace_col(&mut self, col: i32, value: Vec<&str>) -> PyResult<()> {
+    //     self.replace_cols(vec![col], vec![value])
+    // }
 
     /// replace_cols(coordinates, sequences, /)
     /// --
     /// 
     /// Replaces the all the characters in each specified column from a list of
     /// alignment columns.
-    fn replace_cols(&mut self, cols: Vec<i32>, values: Vec<Vec<&str>>)
-    -> PyResult<()> {
-        check_length_match(&cols, &values)?;
-        check_empty_alignment(self)?;
-        if let Some(x) = cols.iter().max() {
-            check_col_index(self, *x as usize)?;
-        }
-        for (i, col) in cols.iter().enumerate() {
-            check_length_match(&self.records, &values[i])?;
-            for row in 0..self.records.len() {
-                self.records[row].sequence[*col as usize] = values[i][row].to_string();
-            }
-        }
-        Ok(())
-    }
+    // fn replace_cols(&mut self, cols: Vec<i32>, values: Vec<Vec<&str>>)
+    // -> PyResult<()> {
+    //     check_length_match(&cols, &values)?;
+    //     check_empty_alignment(self)?;
+    //     if let Some(x) = cols.iter().max() {
+    //         check_col_index(self, *x as usize)?;
+    //     }
+    //     for (i, col) in cols.iter().enumerate() {
+    //         check_length_match(&self.records, &values[i])?;
+    //         for row in 0..self.records.len() {
+    //             self.records[row].sequence[*col as usize] = values[i][row].to_string();
+    //         }
+    //     }
+    //     Ok(())
+    // }
 
     /// reorder_cols(ids, /)
     /// --
@@ -571,12 +334,16 @@ impl BaseAlignment {
         if let Some(x) = cols.iter().max() {
             check_col_index(self, *x as usize)?;
         }
-        check_length_match(&cols, &self.records[0].sequence)?;
-        for i in 0..self.records.len() {
-            let sequence = cols.iter()
-                .map(|j| self.records[i].sequence[(*j) as usize].to_string())
+        if cols.len() != self.data.len() {
+            return Err(exceptions::ValueError::py_err(
+                "length mismatch."))
+        }
+        for i in 0..self.data.len() {
+            let seq_vec: Vec<char> = self.data[i].chars().collect();
+            let sequence: String = cols.iter()
+                .map(|j| seq_vec[(*j) as usize])
                 .collect();
-            self.records[i].sequence = sequence;
+            self.data[i] = sequence;
         }
         Ok(())
     }
@@ -587,168 +354,39 @@ impl BaseAlignment {
     /// 
     /// Returns the subset of rows and columns in the alignment as a new
     /// RawAlignment.
-    fn subset(&self, rows: Vec<i32>, cols: Vec<i32>)
-    -> PyResult<BaseAlignment> {
-        check_empty_alignment(self)?;
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        if let Some(x) = cols.iter().max() {
-            check_col_index(self, *x as usize)?;
-        }
-        let mut records: Vec<BaseRecord> = Vec::new();
-        let chunk_size = self.chunk_size;
-        let ncols = cols.len();
-        for row in rows.into_iter().map(|x| x as usize) {
-            let sequence: Vec<String> = self.records[row].sequence.iter().enumerate()
-                .filter(|(i, _)| cols.contains(&(*i as i32)) )
-                .map(|(_, item)| item.to_string() )
-                .collect();
-            // Make sure sequence length == ncols
-            if sequence.len() != ncols {
-                return Err(exceptions::ValueError::py_err(
-                    format!("Unexpected number of columns: {} != {}",
-                        sequence.len(), ncols)))
-            }
-            records.push(BaseRecord{
-                id: self.records[row].id.to_string(),
-                description: self.records[row].description.to_string(),
-                sequence,
-                chunk_size,
-            })
-        }
-        Ok(BaseAlignment{ records, chunk_size })
-    }
+    // fn subset(&self, rows: Vec<i32>, cols: Vec<i32>)
+    // -> PyResult<BaseAlignment> {
+    //     check_empty_alignment(self)?;
+    //     if let Some(x) = rows.iter().max() {
+    //         check_row_index(self, *x as usize)?;
+    //     }
+    //     if let Some(x) = cols.iter().max() {
+    //         check_col_index(self, *x as usize)?;
+    //     }
+    //     let mut records: Vec<Record> = Vec::new();
+    //     let chunk_size = self.chunk_size;
+    //     let ncols = cols.len();
+    //     for row in rows.into_iter().map(|x| x as usize) {
+    //         let sequence: Vec<String> = self.records[row].sequence.iter().enumerate()
+    //             .filter(|(i, _)| cols.contains(&(*i as i32)) )
+    //             .map(|(_, item)| item.to_string() )
+    //             .collect();
+    //         // Make sure sequence length == ncols
+    //         if sequence.len() != ncols {
+    //             return Err(exceptions::ValueError::py_err(
+    //                 format!("Unexpected number of columns: {} != {}",
+    //                     sequence.len(), ncols)))
+    //         }
+    //         records.push(Record{
+    //             id: self.records[row].id.to_string(),
+    //             description: self.records[row].description.to_string(),
+    //             sequence,
+    //             chunk_size,
+    //         })
+    //     }
+    //     Ok(BaseAlignment{ records, chunk_size })
+    // }
 
-
-    // Metadata setters
-
-    /// replace_id(row_index, value, /)
-    /// --
-    /// 
-    /// Replaces the name/identifier of an existing entry in the
-    /// multiple sequence alignment.
-    fn replace_id(&mut self, row: i32, value: &str) -> PyResult<()> {
-        self.replace_ids(vec![row], vec![value])
-    }
-
-    /// replace_ids(row_indices, values, /)
-    /// --
-    /// 
-    /// Replace the names/identifiers of many entries simultaneously.
-    /// Each name/identifier will replace an existing identifier based on the
-    /// corresponding list of row indices.
-    fn replace_ids(&mut self, rows: Vec<i32>, values: Vec<&str>)
-    -> PyResult<()> {
-        check_length_match(&rows, &values)?;
-        check_empty_alignment(self)?;
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
-            self.records[row].id = values[i].to_string();
-        }
-        Ok(())
-    }
-
-    /// replace_description(index, value, /)
-    /// --
-    /// 
-    /// Replaces the description of an existing entry in the
-    /// multiple sequence alignment.
-    fn replace_description(&mut self, row: i32, value: &str)
-    -> PyResult<()> {
-        self.replace_descriptions(vec![row], vec![value])
-    }    
-
-    /// replace_descriptions(indices, values, /)
-    /// --
-    /// 
-    /// Replace the descriptions of many entries simultaneously.
-    /// Each description will replace an existing description based on the
-    /// corresponding list of row indices.
-    fn replace_descriptions(&mut self, rows: Vec<i32>, values: Vec<&str>) 
-    -> PyResult<()> {
-        check_length_match(&rows, &values)?;
-        check_empty_alignment(self)?;
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
-            self.records[row].description = values[i].to_string();
-        }
-        Ok(())
-    }
-
-    /// replace_sequence(index, value, /)
-    /// --
-    ///
-    /// Replaces the sequence of an existing entry in the multiple
-    /// sequence alignment.
-    fn replace_sequence(&mut self, row: i32, value: &str) -> PyResult<()> {
-        self.replace_sequences(vec![row], vec![value])
-    }
-
-    /// replace_sequences(indices, values, /)
-    /// --
-    /// 
-    /// Replaces many sequences simulateneously.
-    /// Each sequence will replace an existing sequence based on the
-    /// corresponding list of row indices.
-    fn replace_sequences(&mut self, rows: Vec<i32>, values: Vec<&str>) -> PyResult<()> {
-        check_length_match(&rows, &values)?;
-        check_empty_alignment(self)?;
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
-            check_length_match_i32(values[i].len() as i32, self.records[i].len_str()?)?;
-            self.records[row].set_sequence(values[i])?;
-        }
-        Ok(())
-    }
-
-    /// retain_records_by_name(names, /)
-    /// 
-    /// Keep samples matching the given sample ID's and remove
-    /// non-matching samples inplace.
-    fn retain_records_by_name(&mut self, names: Vec<&str>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        let rows = self.row_names_to_indices(names)?;
-        let rows: Vec<i32> = (0..self.records.len())
-            .filter(|i| !rows.contains(&(*i as i32)) )
-            .map(|i| i as i32 )
-            .collect();
-        self.remove_records(rows)
-    }
-
-    /// retain_records_by_prefix(prefixes, /)
-    /// 
-    /// Keep samples matching at least one of the given prefixes and remove
-    /// non-matching samples inplace.
-    fn retain_records_by_prefix(&mut self, names: Vec<&str>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        let rows = self.row_prefix_to_indices(names)?;
-        let rows: Vec<i32> = (0..self.records.len())
-            .filter(|i| !rows.contains(&(*i as i32)) )
-            .map(|i| i as i32 )
-            .collect();
-        self.remove_records(rows)
-    }
-
-    /// retain_records_by_suffix(suffixes, /)
-    /// 
-    /// Keep samples matching at least one of the given suffixes and remove
-    /// non-matching samples inplace.
-    fn retain_records_by_suffix(&mut self, names: Vec<&str>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        let rows = self.row_suffix_to_indices(names)?;
-        let rows: Vec<i32> = (0..self.records.len())
-            .filter(|i| !rows.contains(&(*i as i32)) )
-            .map(|i| i as i32 )
-            .collect();
-        self.remove_records(rows)
-    }
 
     fn concat(&mut self, others: Vec<&BaseAlignment>) -> PyResult<()> {
         check_empty_alignment(self)?;
@@ -756,79 +394,12 @@ impl BaseAlignment {
             return Ok(())
         };
         for aln in others.iter() {
-            check_length_match(&self.records, &aln.records)?;
-            check_length_match_i32(self.records[0].chunk_size,
-                                   aln.records[0].chunk_size)?;
-            for j in 0..self.records.len() {
-                self.records[j].sequence.extend_from_slice(
-                    &aln.records[j].sequence);
+            check_length_match(&self.data, &aln.data)?;
+            for j in 0..self.data.len() {
+                self.data[j].push_str(&aln.data[j]);
             }
         }
         Ok(())
-    }
-
-
-    // Methods to convert row names to row indices
-
-    /// row_names_to_ids(names, /)
-    /// --
-    /// 
-    /// Converts a list of names to corresponding row indices.
-    pub fn row_names_to_indices(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
-        check_empty_alignment(self)?;
-        let mut indices: Vec<i32> = Vec::new();
-        for name in names.into_iter() {
-            match self.records.iter().position(|b| b.id == name) {
-                Some(i) => {
-                    indices.push(i as i32);
-                },
-                None => {
-                    return Err(exceptions::ValueError::py_err(
-                        format!("sample id {} not found", name)))
-                }
-            }
-        }
-        Ok(indices)
-    }
-
-    /// row_prefix_to_ids(prefixes, /)
-    /// --
-    /// 
-    /// Matches a list of prefixes to entry names/identifiers and returns
-    /// the row indices of matched.
-    pub fn row_prefix_to_indices(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
-        check_empty_alignment(self)?;
-        let mut indices: Vec<i32> = Vec::new();
-        let mut matches: Vec<&str> = Vec::new();
-        for name in names.iter() {
-            for (i, b) in self.records.iter().enumerate() {
-                if b.id.starts_with(name) && !matches.contains(name) {
-                    indices.push(i as i32);
-                    matches.push(&b.id);
-                }
-            }
-        }
-        Ok(indices)
-    }
-
-    /// row_suffix_to_ids(suffixes, /)
-    /// --
-    /// 
-    /// Matches a list of suffixes to entry names/identifiers and returns
-    /// the row indices of matched.
-    pub fn row_suffix_to_indices(&self, names: Vec<&str>) -> PyResult<Vec<i32>> {
-        check_empty_alignment(self)?;
-        let mut indices: Vec<i32> = Vec::new();
-        let mut matches: Vec<&str> = Vec::new();
-        for name in names.iter() {
-            for (i, b) in self.records.iter().enumerate() {
-                if b.id.ends_with(name) && !matches.contains(name) {
-                    indices.push(i as i32);
-                    matches.push(&b.id);
-                }
-            }
-        }
-        Ok(indices)
     }
     
     pub fn invert_rows(&self, rows: Vec<i32>) -> PyResult<Vec<i32>> {
@@ -848,7 +419,7 @@ impl BaseAlignment {
     }
 
     pub fn copy(&self) -> PyResult<BaseAlignment> {
-        Ok(BaseAlignment{ records: self.records.clone(), chunk_size: self.chunk_size })
+        Ok(BaseAlignment{ data: self.data.clone() })
     }
 }
 
@@ -865,8 +436,8 @@ impl PyObjectProtocol for BaseAlignment {
             return Ok(String::new())
         }
         let mut fasta_strings: Vec<String> = Vec::new();
-        for record in self.records.iter() {
-            fasta_strings.push(record.__str__()?);
+        for seq in self.data.iter() {
+            fasta_strings.push(seq.to_string());
         }
         Ok(fasta_strings.join("\n"))
     }
@@ -929,16 +500,6 @@ pub fn check_col_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
     if aln_ptr.ncols()? <= i as i32 {
         return Err(exceptions::IndexError::py_err(
             "column index out of range"))
-    }
-    Ok(())
-}
-
-pub fn check_chunk_size(aln_ptr: &BaseAlignment, list_ptr: &Vec<&str>)
--> PyResult<()> {
-    if list_ptr.len() > 0 &&
-        list_ptr[0].chars().count() != aln_ptr.chunk_size as usize {
-        return Err(exceptions::ValueError::py_err(
-            "chunk sizes do not match"))
     }
     Ok(())
 }
