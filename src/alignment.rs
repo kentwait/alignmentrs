@@ -182,6 +182,17 @@ impl BaseAlignment {
 
     // Column methods
 
+    pub fn get_col(&self, col: i32) -> PyResult<Vec<String>> {
+        check_empty_alignment(self)?;
+        check_col_index(self, col as usize)?;
+        let mut sequences: Vec<String> = Vec::new();
+        for seq in self.data.iter() {
+            let seq_vec: Vec<char> = seq.chars().collect();
+            sequences.push(seq_vec[col as usize].to_string());
+        }
+        Ok(sequences)
+    }
+
     /// get_cols(col_indices, /)
     /// --
     /// 
