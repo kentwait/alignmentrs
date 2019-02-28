@@ -12,18 +12,18 @@ class MetadataRedirect:
     def rows(self):
         """pandas.core.frame.DataFrame: Returns the associated row
         metadata as a pandas DataFrame."""
-        return self._instance._row_metadata
+        return self._instance.row_metadata
 
     @property
     def cols(self):
         """pandas.core.frame.DataFrame: Returns the associated column
         metadata as a pandas DataFrame."""
-        return self._instance._column_metadata
+        return self._instance.column_metadata
 
     @property
     def comments(self):
         """dict: Returns the comments for this alignment."""
-        return self._instance._comments
+        return self._instance.comments
 
     def add_metadata(self, name, data, where, **kwargs):
         if where in ['row', 'rows']:
@@ -47,9 +47,9 @@ class MetadataRedirect:
     def add_comment(self, name, comment, **kwargs):
         if not isinstance(name, str):
             raise ValueError('name must be str')
-        elif name in self._instance._comments.keys():
+        elif name in self._instance.comments.keys():
             raise ValueError('name already exists')
-        self._instance._comments[name] = str(comment)
+        self._instance.comments[name] = str(comment)
         # Add to history
         add_to_history(
             self._instance, '.metadata.add_comment',
@@ -75,9 +75,9 @@ class MetadataRedirect:
             column labels.
         
         """
-        if name in self._instance._row_metadata:
+        if name in self._instance.row_metadata:
             raise ValueError('name already exists')
-        self._instance._row_metadata[name] = data
+        self._instance.row_metadata[name] = data
         # Add to history
         add_to_history(
             self._instance, '.metadata.add_row_metadata',
@@ -103,9 +103,9 @@ class MetadataRedirect:
             column labels.
         
         """
-        if name in self._instance._column_metadata:
+        if name in self._instance.column_metadata:
             raise ValueError('name already exists')
-        self._instance._column_metadata[name] = data
+        self._instance.column_metadata[name] = data
         # Add to history
         add_to_history(
             self._instance, '.metadata.add_column_metadata',
@@ -116,7 +116,7 @@ class MetadataRedirect:
     def remove_comment(self, name, **kwargs):
         if not isinstance(name, str):
             raise ValueError('name must be str')
-        del self._instance._comments[name]
+        del self._instance.comments[name]
         # Add to history
         add_to_history(
             self._instance, '.metadata.remove_comment',
@@ -133,7 +133,7 @@ class MetadataRedirect:
             Label of column to remove.
         
         """
-        self._instance._row_metadata.drop(name, axis=1, inplace=True, _record_history=False)
+        self._instance.row_metadata.drop(name, axis=1, inplace=True, _record_history=False)
         # Add to history
         add_to_history(
             self._instance, '.metadata.remove_row_metadata',
@@ -150,7 +150,7 @@ class MetadataRedirect:
             Label of column to remove.
         
         """
-        self._instance._column_metadata.drop(name, axis=1, inplace=True, _record_history=False)
+        self._instance.column_metadata.drop(name, axis=1, inplace=True, _record_history=False)
         # Add to history
         add_to_history(
             self._instance, '.metadata.remove_column_metadata',
@@ -161,9 +161,9 @@ class MetadataRedirect:
     def replace_id(self, index, value, **kwargs):
         self._replace_basealignment_values('ids', [index], [value])
         # Change row metadata index by completely rebuilding the index
-        idx = self._instance._row_metadata.index.to_list()
+        idx = self._instance.row_metadata.index.to_list()
         idx[index] = value
-        self._instance._row_metadata.index = pandas.Index(idx)
+        self._instance.row_metadata.index = pandas.Index(idx)
         # Add to history
         add_to_history(
             self._instance, '.metadata.replace_id',
@@ -173,8 +173,8 @@ class MetadataRedirect:
 
     def replace_description(self, index, value, **kwargs):
         self._replace_basealignment_values('descriptions', [index], [value])
-        if 'description' in self._instance._row_metadata.keys():
-            self._instance._row_metadata['description'].iloc[index] = value
+        if 'description' in self._instance.row_metadata.keys():
+            self._instance.row_metadata['description'].iloc[index] = value
         # Add to history
         add_to_history(
             self._instance, '.metadata.replace_description',
@@ -200,13 +200,13 @@ class MetadataRedirect:
         parts = []
         parts.append('[Alignment.Metadata]')
         parts.append('comment_keys = [{}]'.format(
-            ', '.join(list(self._instance._comments.keys()))
+            ', '.join(list(self._instance.comments.keys()))
         ))
         parts.append('row_metadata_keys = [{}]'.format(
-            ', '.join(list(self._instance._row_metadata.keys()))
+            ', '.join(list(self._instance.row_metadata.keys()))
         ))
         parts.append('column_metadata_keys = [{}]'.format(
-            ', '.join(list(self._instance._column_metadata.keys()))
+            ', '.join(list(self._instance.column_metadata.keys()))
         ))
         return '\n'.join(parts)
 

@@ -280,7 +280,7 @@ class RowData:
     #         chunk_size=self._instance.chunk_size,
     #         index=self._instance._index.copy(deep=True), 
     #         metadata=deepcopy(self._instance.metadata), 
-    #         column_metadata=self._instance._column_metadata.copy(deep=True))
+    #         column_metadata=self._instance.column_metadata.copy(deep=True))
     #     # Add to history
     #     add_to_history(
     #         self._instance, '.row.drain[from]', positions,
@@ -451,7 +451,7 @@ class ColData:
     #         raise TypeError(
     #             'values must be a list of str or a list of list of str')
     #     aln.data.insert_cols(position, values)
-    #     aln._index, aln._column_metadata = \
+    #     aln._index, aln.column_metadata = \
     #         self._insert_metadata(aln, position, column_values)
     #     # Add to history
     #     add_to_history(
@@ -505,7 +505,7 @@ class ColData:
     #         raise TypeError(
     #             'values must be a list of str or a list of list of str')
     #     aln.data.insert_cols(position, values)
-    #     aln._index, aln._column_metadata = \
+    #     aln._index, aln.column_metadata = \
     #         self._insert_metadata(aln, position, column_values)
     #     # Add to history
     #     add_to_history(
@@ -578,9 +578,9 @@ class ColData:
     #     remove_positions = self._instance.data.invert_cols(positions)
     #     new_baln = self._instance.data.drain_cols(remove_positions)
     #     new_col_metadata = self._instance \
-    #         ._column_metadata.iloc[remove_positions].copy(deep=True)
-    #     self._instance._column_metadata = self._instance \
-    #         ._column_metadata.iloc[positions].copy(deep=True)
+    #         .column_metadata.iloc[remove_positions].copy(deep=True)
+    #     self._instance.column_metadata = self._instance \
+    #         .column_metadata.iloc[positions].copy(deep=True)
     #     aln = self._instance.__class__(
     #         self._instance.name,
     #         new_baln, 
@@ -834,7 +834,7 @@ class ColData:
         if isinstance(column_values, list) and \
             sum((isinstance(val, list) for val in column_values)):
             df = pandas.DataFrame(
-                {k:v for k,v in zip(aln._column_metadata, column_values)})
+                {k:v for k,v in zip(aln.column_metadata, column_values)})
         elif isinstance(column_values, list) and \
             sum((isinstance(val, dict) for val in column_values)):
             df = pandas.DataFrame(column_values)
@@ -842,7 +842,7 @@ class ColData:
             sum((isinstance(val, numbers.Number) or isinstance(val, str)
                 for val in column_values)):
             df = pandas.DataFrame(
-                {k:v for k,v in zip(aln._column_metadata, column_values)})
+                {k:v for k,v in zip(aln.column_metadata, column_values)})
         elif isinstance(column_values, dict) and \
             sum((isinstance(val, list) for val in column_values)):
             df = pandas.DataFrame(column_values)
@@ -851,9 +851,9 @@ class ColData:
                 for val in column_values)):
             df = pandas.DataFrame(column_values)
         new_column_metadata = \
-            pandas.concat([aln._column_metadata.iloc[:position],
+            pandas.concat([aln.column_metadata.iloc[:position],
                             df,
-                            aln._column_metadata.iloc[position+len(df):]]) \
+                            aln.column_metadata.iloc[position+len(df):]]) \
                 .reset_index(drop=True)
         new_index = pandas.Index(len(aln._index) + len(df))
         return new_index, new_column_metadata

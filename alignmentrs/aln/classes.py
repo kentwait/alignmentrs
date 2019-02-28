@@ -268,7 +268,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         data = [func(v) for v in self.row[i].sequence]        
         if name is None:
             name = self.row[i].id
-        self._column_metadata[name] = data
+        self.column_metadata[name] = data
         self.row.remove(i)
         # Remove from row metadata
         self.row_metadata = pandas.concatenate(
@@ -613,9 +613,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         curr_ncols = aln.ncols
         aln.data.concat(balns)
         # Concat dataframes
-        aln._column_metadata = pandas.concat(
-            [aln._column_metadata] + 
-            [aln._column_metadata for aln in others],
+        aln.column_metadata = pandas.concat(
+            [aln.column_metadata] + 
+            [aln.column_metadata for aln in others],
             sort=False, axis=0
         )
         # Add names
@@ -627,13 +627,13 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if set(name_list) != len(others) + 1:
             warnings.warn('some alignments have the same name', 
                 DuplicateNameWarning)
-        aln._column_metadata['_src_name'] = name_list
+        aln.column_metadata['_src_name'] = name_list
         # Concat index
         if reset_index is True:
             aln._index = pandas.Index(range(
                 sum([len(aln._index)] + [len(o._index) for o in others])
             ))
-            aln._column_metadata.reset_index(drop=True, inplace=True)
+            aln.column_metadata.reset_index(drop=True, inplace=True)
         else:
             aln._index = pandas.Index(pandas.concat(
                 [pandas.Series(aln._index)] + 
@@ -682,9 +682,9 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
     def _metadata_state(self):
         return {
-            'num_comments': len(self._comments),
-            'num_row_metadata': len(self._row_metadata.columns),
-            'num_column_metadata': len(self._column_metadata.columns),
+            'num_comments': len(self.comments),
+            'num_row_metadata': len(self.row_metadata.columns),
+            'num_column_metadata': len(self.column_metadata.columns),
         }
 
     def _state(self):
@@ -740,7 +740,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             parts += ['', aln, '']
         parts.append('[Alignment.Metadata]')
         parts.append('comment_keys = [{}]'.format(
-            ', '.join(list(self._comments.keys()))
+            ', '.join(list(self.comments.keys()))
         ))
         parts.append('row_metadata_keys = [{}]'.format(
             ', '.join(list(self.row_metadata.keys()))

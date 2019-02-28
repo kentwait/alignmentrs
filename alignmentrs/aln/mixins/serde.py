@@ -135,7 +135,7 @@ class DictSerdeMixin:
         d = {
             'name': self.name,
             'data': self.data.sequences,
-            'comments': self._comments,
+            'comments': self.comments,
             'row_metadata': self.row_metadata.to_dict(orient='list'),
             'column_metadata': self.column_metadata.to_dict(orient='list'),
             'index': self.column_metadata.index.to_list(),
@@ -271,4 +271,4 @@ class PhylipSerdeMixin:
 #         with open(data_path, 'w') as writer:
 #             print(csv_str, file=writer)
 #         if column_metadata is True:
-#             self._column_metadata.to_csv(meta_path)
+#             self.column_metadata.to_csv(meta_path)
