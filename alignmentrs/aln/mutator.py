@@ -5,7 +5,7 @@ import inspect
 import pandas
 
 from libalignmentrs.alignment import BaseAlignment
-from libalignmentrs.record import BaseRecord
+from libalignmentrs.record import Record
 from alignmentrs.util import add_to_history
 
 
@@ -24,7 +24,7 @@ class RowData:
     #     ----------
     #     position : int or str
     #         Position to be inserted at. If str, 
-    #     records : BaseRecord or list of BaseRecord
+    #     records : Record or list of Record
     #         Record/s to be inserted.
     #     copy : bool, optional
     #         Whether to insert records on a copy of the alignment, keeping
@@ -34,7 +34,7 @@ class RowData:
     #     Raises
     #     ------
     #     TypeError
-    #         Value of records is not a BaseRecord or List of BaseRecord
+    #         Value of records is not a Record or List of Record
         
     #     Returns
     #     -------
@@ -47,13 +47,13 @@ class RowData:
     #     aln = self._instance
     #     if copy is True:
     #         aln = self._instance.copy()
-    #     if isinstance(records, BaseRecord):
+    #     if isinstance(records, Record):
     #         aln.data.insert_records(position, records)
     #     elif isinstance(records, list) and \
-    #         sum((isinstance(rec, BaseRecord) for rec in records)):
+    #         sum((isinstance(rec, Record) for rec in records)):
     #         aln.data.insert_records(position, records)
     #     else:
-    #         raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+    #         raise TypeError('records must be a Record or a list of Record objects')
     #     # Add to history
     #     add_to_history(
     #         self._instance, '.row.insert',
@@ -70,7 +70,7 @@ class RowData:
         
     #     Parameters
     #     ---------- 
-    #     records : BaseRecord or list of BaseRecord
+    #     records : Record or list of Record
     #         Record/s to be inserted.
     #     copy : bool, optional
     #         Whether to insert records on a copy of the alignment, keeping
@@ -80,7 +80,7 @@ class RowData:
     #     Raises
     #     ------
     #     TypeError
-    #         Value of records is not a BaseRecord or List of BaseRecord
+    #         Value of records is not a Record or List of Record
         
     #     Returns
     #     -------
@@ -109,7 +109,7 @@ class RowData:
         
     #     Parameters
     #     ---------- 
-    #     records : BaseRecord or list of BaseRecord
+    #     records : Record or list of Record
     #         Record/s to be inserted.
     #     copy : bool, optional
     #         Whether to insert records on a copy of the alignment, keeping
@@ -119,7 +119,7 @@ class RowData:
     #     Raises
     #     ------
     #     TypeError
-    #         Value of records is not a BaseRecord or List of BaseRecord
+    #         Value of records is not a Record or List of Record
         
     #     Returns
     #     -------
@@ -132,13 +132,13 @@ class RowData:
     #     aln = self._instance
     #     if copy is True:
     #         aln = self._instance.copy()
-    #     if isinstance(records, BaseRecord):
+    #     if isinstance(records, Record):
     #         aln.data.append_records(records)
     #     elif isinstance(records, list) and \
     #         sum((isinstance(rec, BaseAlignment) for rec in records)):
     #         aln.data.append_record(records)
     #     else:
-    #         raise TypeError('records must be a BaseRecord or a list of BaseRecord objects')
+    #         raise TypeError('records must be a Record or a list of Record objects')
     #     # Add to history
     #     add_to_history(
     #         self._instance, '.row.append', records,
@@ -164,7 +164,7 @@ class RowData:
         Raises
         ------
         TypeError
-            Value of records is not a BaseRecord or List of BaseRecord
+            Value of records is not a Record or List of Record
         
         Returns
         -------
@@ -212,7 +212,7 @@ class RowData:
         Raises
         ------
         TypeError
-            Value of records is not a BaseRecord or List of BaseRecord
+            Value of records is not a Record or List of Record
         
         Returns
         -------
@@ -256,7 +256,7 @@ class RowData:
     #     Raises
     #     ------
     #     TypeError
-    #         Value of records is not a BaseRecord or List of BaseRecord
+    #         Value of records is not a Record or List of Record
         
     #     Returns
     #     -------
@@ -307,7 +307,7 @@ class RowData:
         Raises
         ------
         TypeError
-            Value of records is not a BaseRecord or List of BaseRecord
+            Value of records is not a Record or List of Record
         
         Returns
         -------

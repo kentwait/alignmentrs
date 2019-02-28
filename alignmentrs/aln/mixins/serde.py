@@ -227,7 +227,7 @@ class PhylipSerdeMixin:
 #                     continue
 #                 elif in_sequence is True:
 #                     sid, desc, seq = line.split(delimiter)
-#                     records.append(BaseRecord(sid, desc, seq, chunk_size))
+#                     records.append(Record(sid, desc, seq, chunk_size))
 #         if column_metadata:
 #             l, r = path.rsplit('.', 1)
 #             meta_path = l + '.cols.' + r

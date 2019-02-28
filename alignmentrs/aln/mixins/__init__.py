@@ -1,8 +1,8 @@
 from .serde import (FastaSerdeMixin, DictSerdeMixin, JsonSerdeMixin,
-                    PickleSerdeMixin, CsvSerdeMixin, RecordsSerdeMixin)
+                    PickleSerdeMixin, RecordsSerdeMixin)
 
 
 __all__ = [
     'FastaSerdeMixin', 'DictSerdeMixin', 'JsonSerdeMixin', 
-    'PickleSerdeMixin', 'CsvSerdeMixin', 'RecordsSerdeMixin',
+    'PickleSerdeMixin', 'RecordsSerdeMixin',
 ]
