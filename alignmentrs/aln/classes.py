@@ -82,7 +82,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             index = pandas.Index(range(self.data.ncols))
         self.column_metadata = \
             self._col_metadata_constructor(records, column_metadata, index)
-        self.comments = comments
+        self.comments = self._comments_constructor(comments)
         self._history = History() if store_history else None
         add_to_history(
             self, self.__class__.__name__, name, records,
@@ -207,7 +207,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     @property
     def sequences(self):
         """list of str: Returns the list of sequences."""
-        return self.data
+        return self.data.sequences
 
     @property
     def history(self):
@@ -736,7 +736,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         parts.append('nrows = {}'.format(self.nrows))
         parts.append('ncols = {}'.format(self.ncols))
         if self:
-            aln = idseq_to_display(self.ids, 1)
+            aln = idseq_to_display(self.ids, self.sequences)
             parts += ['', aln, '']
         parts.append('[Alignment.Metadata]')
         parts.append('comment_keys = [{}]'.format(
