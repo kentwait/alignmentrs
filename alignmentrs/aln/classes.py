@@ -263,7 +263,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             aln = self.copy()
 
         # Add to column metadata
-        data = [func(list(v)) for v in self.row[i]]        
+        data = [func(v) for v in list(self.data.get_row(i))]        
         if name is None:
             name = self.row[i].id
         self.column_metadata[name] = data
