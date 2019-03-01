@@ -8,7 +8,7 @@ from alignmentrs.aln import Alignment
 
 
 __author__ = 'Kent Kawashima'
-__version__ = '0.9.0'
+__version__ = '0.10.0'
 __all__ = [
     # From dynamic library
     'librs',
