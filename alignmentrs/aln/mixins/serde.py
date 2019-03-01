@@ -32,8 +32,8 @@ class RecordsSerdeMixin:
 
 class FastaSerdeMixin:
     @classmethod
-    def from_fasta(cls, path, name=None, parse_column_metadata=None, 
-                   store_history=True, **kwargs):
+    def from_fasta(cls, path, name=None, parse_row_metadata=True,  
+                   parse_column_metadata=True, store_history=True, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -58,14 +58,22 @@ class FastaSerdeMixin:
 
         """
         records, _ = fasta_to_records(path)
-        col_meta = []
-        r = re.compile(r'meta\|(\S+)\=(\S+)')
+        row_meta, col_meta = [], []
+        # row_meta_regexp = re.compile(r'[^(meta\|)](\S+)\=(\S+)')
+        col_meta_regexp = re.compile(r'meta\|(\S+)\=(\S+)')
+        # if parse_row_metadata:
+        #     for record in records:
+        #         matches = dict(row_meta_regexp.findall(record.description))
+        #         row_meta.append(matches)
         if parse_column_metadata:
-            for record in enumerate(records):
-                matches = dict(r.findall(record.description))
+            for record in records:
+                matches = dict(col_meta_regexp.findall(record.description))
                 col_meta.append(matches)
-        col_meta = dict(ChainMap(*col_meta))
-        return cls(records, name=name, column_metadata=col_meta, 
+        # row_meta = {k: eval(v) for k, v in dict(ChainMap(*row_meta)).items()}
+        col_meta = {k: eval(v) for k, v in dict(ChainMap(*col_meta)).items()}
+        return cls(records, name=name,
+                #    row_metadata=row_meta,
+                   column_metadata=col_meta,
                    store_history=store_history, **kwargs)
 
     def to_fasta(self, path=None, include_column_metadata=None):
@@ -87,11 +95,13 @@ class FastaSerdeMixin:
             to ensure maximum compatibility)
 
         """
+        sp_sub = re.compile(r'\s+')
         id_desc_seq = ((vals[0], vals[1]['description'], self.data.get_row(i)) 
                        for i, vals in enumerate(self.row_metadata.iterrows()))
         col_meta = ' '.join([
-            'meta|{}={}'.format(k, str(v))
+            'meta|{}={}'.format(k, sp_sub.sub('', str(v)))
             for k, v in self.column_metadata.to_dict(orient='list').items()
+            if k in include_column_metadata
         ])
         fasta_str = '\n'.join([
             self._record_formatter(sid, desc, seq, col_meta)
