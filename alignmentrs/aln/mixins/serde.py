@@ -155,6 +155,12 @@ class DictSerdeMixin:
         # TODO: Store history
         return d
 
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, d):
+        self = self.__class__.from_dict(d)
+
 
 class JsonSerdeMixin(DictSerdeMixin):
     @classmethod
