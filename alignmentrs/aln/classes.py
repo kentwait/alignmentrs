@@ -619,7 +619,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         )
         # Add names
         name_list = ([aln.name]*curr_ncols) + \
-                    [o.name for o in others for _ in range(o.ncols)]
+                     [o.name for o in others for _ in range(o.ncols)]
         if None in name_list:
             warnings.warn('used `None` in _src_name column metadata '
                 'because some alignments have no name', NoNameWarning)
@@ -630,14 +630,10 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Concat index
         if reset_index is True:
             aln._index = pandas.Index(range(
-                sum([len(aln._index)] + [len(o._index) for o in others])
+                sum([len(aln.column_metadata)] + 
+                    [len(o.column_metadata) for o in others])
             ))
             aln.column_metadata.reset_index(drop=True, inplace=True)
-        else:
-            aln._index = pandas.Index(pandas.concat(
-                [pandas.Series(aln._index)] + 
-                [pandas.Series(o._index) for o in others]
-            ))
         # Add to history
         add_to_history(
             aln, '.join', others,
