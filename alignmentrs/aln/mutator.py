@@ -583,11 +583,11 @@ class ColData:
             )
         return res
 
-    def map(self, function, skip_n=None, chunk_size=None):
-        for col in self.iter(skip_n=skip_n, chunk_size=chunk_size):
+    def map(self, function, skip_n=None, chunk_size=None, lazy=False):
+        for col in self.iter(skip_n=skip_n, chunk_size=chunk_size, lazy=lazy):
             yield function(col)
 
-    def iter(self, skip_n=None, chunk_size=None):
+    def iter(self, skip_n=None, chunk_size=None, lazy=False):
         cnt = 0
         if skip_n and chunk_size:
             raise ValueError(
@@ -600,11 +600,21 @@ class ColData:
         if chunk_size is None:
             chunk_size = 1
 
-        for i in range(0, self._instance.ncols-(chunk_size-1), skip_n):
+        col_range = range(0, self._instance.ncols-(chunk_size-1), skip_n)
+        if lazy:
+            for i in col_range:
+                if chunk_size == 1:
+                    yield self._instance.data.get_col(i)
+                else:
+                    yield self._instance.data.get_chunk(i, chunk_size)
+        else:
+            indices = list(col_range)
             if chunk_size == 1:
-                yield self._instance.data.get_col(i)
+                for col in self._instance.data.get_cols(indices):
+                    yield col
             else:
-                yield self._instance.data.get_chunk(i, chunk_size)
+                for col in self._instance.data.get_chunks(indices, chunk_size):
+                    yield col
 
     def reset_index(self, copy=False, **kwargs):
         aln = self._instance
