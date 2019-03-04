@@ -623,9 +623,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if None in name_list:
             warnings.warn('used `None` in _src_name column metadata '
                 'because some alignments have no name', NoNameWarning)
-        if set(name_list) != len(others) + 1:
-            warnings.warn('some alignments have the same name', 
-                DuplicateNameWarning)
+        if len(set(name_list)) != len(others) + 1:
+            msg = 'some alignments have the same name: {} != {}'.format(
+                len(set(name_list)), len(others) + 1
+            )
+            warnings.warn(msg, DuplicateNameWarning)
         aln.column_metadata['_src_name'] = name_list
         # Concat index
         if reset_index is True:
