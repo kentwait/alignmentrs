@@ -158,12 +158,6 @@ class DictSerdeMixin:
         # TODO: Store history
         return d
 
-    def __getstate__(self):
-        return self.to_dict()
-
-    def __setstate__(self, d):
-        self = self.__class__.from_dict(d)
-
 
 class JsonSerdeMixin(DictSerdeMixin):
     @classmethod
@@ -202,6 +196,13 @@ class PickleSerdeMixin(DictSerdeMixin):
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'wb') as writer:
             pickle.dump(d, writer)
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, d):
+        obj = self.__class__.from_dict(d)
+        self.__dict__ = obj.__dict__
 
 
 class NexusSerdeMixin:
