@@ -132,11 +132,13 @@ class DictSerdeMixin:
     @classmethod
     def from_dict(cls, d, store_history=True, **kwargs):
         name = d['name']
-        records = [Record(r['id'], r['description'], r['sequence'])
-                   for r in d['data']]
+        records = [Record(d['row_metadata_index'][i],
+                          d['row_metadata']['description'][i],
+                          d['data'][i])
+                   for i in range(len(d['data']))]
         row_metadata = d['row_metadata']
         column_metadata = d['column_metadata']
-        index = d['index']
+        index = d['column_metadata_index']
         return cls(records, name=name, index=index,
                    row_metadata=row_metadata,
                    column_metadata=column_metadata,
@@ -149,8 +151,9 @@ class DictSerdeMixin:
             'data': self.data.sequences,
             'comments': self.comments,
             'row_metadata': self.row_metadata.to_dict(orient='list'),
+            'row_metadata_index': self.row_metadata.index.to_list(),
             'column_metadata': self.column_metadata.to_dict(orient='list'),
-            'index': self.column_metadata.index.to_list(),
+            'column_metadata_index': self.column_metadata.index.to_list(),
         }
         # TODO: Store history
         return d

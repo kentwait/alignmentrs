@@ -148,13 +148,17 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if isinstance(row_metadata, dict):
             # Check if values match the length of the index
             for key, val in row_metadata.items():
-                if len(val) != len(self.nrows):
+                if len(val) != self.nrows:
                     raise ValueError('{} value length does not match the number of rows'.format(key))
-            df = df.join(pandas.DataFrame(row_metadata, index=index))
+            temp_df = pandas.DataFrame(row_metadata, index=index)
+            if 'description' in temp_df.keys():
+                df = temp_df
+            else:
+                df = df.join(temp_df)
         elif isinstance(row_metadata, pandas.DataFrame):
             if not all(row_metadata.index == index):
                 raise ValueError('index of row_metadata DataFrame does not match the ids in the alignment')
-            if 'description' in row_metadata.columns:
+            if 'description' in row_metadata.keys():
                 df = row_metadata
             else:
                 df = df.join(row_metadata)
