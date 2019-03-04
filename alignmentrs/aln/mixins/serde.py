@@ -71,6 +71,8 @@ class FastaSerdeMixin:
                 col_meta.append(matches)
         # row_meta = {k: eval(v) for k, v in dict(ChainMap(*row_meta)).items()}
         col_meta = {k: eval(v) for k, v in dict(ChainMap(*col_meta)).items()}
+        if name is None:
+            name = os.path.basename(path)
         return cls(records, name=name,
                 #    row_metadata=row_meta,
                    column_metadata=col_meta,
