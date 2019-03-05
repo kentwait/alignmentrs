@@ -183,14 +183,7 @@ impl BaseAlignment {
     // Column methods
 
     pub fn get_col(&self, col: i32) -> PyResult<Vec<String>> {
-        check_empty_alignment(self)?;
-        check_col_index(self, col as usize)?;
-        let mut sequences: Vec<String> = Vec::new();
-        for seq in self.data.iter() {
-            let seq_vec: Vec<char> = seq.chars().collect();
-            sequences.push(seq_vec[col as usize].to_string());
-        }
-        Ok(sequences)
+        self.get_chunk(col, 1)
     }
 
     /// get_cols(col_indices, /)
@@ -199,35 +192,21 @@ impl BaseAlignment {
     /// Returns a new RawAlignment object containing the specific
     /// alignment columns based on a list of indices. 
     pub fn get_cols(&self, cols: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
-        check_empty_alignment(self)?;
-        if let Some(x) = cols.iter().max() {
-            check_col_index(self, *x as usize)?;
-        }
-        let mut out: Vec<Vec<String>> = Vec::new();
-        for i in cols.into_iter().map(|x| x as usize) {
-            let mut sequences: Vec<String> = Vec::new();
-            for seq in self.data.iter() {
-                let seq_vec: Vec<char> = seq.chars().collect();
-                sequences.push(seq_vec[i].to_string());
-            }
-            out.push(sequences);
-        }
-        Ok(out)
+        self.get_chunks(cols, 1)
     }
 
     pub fn get_chunk(&self, col: i32, chunk_size: i32) 
     -> PyResult<Vec<String>> {
         check_empty_alignment(self)?;
         check_col_index(self, col as usize)?;
-        let mut sequences: Vec<String> = Vec::new();
         let col = col as usize;
         let chunk_size = chunk_size as usize;
-        for seq in self.data.iter() {
-            let seq_vec: Vec<char> = seq.chars().collect();
-            let sequence: String = seq_vec[col..col+chunk_size].to_vec()        
-                .into_iter().collect();
-            sequences.push(sequence);
-        }
+        let seq_vec: Vec<Vec<char>> = self.data.iter()
+            .map(|seq| {seq.chars().collect()})
+            .collect();
+        let sequences: Vec<String> = seq_vec.into_iter()
+            .map(|row| row[col..col+chunk_size].into_iter().collect())
+            .collect();
         Ok(sequences)
     }
 
@@ -237,31 +216,19 @@ impl BaseAlignment {
         if let Some(x) = cols.iter().max() {
             check_col_index(self, *x as usize)?;
         }
-        let mut sequences_vec: Vec<Vec<String>> = Vec::new();
         let chunk_size = chunk_size as usize;
-        // for col in cols.into_iter().map(|x| x as usize) {
-        //     let mut sequences: Vec<String> = Vec::new();
-        //     for seq in self.data.iter() {
-        //         let seq_vec: Vec<char> = seq.chars().collect();
-        //         let sequence: String = seq_vec[col..col+chunk_size].to_vec()
-        //             .into_iter().collect();
-        //         sequences.push(sequence);
-        //     }
-        //     sequences_vec.push(sequences);
-        // }
-        // Ok(sequences_vec)
         let seq_vec: Vec<Vec<char>> = self.data.iter()
             .map(|seq| seq.chars().collect())
             .collect();
-        for i in 0..self.data[0].len() {
-            // let mut sequences: Vec<String> = Vec::new();
-            let sequences: Vec<String> = (0..self.data[i].len())
-                .map(|j| {
-                    seq_vec[i][j..j+chunk_size].to_vec().into_iter().collect()
-                })
-                .collect();
-            sequences_vec.push(sequences);
-        }
+        let sequences_vec: Vec<Vec<String>> = cols.into_iter()
+            .map(|col| {
+                let col = col as usize;
+                let sequences: Vec<String> = seq_vec.iter()
+                    .map(|row| row[col..col+chunk_size].iter().collect())
+                    .collect();
+                sequences
+            })
+            .collect();
         Ok(sequences_vec)
     }
 
@@ -429,7 +396,7 @@ impl BaseAlignment {
             let res: Vec<bool> = seq_vec.iter().map(
                 |row| {
                     let mut chars: String = row[j..j+chunk_size]
-                        .to_vec().into_iter().collect();
+                        .into_iter().collect();
                     if !case_sensitive {
                         chars = chars.to_uppercase();
                     }
