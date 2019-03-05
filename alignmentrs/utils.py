@@ -159,3 +159,20 @@ def parse_cat_comment_list(comment_list: list):
                 simple_block_str_to_linspace(v.lstrip('{').rstrip('}'))
     comments_d['subspaces'] = subspaces
     return comments_d
+
+# Converters
+def to_intlist(i):
+    if isinstance(i, int):
+        return [i]
+    elif isinstance(i, list) and \
+            sum((1 for item in i if isinstance(item, int))) == len(i):
+        return i
+    raise ValueError('i is neither an `int` or a `list` of `int`.')
+
+def to_strlist(i):
+    if isinstance(i, str):
+        return [i]
+    elif isinstance(i, list) and \
+            sum((1 for item in i if isinstance(item, str))) == len(i):
+        return i
+    raise ValueError('i is neither a `str` or a `list` of `str`.')
