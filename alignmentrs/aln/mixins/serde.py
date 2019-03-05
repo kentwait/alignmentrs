@@ -10,7 +10,10 @@ import pandas
 from libalignmentrs.alignment import BaseAlignment, from_list
 from libalignmentrs.record import Record
 from libalignmentrs.readers import fasta_to_records
-from .functions import make_col_meta_string
+from alignmentrs.aln.mixins.functions import (
+    make_col_meta_string, make_col_meta_dict
+)
+from alignmentrs.utils import to_intlist
 
 
 __all__ = [
@@ -36,7 +39,7 @@ class FastaSerdeMixin:
     @classmethod
     def from_fasta(cls, path, name=None, parse_row_metadata=True,  
                    parse_column_metadata=True, store_history=True,
-                   column_metadata_decoder=None, **kwargs):
+                   column_metadata_decoders=None, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -63,17 +66,20 @@ class FastaSerdeMixin:
         records, _ = fasta_to_records(path)
         row_meta, col_meta = [], []
         # row_meta_regexp = re.compile(r'[^(meta\|)](\S+)\=(\S+)')
-        col_meta_regexp = re.compile(r'meta\|(\S+)\=(\S+)')
         # if parse_row_metadata:
         #     for record in records:
         #         matches = dict(row_meta_regexp.findall(record.description))
         #         row_meta.append(matches)
+        # row_meta = {k: eval(v) for k, v in dict(ChainMap(*row_meta)).items()}
+        col_meta_regexp = re.compile(r'meta\|(\S+)\=(\S+)')
         if parse_column_metadata:
             for record in records:
-                matches = dict(col_meta_regexp.findall(record.description))
-                col_meta.append(matches)
-        # row_meta = {k: eval(v) for k, v in dict(ChainMap(*row_meta)).items()}
-        col_meta = {k: eval(v) for k, v in dict(ChainMap(*col_meta)).items()}
+                matches_d = make_col_meta_dict(
+                    record.description, 
+                    column_metadata_decoders if column_metadata_decoders else {}
+                )
+                col_meta.append(matches_d)
+        col_meta = dict(ChainMap(*col_meta))
         if name is None:
             name = os.path.basename(path)
         return cls(records, name=name,
@@ -82,7 +88,7 @@ class FastaSerdeMixin:
                    store_history=store_history, **kwargs)
 
     def to_fasta(self, path=None, include_column_metadata=None, 
-                 column_metadata_encoder=None, **kwargs):
+                 column_metadata_encoders=None, **kwargs):
         """Saves the alignment as a FASTA-formatted file.
         Some metadata may not be lost.
 
@@ -108,13 +114,12 @@ class FastaSerdeMixin:
         )
         col_meta = make_col_meta_string(
             self.column_metadata,
-            include_column_metadata,
-            column_metadata_encoder
+            include_column_metadata if include_column_metadata else [],
+            column_metadata_encoders if column_metadata_encoders else {}
         )
-        if isinstance(kwargs['col_meta_at'], int):
-            kwargs['col_meta_at'] = [kwargs['col_meta_at']]
         if 'col_meta_at' in kwargs.keys():
-            _col_meta_at = self._col_meta_at(kwargs['col_meta_at'])
+            rows = to_intlist(kwargs['col_meta_at'])
+            _col_meta_at = self._col_meta_at(rows)
         else:
             _col_meta_at = self._col_meta_at(range(self.nrows))
         fasta_str = '\n'.join([
