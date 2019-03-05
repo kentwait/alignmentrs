@@ -19,10 +19,9 @@ impl BaseAlignment {
     /// and sequences.
     pub fn __new__(obj: &PyRawObject, records: Vec<&Record>) -> PyResult<()> {
         // TODO: Check if all vectors have the same size.
-        let mut data: Vec<String> = Vec::with_capacity(records.len());
-        for record in records.into_iter() {
-            data.push(record.sequence.to_string());
-        }
+        let data: Vec<String> = records.iter().map(
+            |rec| rec.sequence.to_string()
+        ).collect();
         obj.init(|_| {
             BaseAlignment{ data }
         })
@@ -548,6 +547,13 @@ impl PyObjectProtocol for BaseAlignment {
 //     }
 // }
 
+#[pyfunction]
+pub fn from_list(sequences: Vec<String>) -> PyResult<BaseAlignment> {
+    let data: Vec<String> = sequences.iter().map(
+        |seq| seq.clone()
+    ).collect();
+    Ok(BaseAlignment{ data })
+}
 
 pub fn check_empty_alignment(aln_ptr: &BaseAlignment) -> PyResult<()> {
     if aln_ptr.nrows()? == 0 {
@@ -602,6 +608,7 @@ pub fn check_length_match_i32(len1: i32, len2:i32) -> PyResult<()> {
 #[pymodinit]
 fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<BaseAlignment>()?;
+    m.add_function(wrap_function!(from_list))?;
 
     Ok(())
 }
