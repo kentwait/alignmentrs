@@ -6,7 +6,7 @@ import re
 
 import pandas
 
-from libalignmentrs.alignment import BaseAlignment
+from libalignmentrs.alignment import BaseAlignment, from_list
 from libalignmentrs.record import Record
 from libalignmentrs.readers import fasta_to_records
 
@@ -130,12 +130,15 @@ class FastaSerdeMixin:
 
 class DictSerdeMixin:
     @classmethod
-    def from_dict(cls, d, store_history=True, **kwargs):
+    def from_dict(cls, d, store_history=True, pure=True, **kwargs):
         name = d['name']
-        records = [Record(d['row_metadata_index'][i],
-                          d['row_metadata']['description'][i],
-                          d['data'][i])
-                   for i in range(len(d['data']))]
+        if pure:
+            records = [Record(d['row_metadata_index'][i],
+                            d['row_metadata']['description'][i],
+                            d['data'][i])
+                    for i in range(len(d['data']))]
+        else:
+            records = from_list(d['data'])
         row_metadata = d['row_metadata']
         column_metadata = d['column_metadata']
         index = d['column_metadata_index']
@@ -145,16 +148,27 @@ class DictSerdeMixin:
                    store_history=store_history,
                    **kwargs)
 
-    def to_dict(self, row_metadata=True, column_metadata=True):
-        d = {
-            'name': self.name,
-            'data': self.data.sequences,
-            'comments': self.comments,
-            'row_metadata': self.row_metadata.to_dict(orient='list'),
-            'row_metadata_index': self.row_metadata.index.to_list(),
-            'column_metadata': self.column_metadata.to_dict(orient='list'),
-            'column_metadata_index': self.column_metadata.index.to_list(),
-        }
+    def to_dict(self, row_metadata=True, column_metadata=True, pure=True):
+        if pure:
+            d = {
+                'name': self.name,
+                'data': self.data.sequences,
+                'comments': self.comments,
+                'row_metadata': self.row_metadata.to_dict(orient='list'),
+                'row_metadata_index': self.row_metadata.index.to_list(),
+                'column_metadata': self.column_metadata.to_dict(orient='list'),
+                'column_metadata_index': self.column_metadata.index.to_list(),
+            }
+        else:
+            d = {
+                'name': self.name,
+                'data': self.data.sequences,
+                'comments': self.comments,
+                'row_metadata': self.row_metadata,
+                'column_metadata': self.column_metadata,
+            }
+            d['row_metadata_index'] = d['row_metadata'].index
+            d['column_metadata_index'] = d['column_metadata'].index
         # TODO: Store history
         return d
 
@@ -183,14 +197,14 @@ class JsonSerdeMixin(DictSerdeMixin):
 
 class PickleSerdeMixin(DictSerdeMixin):
     @classmethod
-    def from_pickle(cls, path, store_history=True, **kwargs):
+    def from_pickle(cls, path, store_history=True, as_dictionary=False, **kwargs):
         with open(path, 'rb') as reader:
             d = pickle.load(reader)
-        return cls.from_dict(d, store_history=store_history,
+        return cls.from_dict(d, store_history=store_history, pure=as_dictionary,
                              **kwargs)
 
-    def to_pickle(self, path, column_metadata=True):
-        d = self.to_dict(column_metadata)
+    def to_pickle(self, path, column_metadata=True, as_dictionary=False):
+        d = self.to_dict(column_metadata=column_metadata, pure=as_dictionary)
         dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
@@ -198,10 +212,10 @@ class PickleSerdeMixin(DictSerdeMixin):
             pickle.dump(d, writer)
 
     def __getstate__(self):
-        return self.to_dict()
+        return self.to_dict(pure=False)
 
     def __setstate__(self, d):
-        obj = self.__class__.from_dict(d)
+        obj = self.__class__.from_dict(d, pure=False)
         self.__dict__ = obj.__dict__
 
 
