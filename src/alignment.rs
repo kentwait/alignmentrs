@@ -17,7 +17,7 @@ impl BaseAlignment {
     #[new]
     /// Creates a new BaseAlignment object from a list of ids, descriptions,
     /// and sequences.
-    fn __new__(obj: &PyRawObject, records: Vec<&Record>) -> PyResult<()> {
+    pub fn __new__(obj: &PyRawObject, records: Vec<&Record>) -> PyResult<()> {
         // TODO: Check if all vectors have the same size.
         let mut data: Vec<String> = Vec::with_capacity(records.len());
         for record in records.into_iter() {
@@ -98,7 +98,7 @@ impl BaseAlignment {
     /// 
     /// Removes many entries simulatenously based on a
     /// list of row indices.
-    fn remove_rows(&mut self, mut rows: Vec<i32>) -> PyResult<()> {
+    pub fn remove_rows(&mut self, mut rows: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         rows.sort_unstable();
         rows.dedup();
@@ -116,13 +116,13 @@ impl BaseAlignment {
     /// 
     /// Keep entries at the specified row indices, and removes
     /// everything else.
-    fn retain_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+    pub fn retain_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let rows: Vec<i32> = self.invert_rows(rows)?;
         self.remove_rows(rows)
     }
 
-    fn drain_rows(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
+    pub fn drain_rows(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
         check_empty_alignment(self)?;
         rows.sort_unstable();
         rows.dedup();
@@ -164,7 +164,7 @@ impl BaseAlignment {
     /// --
     /// 
     /// Reorders the sequences inplace based on a list of current row indices.
-    fn reorder_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+    pub fn reorder_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
         check_length_match(&rows, &self.data)?;
         check_empty_alignment(self)?;
         if let Some(x) = rows.iter().max() {
@@ -239,14 +239,27 @@ impl BaseAlignment {
         }
         let mut sequences_vec: Vec<Vec<String>> = Vec::new();
         let chunk_size = chunk_size as usize;
-        for col in cols.into_iter().map(|x| x as usize) {
-            let mut sequences: Vec<String> = Vec::new();
-            for seq in self.data.iter() {
-                let seq_vec: Vec<char> = seq.chars().collect();
-                let sequence: String = seq_vec[col..col+chunk_size].to_vec()
-                    .into_iter().collect();
-                sequences.push(sequence);
-            }
+        // for col in cols.into_iter().map(|x| x as usize) {
+        //     let mut sequences: Vec<String> = Vec::new();
+        //     for seq in self.data.iter() {
+        //         let seq_vec: Vec<char> = seq.chars().collect();
+        //         let sequence: String = seq_vec[col..col+chunk_size].to_vec()
+        //             .into_iter().collect();
+        //         sequences.push(sequence);
+        //     }
+        //     sequences_vec.push(sequences);
+        // }
+        // Ok(sequences_vec)
+        let seq_vec: Vec<Vec<char>> = self.data.iter()
+            .map(|seq| seq.chars().collect())
+            .collect();
+        for i in 0..self.data[0].len() {
+            // let mut sequences: Vec<String> = Vec::new();
+            let sequences: Vec<String> = (0..self.data[i].len())
+                .map(|j| {
+                    seq_vec[i][j..j+chunk_size].to_vec().into_iter().collect()
+                })
+                .collect();
             sequences_vec.push(sequences);
         }
         Ok(sequences_vec)
@@ -306,7 +319,7 @@ impl BaseAlignment {
     /// 
     /// Removes many alignment columns simulatenously based on a
     /// list of column indices.
-    fn remove_cols(&mut self, mut cols: Vec<i32>) -> PyResult<()> {
+    pub fn remove_cols(&mut self, mut cols: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         cols.sort_unstable();
         cols.dedup();
@@ -327,7 +340,7 @@ impl BaseAlignment {
     /// 
     /// Keep  alignment columns at the specified column indices and
     /// removes everything else.
-    fn retain_cols(&mut self, cols: Vec<i32>) -> PyResult<()> {
+    pub fn retain_cols(&mut self, cols: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         let cols: Vec<i32> = (0..self.ncols()?)
             .filter(|i| !cols.contains(&(*i as i32)) )
@@ -336,7 +349,7 @@ impl BaseAlignment {
         self.remove_cols(cols)
     }
 
-    fn drain_cols(&mut self, cols: Vec<i32>) -> PyResult<BaseAlignment> {
+    pub fn drain_cols(&mut self, cols: Vec<i32>) -> PyResult<BaseAlignment> {
         let mut aln = self.copy()?;
         aln.retain_cols(cols.clone())?;
         self.remove_cols(cols.clone())?;
@@ -377,7 +390,7 @@ impl BaseAlignment {
     /// 
     /// Reorders the alignment columns inplace based on a list of current
     /// column indices.
-    fn reorder_cols(&mut self, cols: Vec<i32>) -> PyResult<()> {
+    pub fn reorder_cols(&mut self, cols: Vec<i32>) -> PyResult<()> {
         check_empty_alignment(self)?;
         if let Some(x) = cols.iter().max() {
             check_col_index(self, *x as usize)?;
@@ -396,6 +409,56 @@ impl BaseAlignment {
         Ok(())
     }
 
+    pub fn has(&self, query: &str, case_sensitive: bool, mode: &str, step_size: i32, chunk_size: i32) -> PyResult<Vec<i32>> {
+        check_empty_alignment(self)?;
+        let mut positions: Vec<i32> = Vec::new();
+        let seq_vec: Vec<Vec<char>> = self.data.iter()
+            .map(|seq| {seq.chars().collect()})
+            .collect();
+        let chunk_size = chunk_size as usize;
+        let step_size = step_size as usize;
+        if step_size < chunk_size {
+            return Err(exceptions::ValueError::py_err(
+                    "step_size is less than chunk_size"))
+        }
+        let query: String = match case_sensitive {
+            true => query.to_string(),
+            false => query.to_string().to_uppercase(),
+        };
+        for j in (0..seq_vec[0].len()).step_by(chunk_size) {
+            let res: Vec<bool> = seq_vec.iter().map(
+                |row| {
+                    let mut chars: String = row[j..j+chunk_size]
+                        .to_vec().into_iter().collect();
+                    if !case_sensitive {
+                        chars = chars.to_uppercase();
+                    }
+                    if chars.contains(&query) {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            ).collect();
+            if mode == "any" {
+                if res.contains(&true) {
+                    let mut curr_positions: Vec<i32> = (j..j+chunk_size)
+                        .map(|i| i as i32).collect();
+                    positions.append(&mut curr_positions);
+                }
+            } else if mode == "all" {
+                if !res.contains(&false) {
+                    let mut curr_positions: Vec<i32> = (j..j+chunk_size)
+                        .map(|i| i as i32).collect();
+                    positions.append(&mut curr_positions);
+                }
+            } else {
+                return Err(exceptions::ValueError::py_err(
+                    "mode must be \"any\" or \"all\""))
+            }
+        }
+        Ok(positions)
+    }
 
     /// subset(row_indices, column_indices, /)
     /// --
@@ -436,7 +499,7 @@ impl BaseAlignment {
     // }
 
 
-    fn concat(&mut self, others: Vec<&BaseAlignment>) -> PyResult<()> {
+    pub fn concat(&mut self, others: Vec<&BaseAlignment>) -> PyResult<()> {
         check_empty_alignment(self)?;
         if let Err(_) = check_empty_list(&others) {
             return Ok(())
