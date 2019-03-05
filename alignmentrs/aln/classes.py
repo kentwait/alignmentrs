@@ -9,13 +9,13 @@ import numpy
 
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import Record
-from alignmentrs.util import idseq_to_display
+from alignmentrs.utils import idseq_to_display
 from alignmentrs.aln.mixins import (RecordsSerdeMixin, FastaSerdeMixin,
                                     JsonSerdeMixin, PickleSerdeMixin)
 from alignmentrs.history import History
 from alignmentrs.history import Record as Record_
 from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
-from alignmentrs.util import add_to_history
+from alignmentrs.utils import add_to_history
 from .mutator import RowData, ColData
 from .metadata import MetadataRedirect
 

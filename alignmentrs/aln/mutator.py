@@ -7,7 +7,7 @@ import pandas
 
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.record import Record
-from alignmentrs.util import add_to_history
+from alignmentrs.utils import add_to_history
 
 
 __all__ = ['RowData', 'ColData']

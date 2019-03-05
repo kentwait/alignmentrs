@@ -1,6 +1,6 @@
 import pandas
 
-from alignmentrs.util import add_to_history
+from alignmentrs.utils import add_to_history
 
 
 class MetadataRedirect:
