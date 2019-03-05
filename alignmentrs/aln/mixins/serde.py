@@ -1,4 +1,5 @@
 from collections import OrderedDict, ChainMap
+from copy import deepcopy
 import os
 import json
 import pickle
@@ -9,6 +10,7 @@ import pandas
 from libalignmentrs.alignment import BaseAlignment, from_list
 from libalignmentrs.record import Record
 from libalignmentrs.readers import fasta_to_records
+from .functions import make_col_meta_string
 
 
 __all__ = [
@@ -33,7 +35,8 @@ class RecordsSerdeMixin:
 class FastaSerdeMixin:
     @classmethod
     def from_fasta(cls, path, name=None, parse_row_metadata=True,  
-                   parse_column_metadata=True, store_history=True, **kwargs):
+                   parse_column_metadata=True, store_history=True,
+                   column_metadata_decoder=None, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -78,7 +81,8 @@ class FastaSerdeMixin:
                    column_metadata=col_meta,
                    store_history=store_history, **kwargs)
 
-    def to_fasta(self, path=None, include_column_metadata=None):
+    def to_fasta(self, path=None, include_column_metadata=None, 
+                 column_metadata_encoder=None, **kwargs):
         """Saves the alignment as a FASTA-formatted file.
         Some metadata may not be lost.
 
@@ -98,15 +102,23 @@ class FastaSerdeMixin:
 
         """
         sp_sub = re.compile(r'\s+')
-        id_desc_seq = ((vals[0], vals[1]['description'], self.data.get_row(i)) 
-                       for i, vals in enumerate(self.row_metadata.iterrows()))
-        col_meta = ' '.join([
-            'meta|{}={}'.format(k, sp_sub.sub('', str(v)))
-            for k, v in self.column_metadata.to_dict(orient='list').items()
-            if k in include_column_metadata
-        ])
+        id_desc_seq = (
+            (vals[0], vals[1]['description'], self.data.get_row(i)) 
+            for i, vals in enumerate(self.row_metadata.iterrows())
+        )
+        col_meta = make_col_meta_string(
+            self.column_metadata,
+            include_column_metadata,
+            column_metadata_encoder
+        )
+        if isinstance(kwargs['col_meta_at'], int):
+            kwargs['col_meta_at'] = [kwargs['col_meta_at']]
+        if 'col_meta_at' in kwargs.keys():
+            _col_meta_at = self._col_meta_at(kwargs['col_meta_at'])
+        else:
+            _col_meta_at = self._col_meta_at(range(self.nrows))
         fasta_str = '\n'.join([
-            self._record_formatter(sid, desc, seq, col_meta)
+            self._record_formatter(sid, desc, seq, _col_meta_at(col_meta))
             for sid, desc, seq in id_desc_seq
         ])
         # TODO: Add ability to add row metedata thats not the description
@@ -120,25 +132,41 @@ class FastaSerdeMixin:
 
     @staticmethod
     def _record_formatter(sid, desc, seq, col_meta):
-        if len(desc) > 0 and len(col_meta) > 0:
-            return '>{} {} {}\n{}'.format(sid, desc, col_meta, seq)
-        elif len(desc) == 0 and len(col_meta) > 0:
-            return '>{} {}\n{}'.format(sid, col_meta, seq)
-        elif len(desc) > 0 and len(col_meta) == 0:
+        if len(desc) > 0:
+            if len(col_meta) > 0:
+                return '>{} {} {}\n{}'.format(sid, desc, col_meta, seq)
             return '>{} {}\n{}'.format(sid, desc, seq)
+
+        if len(col_meta) > 0:
+            return '>{} {}\n{}'.format(sid, col_meta, seq)
+        
         return '>{}\n{}'.format(sid, seq)
+
+    @staticmethod
+    def _col_meta_at(positions):
+        x = -1
+        pos_list = positions
+        def add(col_meta_string):
+            nonlocal x
+            x += 1
+            if x in pos_list:
+                return col_meta_string
+            return ''
+        return add
+
 
 class DictSerdeMixin:
     @classmethod
-    def from_dict(cls, d, store_history=True, pure=True, **kwargs):
+    def from_dict(cls, d, store_history=True, **kwargs):
         name = d['name']
-        if pure:
-            records = [Record(d['row_metadata_index'][i],
-                            d['row_metadata']['description'][i],
-                            d['data'][i])
-                    for i in range(len(d['data']))]
-        else:
-            records = from_list(d['data'])
+        records = [
+            Record(
+                d['row_metadata_index'][i],
+                d['row_metadata']['description'][i],
+                d['data'][i]
+            )
+            for i in range(len(d['data']))
+        ]
         row_metadata = d['row_metadata']
         column_metadata = d['column_metadata']
         index = d['column_metadata_index']
@@ -148,29 +176,16 @@ class DictSerdeMixin:
                    store_history=store_history,
                    **kwargs)
 
-    def to_dict(self, row_metadata=True, column_metadata=True, pure=True):
-        if pure:
-            d = {
-                'name': self.name,
-                'data': self.data.sequences,
-                'comments': self.comments,
-                'row_metadata': self.row_metadata.to_dict(orient='list'),
-                'row_metadata_index': self.row_metadata.index.to_list(),
-                'column_metadata': self.column_metadata.to_dict(orient='list'),
-                'column_metadata_index': self.column_metadata.index.to_list(),
-            }
-        else:
-            d = {
-                'name': self.name,
-                'data': self.data.sequences,
-                'comments': self.comments,
-                'row_metadata': self.row_metadata,
-                'column_metadata': self.column_metadata,
-            }
-            d['row_metadata_index'] = d['row_metadata'].index
-            d['column_metadata_index'] = d['column_metadata'].index
-        # TODO: Store history
-        return d
+    def to_dict(self, row_metadata=True, column_metadata=True):
+        return {
+            'name': self.name,
+            'data': self.data.sequences,
+            'comments': self.comments,
+            'row_metadata': self.row_metadata.to_dict(orient='list'),
+            'row_metadata_index': self.row_metadata.index.to_list(),
+            'column_metadata': self.column_metadata.to_dict(orient='list'),
+            'column_metadata_index': self.column_metadata.index.to_list(),
+        }
 
 
 class JsonSerdeMixin(DictSerdeMixin):
@@ -197,26 +212,29 @@ class JsonSerdeMixin(DictSerdeMixin):
 
 class PickleSerdeMixin(DictSerdeMixin):
     @classmethod
-    def from_pickle(cls, path, store_history=True, as_dictionary=False, **kwargs):
+    def from_pickle(cls, path, store_history=True, **kwargs):
         with open(path, 'rb') as reader:
-            d = pickle.load(reader)
-        return cls.from_dict(d, store_history=store_history, pure=as_dictionary,
-                             **kwargs)
+            obj = pickle.load(reader)
+        return obj
 
-    def to_pickle(self, path, column_metadata=True, as_dictionary=False):
-        d = self.to_dict(column_metadata=column_metadata, pure=as_dictionary)
+    def to_pickle(self, path=None, **kwargs):
+        pickled = pickle.dumps(self)
+        if path is None:
+            return pickled
         dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'wb') as writer:
-            pickle.dump(d, writer)
+            print(pickled, file=writer)
 
     def __getstate__(self):
-        return self.to_dict(pure=False)
+        d = {k: v for k, v in self.__dict__.items() if k != 'data'}
+        d['data'] = self.data.sequences
+        return d
 
     def __setstate__(self, d):
-        obj = self.__class__.from_dict(d, pure=False)
-        self.__dict__ = obj.__dict__
+        d['data'] = from_list(d['data'])
+        self.__dict__ = d
 
 
 class NexusSerdeMixin:
