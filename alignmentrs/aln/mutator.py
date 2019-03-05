@@ -490,6 +490,23 @@ class ColData:
         if copy is True:
             return aln
 
+    def has(self, query, case_sensitive=False, mode='any',
+            skip_n=None, chunk_size=None, **kwargs):
+        if skip_n and chunk_size:
+            raise ValueError(
+                'skip_n and chunk_size cannot be used simultaneously')
+        if skip_n is None:
+            if chunk_size is None:
+                skip_n = 1
+            else:
+                skip_n = chunk_size
+        if chunk_size is None:
+            chunk_size = 1
+        positions = self._instance.data.has(
+            query, case_sensitive, mode, skip_n, chunk_size)
+        return positions
+
+
     def drop(self, value, case_sensitive=False, copy=False, dry_run=False,
              mode='any', **kwargs):
         if case_sensitive and mode == 'any':
@@ -504,6 +521,7 @@ class ColData:
                 [value.upper()]*len(x) == [chars.upper() for chars in x]
         else:
             raise ValueError('invalid mode')
+        
         res = self.filter(func, copy=copy, dry_run=dry_run, inverse=True,
                           _record_history=False)
         # Add to history
