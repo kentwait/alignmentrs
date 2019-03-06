@@ -28,8 +28,7 @@ class RowData:
             pass
         else:
             raise TypeError('positions must be an int or a list of int')
-        aln.data.retain_rows(positions)
-        return aln
+        return aln.row.retain(positions, copy=True)
 
     def remove(self, positions, copy=False, **kwargs):
         """Removes one or more records from the alignment naively
@@ -325,8 +324,7 @@ class ColData:
             pass
         else:
             raise TypeError('positions must be an int or a list of int')
-        aln.data.retain_cols(positions)
-        return aln
+        return aln.col.retain(positions, copy=True)
 
     def remove(self, positions, copy=False, **kwargs):
         aln = self._instance
