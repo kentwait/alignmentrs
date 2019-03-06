@@ -572,7 +572,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             )
         return res
 
-    def join(self, others, reset_index=False, copy=False, **kwargs):
+    def join(self, others, copy=False, **kwargs):
         """Marges the current alignment with one or more other alignments.
         This extends the number of columns in the alignment.
         
@@ -580,10 +580,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         ----------
         others : Alignment or list of Alignment
             Other alignments to append to the current alignment.
-        reset_index : bool, optional
-            Whether to reset the index on a copy of the alignment or
-            reset the index inplace. (default is False, the index of the
-            alignment is reset inplace)
         copy : bool, optional
             Whether to keep the current alignment intact and create a new copy of the joined alignment or join the alignments inplace.
             (default is False, joining is performed inplace)
@@ -606,7 +602,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             balns = [o.data for o in others]
         else:
             raise ValueError(
-                'others must be an Alignment or ''a list of Alignment objects')
+                'others must be an Alignment or a list of Alignment objects')
         # check if chunks are the same
         # check if number of records are the same
         curr_ncols = aln.ncols
@@ -628,18 +624,16 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 len(set(name_list)), len(others) + 1
             )
             warnings.warn(msg, DuplicateNameWarning)
-        aln.column_metadata['_src_name'] = name_list
-        # Concat index
-        if reset_index is True:
-            aln._index = pandas.Index(range(
-                sum([len(aln.column_metadata)] + 
-                    [len(o.column_metadata) for o in others])
-            ))
-            aln.column_metadata.reset_index(drop=True, inplace=True)
+        # Reset index
+        aln.column_metadata = aln.column_metadata.reset_index()
+        aln.column_metadata.rename(
+            columns={'index': '_src_index'},
+            inplace=True
+        )
+        aln.column_metadata.insert(1, '_src_name', name_list)
         # Add to history
         add_to_history(
             aln, '.join', others,
-            reset_index=reset_index,
             copy=copy,
             **kwargs
         )
