@@ -27,7 +27,7 @@ class RecordsSerdeMixin:
     def from_records(cls, records, name=None, index=None, comments=None, 
                      row_metadata=None, column_metadata=None,
                      store_history=True, **kwargs):
-        cls(records, name=name, index=index, comments=comments, 
+        return cls(records, name=name, index=index, comments=comments, 
             row_metadata=row_metadata, column_metadata=column_metadata,
             store_history=store_history, **kwargs)
 
@@ -186,9 +186,11 @@ class DictSerdeMixin:
             'name': self.name,
             'data': self.data.sequences,
             'comments': self.comments,
-            'row_metadata': self.row_metadata.to_dict(orient='list'),
+            'row_metadata': \
+                self.row_metadata.to_dict(orient='list') if row_metadata else None,
             'row_metadata_index': self.row_metadata.index.to_list(),
-            'column_metadata': self.column_metadata.to_dict(orient='list'),
+            'column_metadata': \
+                self.column_metadata.to_dict(orient='list') if column_metadata else None,
             'column_metadata_index': self.column_metadata.index.to_list(),
         }
 
