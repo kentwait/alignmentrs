@@ -62,7 +62,7 @@ class TestDictSerdeMixin:
     def teardown(self):
         pass
 
-    def test_from_dict_with_meta(self):
+    def test_to_dict_with_meta(self):
         test_class = MockClass(
             self.records, name=self.name,
             index=self.index,
@@ -86,7 +86,7 @@ class TestDictSerdeMixin:
                 exp_dict, test_dict
             )
 
-    def test_from_dict_row_meta(self):
+    def test_to_dict_row_meta(self):
         test_class = MockClass(
             self.records, name=self.name,
             index=self.index,
@@ -110,7 +110,7 @@ class TestDictSerdeMixin:
                 exp_dict, test_dict
             )
     
-    def test_from_dict_col_meta(self):
+    def test_to_dict_col_meta(self):
         test_class = MockClass(
             self.records, name=self.name,
             index=self.index,
@@ -133,3 +133,39 @@ class TestDictSerdeMixin:
             "expected and test dictionaries are not the same: {} != {}".format(
                 exp_dict, test_dict
             )
+
+    def test_from_dict(self):
+        test_dict = {
+            'name': self.name,
+            'data': self.sequences,
+            'comments': self.comments,
+            'row_metadata': self.row_metadata.to_dict(orient='list'),
+            'row_metadata_index': self.row_metadata.index.to_list(),
+            'column_metadata': self.column_metadata.to_dict(orient='list'),
+            'column_metadata_index': self.column_metadata.index.to_list(),
+        }
+        test_class = MockClass.from_dict(test_dict)
+        exp_class = MockClass(
+            self.records, name=self.name,
+            index=self.index,
+            comments=self.comments,
+            row_metadata=self.row_metadata,
+            column_metadata=self.column_metadata,
+            store_history=True,
+        )
+        assert type(exp_class) == type(test_class), \
+            "expected and test classes are not the same: {} != {}".format(
+                exp_class.__class__.__name__,
+                test_class.__class__.__name__,
+            )
+        # NOTE: Dictionarie values are not compared because special comparison is needed to compare pandas DataFrames 
+        assert exp_class.__dict__.keys() == test_class.__dict__.keys(), \
+            "expected and test class dictionaries are not the same: {} != {}".format(
+                exp_class.__dict__,
+                test_class.__dict__,
+            )
+        assert exp_class.__dir__() == test_class.__dir__(), \
+            "expected and test class dir are not the same: {} != {}".format(
+                exp_class.__dir__(),
+                test_class.__dir__(),
+            ) 

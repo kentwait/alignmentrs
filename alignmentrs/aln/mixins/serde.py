@@ -172,12 +172,17 @@ class DictSerdeMixin:
             )
             for i in range(len(d['data']))
         ]
-        row_metadata = d['row_metadata']
-        column_metadata = d['column_metadata']
         index = d['column_metadata_index']
+        row_metadata = pandas.DataFrame(
+            d['row_metadata'], index=d['row_metadata_index']
+        )
+        column_metadata = pandas.DataFrame(
+            d['column_metadata'], index=d['column_metadata_index']
+        )
         return cls(records, name=name, index=index,
                    row_metadata=row_metadata,
                    column_metadata=column_metadata,
+                   comments=d['comments'],
                    store_history=store_history,
                    **kwargs)
 
