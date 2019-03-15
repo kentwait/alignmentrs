@@ -4,6 +4,8 @@ import os
 import json
 import pickle
 import re
+import io
+
 
 import pandas
 
@@ -203,8 +205,11 @@ class DictSerdeMixin:
 class JsonSerdeMixin(DictSerdeMixin):
     @classmethod
     def from_json(cls, path, store_history=True, **kwargs):
-        with open(path, 'r') as reader:
-            d = json.load(reader)
+        if isinstance(path, io.IOBase):
+            d = json.load(path)
+        elif isinstance(path, str):
+            with open(path, 'r') as reader:
+                d = json.load(reader)
         return cls.from_dict(d, store_history=store_history,
                              **kwargs)
 
