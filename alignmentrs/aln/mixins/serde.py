@@ -24,6 +24,9 @@ __all__ = [
 ]
 
 
+_whitespace_regexp = re.compile(r'\s+')
+_column_metadata_string_regexp = re.compile(r'meta\|(\S+)\=(\S+)')
+
 class RecordsSerdeMixin:
     @classmethod
     def from_records(cls, records, name=None, index=None, comments=None, 
@@ -73,7 +76,6 @@ class FastaSerdeMixin:
         #         matches = dict(row_meta_regexp.findall(record.description))
         #         row_meta.append(matches)
         # row_meta = {k: eval(v) for k, v in dict(ChainMap(*row_meta)).items()}
-        col_meta_regexp = re.compile(r'meta\|(\S+)\=(\S+)')
         if parse_column_metadata:
             for record in records:
                 matches_d = make_col_meta_dict(
@@ -136,6 +138,46 @@ class FastaSerdeMixin:
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'w') as writer:
             print(fasta_str, file=writer)
+
+    def _columns_as_string(self, included_keys, encoders={}):
+        # Encodes column metadata into a string representation if its name/key
+        # is in included_keys via a specific encoder function.
+        #
+        # Each included metadata column can be assigned a specific encoder
+        # function to create a string representation by including the name/key
+        # of the column and its corresponding encoder to the `encoders`
+        # keyword argument.
+        # 
+        # If an included column has no corresponding encoder assigned, or the
+        # `encoders` argument value is `None`, the string constructor `str` is
+        # used as the encoder function.
+        included_values = (
+            (k, v)
+            for k, v in self.column_metadata.to_dict(orient='list').items()
+            if k in included_keys
+        )
+        return ' '.join([
+            self._encode_column_metadata_as_string(
+                k, v, 
+                encoders[k] if k in encoders.keys() else str
+            )
+            for k, v in included_values
+        ])
+
+    @staticmethod
+    def _encode_column_metadata_as_string(key, value, encoder: callable):
+        # Encodes a column in the column metadata DataFrame into
+        # some sort of string representation using an encoder function.
+        # 
+        # The encoder function can be the string constructor `str` or some
+        # user-defined function that creates the string representation.
+        # 
+        # Note that whitespaces are removed from the representation.
+        # String representations should not use whitespace patterns to create
+        # the data representation.
+        return 'meta|{}={}'.format(
+            key, _whitespace_regexp.sub('', encoder(value))
+        )
 
     @staticmethod
     def _record_formatter(sid, desc, seq, col_meta):
@@ -230,8 +272,11 @@ class JsonSerdeMixin(DictSerdeMixin):
 class PickleSerdeMixin(DictSerdeMixin):
     @classmethod
     def from_pickle(cls, path, store_history=True, **kwargs):
-        with open(path, 'rb') as reader:
-            obj = pickle.load(reader)
+        if isinstance(path, io.IOBase):
+            obj = pickle.load(path)
+        elif isinstance(path, str):
+            with open(path, 'rb') as reader:
+                obj = pickle.load(reader)
         return obj
 
     def to_pickle(self, path=None, **kwargs):
