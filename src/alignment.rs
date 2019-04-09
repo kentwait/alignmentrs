@@ -15,6 +15,9 @@ pub struct SeqMatrix {
 
 // Rust functions
 impl SeqMatrix {
+
+    // Getters
+
     /// Returns the number of rows in the sequence matrix.
     pub fn _nrows(&self) -> usize {
         self.rows
@@ -25,11 +28,22 @@ impl SeqMatrix {
         self.cols
     }
 
-    /// Returns a string sequence from the sequence matrix based on the given index.
-    pub fn _get_row<'a>(&self, mut id: i32) -> Result<String, &'a str> {
+
+    // Error methods
+
+    pub fn _is_empty_matrix<'a>(&self) -> Result<(), &'a str> {
         if self.rows == 0 {
             return Err("empty sequence matrix")
         }
+        Ok(())
+    }
+
+
+    // Row methods
+
+    /// Returns a string sequence from the sequence matrix based on the given index.
+    pub fn _get_row<'a>(&self, mut id: i32) -> Result<String, &'a str> {
+        self._is_empty_matrix()?;
         // Convert negative index (count from end) to positive (count from start)
         if id < 0 {
             id = self.rows as i32 + id
@@ -39,9 +53,7 @@ impl SeqMatrix {
 
     /// Returns a vector of string sequences from the sequence matrix based on the given vector of indices.
     pub fn _get_rows<'a>(&self, ids: Vec<i32>) -> Result<Vec<String>, &'a str> {
-        if self.rows == 0 {
-            return Err("empty sequence matrix")
-        } else {
+        self._is_empty_matrix()?;
             if let Some(x) = ids.iter().max() {
                 let mut i = *x as usize;
                 // Check positive ID
@@ -56,7 +68,7 @@ impl SeqMatrix {
                     return Err(&format!("row ID is greater than the number of rows: {}", i))
                 }
             }
-        }
+        
         let result: Vec<String> = ids.iter().map(|id| {
             let id = *id as usize;
             let i: usize = if id >= 0 { id } else { self.rows + id };
@@ -67,9 +79,7 @@ impl SeqMatrix {
 
     /// Removes rows from the sequence matrix based on a list of row indices.
     pub fn _remove_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
-        if self.rows == 0 {
-            return Err("empty sequence matrix")
-        } else {
+        self._is_empty_matrix()?;
             if let Some(x) = ids.iter().max() {
                 let mut i = *x as usize;
                 // Check positive ID
@@ -84,7 +94,7 @@ impl SeqMatrix {
                     return Err(&format!("row ID is greater than the number of rows: {}", i))
                 }
             }
-        }
+        
         
         // Normalize row ids to positive ids
         let rows: Vec<usize> = self._norm_rows(ids);
@@ -100,9 +110,8 @@ impl SeqMatrix {
 
     /// Keep rows matching the specified row indices, and removes everything else.
     pub fn _retain_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
-        if self.rows == 0 {
-            return Err("empty sequence matrix")
-        } else {
+        self._is_empty_matrix()?;
+
             if let Some(x) = ids.iter().max() {
                 let mut i = *x as usize;
                 // Check positive ID
@@ -117,7 +126,7 @@ impl SeqMatrix {
                     return Err(&format!("row ID is greater than the number of rows: {}", i))
                 }
             }
-        }
+        
         // Normalize row ids to positive ids        
         let rows: Vec<usize> = self._norm_rows(ids);
         // Keep data whose index is in the rows vector
@@ -131,9 +140,7 @@ impl SeqMatrix {
     }
 
     pub fn _reorder_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
-        if self.rows == 0 {
-            return Err("empty sequence matrix")
-        } else {
+        self._is_empty_matrix()?;
             if let Some(x) = ids.iter().max() {
                 let mut i = *x as usize;
                 // Check positive ID
@@ -148,13 +155,21 @@ impl SeqMatrix {
                     return Err(&format!("row ID is greater than the number of rows: {}", i))
                 }
             }
-        }
+        
         // Normalize row ids to positive ids        
         let rows: Vec<usize> = self._norm_rows(ids);
         // Reorder using normalized row ids
         self.data = rows.into_iter().map( |i| self.data[i] ).collect();
         Ok(())
     }
+
+
+    // Column methods
+
+
+
+
+    // Utility methods
 
     /// Converts row indices into positive-value row indices.
     pub fn _norm_rows(&self, ids: Vec<i32>) -> Vec<usize> {
@@ -241,6 +256,8 @@ impl SeqMatrix {
     fn sequences(&self) -> PyResult<Vec<String>> {
         Ok(self.data.clone())
     }
+
+    // Row methods
 
     /// get_row(id, /)
     /// --
