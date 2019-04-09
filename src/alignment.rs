@@ -155,19 +155,17 @@ impl SeqMatrix {
     }
 
     /// Returns row indices not found in the given vector of row indices.
-    pub fn invert_rows<'a>(&self, ids: Vec<i32>) -> Vec<usize> {
-        let normed_rows: Vec<usize> = self._norm_rows(ids);
+    pub fn invert_rows<'a>(&self, ids: Vec<usize>) -> Vec<usize> {
         let rows: Vec<usize> = (0..self.rows)
-                .filter(|i| !normed_rows.contains(i) )
+                .filter(|i| !ids.contains(i) )
                 .collect();
         rows
     }
 
     /// Returns column indices not found in the given vector of column indices.
-    pub fn invert_cols<'a>(&self, ids: Vec<i32>) -> Vec<usize> {
-        let normed_cols: Vec<usize> = self._norm_cols(ids);
+    pub fn invert_cols<'a>(&self, ids: Vec<usize>) -> Vec<usize> {
         let cols: Vec<usize> = (0..self.cols)
-                .filter(|i| !normed_cols.contains(i) )
+                .filter(|i| !ids.contains(i) )
                 .collect();
         cols
     }
