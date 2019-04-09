@@ -2,9 +2,6 @@ use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 // use pyo3::class::gc::{PyGCProtocol, PyVisit, PyTraverseError};
 
-use crate::record::Record;
-
-
 #[pyclass]
 #[derive(Clone)]
 pub struct SeqMatrix {
@@ -691,68 +688,19 @@ impl PyObjectProtocol for SeqMatrix {
 //     }
 // }
 
-#[pyfunction]
-pub fn from_list(sequences: Vec<String>) -> PyResult<BaseAlignment> {
-    let data: Vec<String> = sequences.iter().map(
-        |seq| seq.clone()
-    ).collect();
-    Ok(BaseAlignment{ data })
-}
-
-pub fn check_empty_alignment(aln_ptr: &BaseAlignment) -> PyResult<()> {
-    if aln_ptr.nrows()? == 0 {
-        return Err(exceptions::ValueError::py_err(
-            "empty alignment"))
-    }
-    Ok(())
-}
-
-pub fn check_empty_list<T>(list: &Vec<T>) -> PyResult<()> {
-    if list.len() == 0 {
-        return Err(exceptions::ValueError::py_err(
-            "empty list"))
-    }
-    Ok(())
-}
-
-
-pub fn check_row_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
-    if aln_ptr.nrows()? <= i as i32 {
-        return Err(exceptions::IndexError::py_err(
-            "row index out of range"))
-    }
-    Ok(())
-}
-
-pub fn check_col_index(aln_ptr: &BaseAlignment, i: usize) -> PyResult<()> {
-    if aln_ptr.ncols()? <= i as i32 {
-        return Err(exceptions::IndexError::py_err(
-            "column index out of range"))
-    }
-    Ok(())
-}
-
-pub fn check_length_match<T, U>(v1: &Vec<T>, v2: &Vec<U>) -> PyResult<()> {
-    if v1.len() != v2.len() {
-        return Err(exceptions::ValueError::py_err(
-            "length mismatch"))
-    }
-    Ok(())
-}
-
-pub fn check_length_match_i32(len1: i32, len2:i32) -> PyResult<()> {
-    if len1 != len2 {
-        return Err(exceptions::ValueError::py_err(
-            "length mismatch."))
-    }
-    Ok(())
-}
+// #[pyfunction]
+// pub fn from_list(sequences: Vec<String>) -> PyResult<BaseAlignment> {
+//     let data: Vec<String> = sequences.iter().map(
+//         |seq| seq.clone()
+//     ).collect();
+//     Ok(BaseAlignment{ data })
+// }
 
 // Register python functions to PyO3
 #[pymodinit]
 fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<SeqMatrix>()?;
-    m.add_function(wrap_function!(from_list))?;
+    // m.add_function(wrap_function!(from_list))?;
 
     Ok(())
 }
