@@ -85,6 +85,63 @@ impl SeqMatrix {
         }
         Ok(())
     }
+
+    /// Keep rows matching the specified row indices, and removes everything else.
+    pub fn _retain_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+        let mut rows = ids.clone();
+        rows.sort_unstable();
+        rows.dedup();
+        if let Some(x) = rows.iter().max() {
+            let mut i = *x as usize;
+            // Check positive ID
+            if i >= self.rows {
+                return Err(&format!("row ID is greater than the number of rows: {}", i))
+            }
+        }
+        if let Some(x) = rows.iter().min() {
+            let mut i = *x as usize;
+            // Convert negative ID to position and check
+            if i < 0 && self.rows + i < 0 {
+                return Err(&format!("row ID is greater than the number of rows: {}", i))
+            }
+        }
+        let ids = self.invert_rows(rows)?;
+        self._remove_rows(ids)
+    }
+
+    /// Returns row indices not found in the given vector of row indices.
+    pub fn invert_rows<'a>(&self, rows: Vec<i32>) -> Result<Vec<i32>, &'a str> {
+        let normed_rows: Vec<i32> = rows.iter().map(|i| {
+                if *i >= 0 { 
+                    *i
+                } else {
+                    self.rows as i32 + *i
+                }
+            })
+            .collect();
+        let rows: Vec<i32> = (0..self.rows)
+                .filter(|i| !normed_rows.contains(&(*i as i32)) )
+                .map(|i| i as i32 )
+                .collect();
+        Ok(rows)
+    }
+
+    /// Returns column indices not found in the given vector of column indices.
+    pub fn invert_cols<'a>(&self, cols: Vec<i32>) -> Result<Vec<i32>, &'a str> {
+        let normed_cols: Vec<i32> = cols.iter().map(|i| {
+                if *i >= 0 { 
+                    *i
+                } else {
+                    self.cols as i32 + *i
+                }
+            })
+            .collect();
+        let cols: Vec<i32> = (0..self.cols)
+                .filter(|i| !normed_cols.contains(&(*i as i32)) )
+                .map(|i| i as i32 )
+                .collect();
+        Ok(cols)
+    }
 }
 
 // Wrappers for pyo3
@@ -156,8 +213,18 @@ impl SeqMatrix {
     /// --
     /// 
     /// Removes rows from the sequence matrix based on a list of row indices.
-    pub fn remove_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
+    fn remove_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._remove_rows(ids) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+        }
+    }
+
+    /// retain_records(indices, /)
+    /// 
+    /// Keep rows matching the specified row indices, and removes everything else.
+    fn retain_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+        match self._retain_rows(ids) {
             Ok(res) => Ok(res),
             Err(x) => return Err(exceptions::IndexError::py_err(x)),
         }
@@ -177,16 +244,6 @@ impl SeqMatrix {
     //     }
     //     Ok(())
     // }    
-
-    /// retain_records(indices, /)
-    /// 
-    /// Keep entries at the specified row indices, and removes
-    /// everything else.
-    pub fn retain_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        let rows: Vec<i32> = self.invert_rows(rows)?;
-        self.remove_rows(rows)
-    }
 
     pub fn drain_rows(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
         check_empty_alignment(self)?;
@@ -544,22 +601,6 @@ impl SeqMatrix {
             }
         }
         Ok(())
-    }
-    
-    pub fn invert_rows(&self, rows: Vec<i32>) -> PyResult<Vec<i32>> {
-        let rows: Vec<i32> = (0..self.nrows()?)
-                .filter(|i| !rows.contains(&(*i as i32)) )
-                .map(|i| i as i32 )
-                .collect();
-        Ok(rows)
-    }
-
-    pub fn invert_cols(&self, cols: Vec<i32>) -> PyResult<Vec<i32>> {
-        let cols: Vec<i32> = (0..self.ncols()?)
-                .filter(|i| !cols.contains(&(*i as i32)) )
-                .map(|i| i as i32 )
-                .collect();
-        Ok(cols)
     }
 
     pub fn copy(&self) -> PyResult<BaseAlignment> {
