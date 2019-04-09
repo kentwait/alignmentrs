@@ -229,7 +229,7 @@ impl SeqMatrix {
     /// retain_records(indices, /)
     /// 
     /// Keep rows matching the specified row indices, and removes everything else.
-    fn retain_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+    fn retain_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._retain_rows(ids) {
             Ok(res) => Ok(res),
             Err(x) => return Err(exceptions::IndexError::py_err(x)),
