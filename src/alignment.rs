@@ -53,7 +53,7 @@ impl SeqMatrix {
             }
         }
         // Check positive ID
-        if i as usize >= self.rows {
+        if i >= self.rows as i32 {
             return Err(&format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
         }
         Ok(())
@@ -68,7 +68,7 @@ impl SeqMatrix {
             }
         }
         // Check positive ID
-        if i as usize >= self.cols {
+        if i >= self.cols as i32 {
             return Err(&format!("column ID is greater than the number of columns: {}", i))
         }
         Ok(())
