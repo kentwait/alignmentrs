@@ -69,8 +69,6 @@ impl SeqMatrix {
     /// Removes rows from the sequence matrix based on a list of row indices.
     pub fn _remove_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
         let mut rows = ids.clone();
-        rows.sort_unstable();
-        rows.dedup();
         if let Some(x) = rows.iter().max() {
             let mut i = *x as usize;
             // Check positive ID
@@ -85,10 +83,25 @@ impl SeqMatrix {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
         }
+        
+        let rows: Vec<i32> = rows.iter().map(|i| {
+                if *i >= 0 { 
+                    *i
+                } else {
+                    self.rows as i32 + *i
+                }
+            })
+            .collect();
+        rows.sort_unstable();
+        rows.dedup();
         rows.reverse();
+
         for row in rows.iter().map(|x| *x as usize) {
             self.data.remove(row);
         }
+        self.data = self.data.iter().enumerate().filter(|(i, _)| {
+
+        })
         Ok(())
     }
 
@@ -115,38 +128,48 @@ impl SeqMatrix {
         self._remove_rows(ids)
     }
 
-    /// Returns row indices not found in the given vector of row indices.
-    pub fn invert_rows<'a>(&self, rows: Vec<i32>) -> Result<Vec<i32>, &'a str> {
-        let normed_rows: Vec<i32> = rows.iter().map(|i| {
+    /// Converts row indices into positive-value row indices.
+    pub fn _norm_rows(&self, ids: Vec<i32>) -> Vec<usize> {
+        let normed_rows: Vec<usize> = ids.iter().map(|i| {
                 if *i >= 0 { 
-                    *i
+                    *i as usize
                 } else {
-                    self.rows as i32 + *i
+                    (self.rows as i32 + *i) as usize
                 }
             })
             .collect();
-        let rows: Vec<i32> = (0..self.rows)
-                .filter(|i| !normed_rows.contains(&(*i as i32)) )
-                .map(|i| i as i32 )
+        normed_rows
+    }
+
+    /// Converts column indices into positive-value column indices.
+    pub fn _norm_cols(&self, ids: Vec<i32>) -> Vec<usize> {
+        let normed_cols: Vec<usize> = ids.iter().map(|i| {
+                if *i >= 0 { 
+                    *i as usize
+                } else {
+                    (self.cols as i32 + *i) as usize
+                }
+            })
+            .collect();
+        normed_cols
+    }
+
+    /// Returns row indices not found in the given vector of row indices.
+    pub fn invert_rows<'a>(&self, ids: Vec<i32>) -> Vec<usize> {
+        let normed_rows: Vec<usize> = self._norm_rows(ids);
+        let rows: Vec<usize> = (0..self.rows)
+                .filter(|i| !normed_rows.contains(i) )
                 .collect();
-        Ok(rows)
+        rows
     }
 
     /// Returns column indices not found in the given vector of column indices.
-    pub fn invert_cols<'a>(&self, cols: Vec<i32>) -> Result<Vec<i32>, &'a str> {
-        let normed_cols: Vec<i32> = cols.iter().map(|i| {
-                if *i >= 0 { 
-                    *i
-                } else {
-                    self.cols as i32 + *i
-                }
-            })
-            .collect();
-        let cols: Vec<i32> = (0..self.cols)
-                .filter(|i| !normed_cols.contains(&(*i as i32)) )
-                .map(|i| i as i32 )
+    pub fn invert_cols<'a>(&self, ids: Vec<i32>) -> Vec<usize> {
+        let normed_cols: Vec<usize> = self._norm_cols(ids);
+        let cols: Vec<usize> = (0..self.cols)
+                .filter(|i| !normed_cols.contains(i) )
                 .collect();
-        Ok(cols)
+        cols
     }
 }
 
