@@ -16,7 +16,8 @@ pub struct SeqMatrix {
 // Rust functions
 impl SeqMatrix {
 
-    // Getters
+    // Getter functions
+    // #region
 
     /// Returns the number of rows in the sequence matrix.
     pub fn _nrows(&self) -> usize {
@@ -28,8 +29,11 @@ impl SeqMatrix {
         self.cols
     }
 
+    // #endregion
+
 
     // Error methods
+    // #region
 
     /// Returns an error if the matrix is empty.
     pub fn _is_empty_matrix<'a>(&self) -> Result<(), &'a str> {
@@ -52,8 +56,11 @@ impl SeqMatrix {
         Ok(())
     }
 
+    // #endregion
+
 
     // Row methods
+    // #region
 
     /// Returns a string sequence from the sequence matrix based on the given index.
     pub fn _get_row<'a>(&self, id: i32) -> Result<String, &'a str> {
@@ -136,6 +143,8 @@ impl SeqMatrix {
         self.data = rows.into_iter().map(|i| self.data[i]).collect();
         Ok(())
     }
+
+    // #endregion
 
 
     // Column methods
