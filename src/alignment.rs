@@ -130,6 +130,32 @@ impl SeqMatrix {
         Ok(())
     }
 
+    pub fn _reorder_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+        if self.rows == 0 {
+            return Err("empty sequence matrix")
+        } else {
+            if let Some(x) = ids.iter().max() {
+                let mut i = *x as usize;
+                // Check positive ID
+                if i >= self.rows {
+                    return Err(&format!("row ID is greater than the number of rows: {}", i))
+                }
+            }
+            if let Some(x) = ids.iter().min() {
+                let mut i = *x as usize;
+                // Convert negative ID to position and check
+                if i < 0 && self.rows + i < 0 {
+                    return Err(&format!("row ID is greater than the number of rows: {}", i))
+                }
+            }
+        }
+        // Normalize row ids to positive ids        
+        let rows: Vec<usize> = self._norm_rows(ids);
+        // Reorder using normalized row ids
+        self.data = rows.into_iter().map( |i| self.data[i] ).collect();
+        Ok(())
+    }
+
     /// Converts row indices into positive-value row indices.
     pub fn _norm_rows(&self, ids: Vec<i32>) -> Vec<usize> {
         let normed_rows: Vec<usize> = ids.iter().map(|i| {
@@ -254,6 +280,17 @@ impl SeqMatrix {
     /// Keep rows matching the specified row indices, and removes everything else.
     fn retain_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._retain_rows(ids) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+        }
+    }
+
+    /// reorder_records(ids, /)
+    /// --
+    /// 
+    /// Reorders the sequences inplace based on a list of current row indices.
+    pub fn reorder_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+        match self._reorder_rows(ids) {
             Ok(res) => Ok(res),
             Err(x) => return Err(exceptions::IndexError::py_err(x)),
         }
