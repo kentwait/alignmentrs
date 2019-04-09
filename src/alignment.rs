@@ -46,12 +46,30 @@ impl SeqMatrix {
     /// Returns an error if a positive or negative index is greater than the size of the matrix
     pub fn _is_valid_row_index<'a>(&self, i: i32) -> Result<(), &'a str> {
         // Error if a negative index normalized to the start (0) is a negative number.
-        if i < 0 && self.rows as i32 + i < 0 {
-            return Err(&format!("row ID is greater than the number of rows: {}", i))
+        if i < 0 {
+            let norm = self.rows as i32 + i;
+            if norm < 0 {
+                return Err(&format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
+            }
         }
         // Check positive ID
         if i as usize >= self.rows {
-            return Err(&format!("row ID is greater than the number of rows: {}", i))
+            return Err(&format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
+        }
+        Ok(())
+    }
+
+    pub fn _is_valid_col_index<'a>(&self, i: i32) -> Result<(), &'a str> {
+        // Error if a negative index normalized to the start (0) is a negative number.
+        if i < 0 {
+            let norm = self.cols as i32 + i;
+            if norm < 0 {
+                return Err(&format!("column ID ({}) is greater than the number of column ({})", i, self.cols))
+            }
+        }
+        // Check positive ID
+        if i as usize >= self.cols {
+            return Err(&format!("column ID is greater than the number of columns: {}", i))
         }
         Ok(())
     }
