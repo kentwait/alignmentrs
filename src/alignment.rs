@@ -31,9 +31,23 @@ impl SeqMatrix {
 
     // Error methods
 
+    /// Returns an error if the matrix is empty.
     pub fn _is_empty_matrix<'a>(&self) -> Result<(), &'a str> {
         if self.rows == 0 {
             return Err("empty sequence matrix")
+        }
+        Ok(())
+    }
+
+    /// Returns an error if a positive or negative index is greater than the size of the matrix
+    pub fn _is_valid_row_index<'a>(&self, i: i32) -> Result<(), &'a str> {
+        // Error if a negative index normalized to the start (0) is a negative number.
+        if i < 0 && self.rows as i32 + i < 0 {
+            return Err(&format!("row ID is greater than the number of rows: {}", i))
+        }
+        // Check positive ID
+        if i as usize >= self.rows {
+            return Err(&format!("row ID is greater than the number of rows: {}", i))
         }
         Ok(())
     }
@@ -52,20 +66,12 @@ impl SeqMatrix {
     /// Returns a vector of string sequences from the sequence matrix based on the given vector of indices.
     pub fn _get_rows<'a>(&self, ids: Vec<i32>) -> Result<Vec<String>, &'a str> {
         self._is_empty_matrix()?;
-            if let Some(x) = ids.iter().max() {
-                let mut i = *x as usize;
-                // Check positive ID
-                if i >= self.rows {
-                    return Err(&format!("row ID is greater than the number of rows: {}", i))
-                }
-            }
-            if let Some(x) = ids.iter().min() {
-                let mut i = *x as usize;
-                // Convert negative ID to position and check
-                if i < 0 && self.rows + i < 0 {
-                    return Err(&format!("row ID is greater than the number of rows: {}", i))
-                }
-            }
+        if let Some(x) = ids.iter().max() {
+            self._is_valid_row_index(*x)?;
+        }
+        if let Some(x) = ids.iter().min() {
+            self._is_valid_row_index(*x)?;
+        }
         // Normalize row ids to positive values and get rows
         let result: Vec<String> = self._norm_rows(ids).into_iter()
             .map(|i| self.data[i])
@@ -76,21 +82,12 @@ impl SeqMatrix {
     /// Removes rows from the sequence matrix based on a list of row indices.
     pub fn _remove_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
         self._is_empty_matrix()?;
-            if let Some(x) = ids.iter().max() {
-                let mut i = *x as usize;
-                // Check positive ID
-                if i >= self.rows {
-                    return Err(&format!("row ID is greater than the number of rows: {}", i))
-                }
-            }
-            if let Some(x) = ids.iter().min() {
-                let mut i = *x as usize;
-                // Convert negative ID to position and check
-                if i < 0 && self.rows + i < 0 {
-                    return Err(&format!("row ID is greater than the number of rows: {}", i))
-                }
-            }
-        
+        if let Some(x) = ids.iter().max() {
+            self._is_valid_row_index(*x)?;
+        }
+        if let Some(x) = ids.iter().min() {
+            self._is_valid_row_index(*x)?;
+        }
         
         // Normalize row ids to positive ids
         let rows: Vec<usize> = self._norm_rows(ids);
@@ -107,21 +104,12 @@ impl SeqMatrix {
     /// Keep rows matching the specified row indices, and removes everything else.
     pub fn _retain_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
         self._is_empty_matrix()?;
-
-            if let Some(x) = ids.iter().max() {
-                let mut i = *x as usize;
-                // Check positive ID
-                if i >= self.rows {
-                    return Err(&format!("row ID is greater than the number of rows: {}", i))
-                }
-            }
-            if let Some(x) = ids.iter().min() {
-                let mut i = *x as usize;
-                // Convert negative ID to position and check
-                if i < 0 && self.rows + i < 0 {
-                    return Err(&format!("row ID is greater than the number of rows: {}", i))
-                }
-            }
+        if let Some(x) = ids.iter().max() {
+            self._is_valid_row_index(*x)?;
+        }
+        if let Some(x) = ids.iter().min() {
+            self._is_valid_row_index(*x)?;
+        }
         
         // Normalize row ids to positive ids        
         let rows: Vec<usize> = self._norm_rows(ids);
@@ -137,20 +125,12 @@ impl SeqMatrix {
 
     pub fn _reorder_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
         self._is_empty_matrix()?;
-            if let Some(x) = ids.iter().max() {
-                let mut i = *x as usize;
-                // Check positive ID
-                if i >= self.rows {
-                    return Err(&format!("row ID is greater than the number of rows: {}", i))
-                }
-            }
-            if let Some(x) = ids.iter().min() {
-                let mut i = *x as usize;
-                // Convert negative ID to position and check
-                if i < 0 && self.rows + i < 0 {
-                    return Err(&format!("row ID is greater than the number of rows: {}", i))
-                }
-            }
+        if let Some(x) = ids.iter().max() {
+            self._is_valid_row_index(*x)?;
+        }
+        if let Some(x) = ids.iter().min() {
+            self._is_valid_row_index(*x)?;
+        }
         
         // Normalize row ids to positive ids        
         let rows: Vec<usize> = self._norm_rows(ids);
