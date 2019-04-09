@@ -4,51 +4,99 @@ use pyo3::{PyObjectProtocol, exceptions};
 
 use crate::record::Record;
 
+
 #[pyclass]
 #[derive(Clone)]
-pub struct BaseAlignment {
-
+pub struct SeqMatrix {
     pub data: Vec<String>,
-
+    pub rows: usize,
+    pub cols: usize,
 }
 
+// Rust functions
+impl SeqMatrix {
+    /// Returns the number of rows in the sequence matrix.
+    pub fn _nrows(&self) -> usize {
+        self.rows
+    }
+
+    /// Returns the number of columns in the sequence matrix.
+    pub fn _ncols(&self) -> usize {
+        self.cols
+    }
+
+    /// Returns a string sequence from the sequence matrix based on the given index.
+    pub fn _get_row<'a>(&self, mut id: i32) -> Result<String, &'a str> {
+        if self.rows == 0 {
+            return Err("empty sequence matrix")
+        }
+        // Convert negative index (count from end) to positive (count from start)
+        if id < 0 {
+            id = self.rows as i32 + id
+        }
+        Ok(self.data[id as usize].to_string())
+    }
+
+    /// Returns a vector of string sequences from the sequence matrix based on the given vector of indices.
+    pub fn _get_rows<'a>(&self, ids: Vec<i32>) -> Result<Vec<String>, &'a str> {
+        if self.rows == 0 {
+            return Err("empty sequence matrix")
+        }
+        if let Some(x) = ids.iter().max() {
+            let mut i = *x as usize;
+            // Convert negative ID to position and check
+            if i < 0 && self.rows + i < 0 {
+                return Err(&format!("row ID is greater than the number of rows: {}", i))
+            }
+            // Check positive ID
+            else if i >= self.rows {
+                return Err(&format!("row ID is greater than the number of rows: {}", i))
+            }
+        }
+        let result: Vec<String> = ids.iter().map(|id| {
+            let id = *id as usize;
+            let i: usize = if id >= 0 { id } else { self.rows + id };
+            self.data[i]
+        }).collect();
+        Ok(result)
+    }
+}
+
+// Wrappers for pyo3
 #[pymethods]
-impl BaseAlignment {
+impl SeqMatrix {
     #[new]
-    /// Creates a new BaseAlignment object from a list of ids, descriptions,
-    /// and sequences.
-    pub fn __new__(obj: &PyRawObject, records: Vec<&Record>) -> PyResult<()> {
-        // TODO: Check if all vectors have the same size.
-        let data: Vec<String> = records.iter().map(
-            |rec| rec.sequence.to_string()
-        ).collect();
+    /// Creates a new SeqMatrix object from a list of sequences.
+    pub fn __new__(obj: &PyRawObject, sequences: Vec<String>) -> PyResult<()> {
+        let rows: usize = sequences.len();
+        let mut cols: usize = 0;
+        // Check whether each row has the same number of chars as the first row
+        if sequences.len() > 0 {
+            cols = sequences[0].chars().count();
+            for row in sequences.iter() {
+                if cols != row.chars().count() {
+                    return Err(exceptions::ValueError::py_err(
+                    "sequences have different character lengths"))
+                }
+            }
+        }
+        let data = sequences.clone();
+        // Instantiates the struct
         obj.init(|_| {
-            BaseAlignment{ data }
+            SeqMatrix{ data, rows, cols }
         })
     }
     
     #[getter]
     /// int: Returns the number of rows in the BaseAlignment.
     pub fn nrows(&self) -> PyResult<i32> {
-        Ok(self.data.len() as i32)
+        Ok(self._nrows() as i32)
     }
 
     #[getter]
     /// int: Returns the number of columns in the alignment.
     pub fn ncols(&self) -> PyResult<i32> {
-        if self.data.len() == 0 {
-            return Ok(0)
-        }
-        Ok(self.data[0].len() as i32)
-    }
-
-    #[getter]
-    /// int: Returns the number of aligned characters (ncols * chunk_size).
-    pub fn nchars(&self) -> PyResult<i32> {
-        if self.data.len() == 0 {
-            return Ok(0)
-        }
-        Ok(self.data[0].len() as i32)
+        Ok(self._ncols() as i32)
     }
 
     #[getter]
@@ -57,24 +105,26 @@ impl BaseAlignment {
         Ok(self.data.clone())
     }
 
-    // Row methods
-    pub fn get_row(&self, row: i32) -> PyResult<String> {
-        check_empty_alignment(self)?;
-        check_row_index(self, row as usize)?;
-        Ok(self.data[row as usize].to_string())
+    /// get_row(id, /)
+    /// --
+    /// 
+    /// Returns a string sequence from the sequence matrix based on the given row index.
+    pub fn get_row(&self, id: i32) -> PyResult<String> {
+        match self._get_row(id) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+        }
     }
 
-
-    pub fn get_rows(&self, rows: Vec<i32>) -> PyResult<Vec<String>> {
-        check_empty_alignment(self)?;
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
+    /// get_rows(ids, /)
+    /// --
+    /// 
+    /// Returns a list of string sequences from the sequence matrix based on the given list of row indices.
+    pub fn get_rows(&self, ids: Vec<i32>) -> PyResult<Vec<String>> {
+        match self._get_rows(ids) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
         }
-        let mut sequences: Vec<String> = Vec::new();
-        for row in rows.into_iter().map(|x| x as usize) {
-            sequences.push(self.data[row].to_string());
-        }
-        Ok(sequences)
     }
 
     /// insert_records(position, ids, descriptions, sequences, /)
@@ -502,7 +552,7 @@ impl BaseAlignment {
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
 #[pyproto]
-impl PyObjectProtocol for BaseAlignment {
+impl PyObjectProtocol for SeqMatrix {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("BaseAlignment(nrows={nrows}, ncols={ncols})",
             nrows=self.nrows()?, ncols=self.ncols()?))
@@ -607,7 +657,7 @@ pub fn check_length_match_i32(len1: i32, len2:i32) -> PyResult<()> {
 // Register python functions to PyO3
 #[pymodinit]
 fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<BaseAlignment>()?;
+    m.add_class::<SeqMatrix>()?;
     m.add_function(wrap_function!(from_list))?;
 
     Ok(())
