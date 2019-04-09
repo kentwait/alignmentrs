@@ -66,12 +66,10 @@ impl SeqMatrix {
                     return Err(&format!("row ID is greater than the number of rows: {}", i))
                 }
             }
-        
-        let result: Vec<String> = ids.iter().map(|id| {
-            let id = *id as usize;
-            let i: usize = if id >= 0 { id } else { self.rows + id };
-            self.data[i]
-        }).collect();
+        // Normalize row ids to positive values and get rows
+        let result: Vec<String> = self._norm_rows(ids).into_iter()
+            .map(|i| self.data[i])
+            .collect();
         Ok(result)
     }
 
