@@ -46,16 +46,19 @@ impl SeqMatrix {
         rows.sort_unstable();
         if let Some(x) = rows.iter().max() {
             let mut i = *x as usize;
+            // Check positive ID
+            if i >= self.rows {
+                return Err(&format!("row ID is greater than the number of rows: {}", i))
+            }
+        }
+        if let Some(x) = rows.iter().min() {
+            let mut i = *x as usize;
             // Convert negative ID to position and check
             if i < 0 && self.rows + i < 0 {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
-            // Check positive ID
-            else if i >= self.rows {
-                return Err(&format!("row ID is greater than the number of rows: {}", i))
-            }
         }
-        let result: Vec<String> = rows.iter().map(|id| {
+        let result: Vec<String> = ids.iter().map(|id| {
             let id = *id as usize;
             let i: usize = if id >= 0 { id } else { self.rows + id };
             self.data[i]
@@ -70,12 +73,15 @@ impl SeqMatrix {
         rows.dedup();
         if let Some(x) = rows.iter().max() {
             let mut i = *x as usize;
-            // Convert negative ID to position and check
-            if i < 0 && self.rows + i < 0 {
+            // Check positive ID
+            if i >= self.rows {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
-            // Check positive ID
-            else if i >= self.rows {
+        }
+        if let Some(x) = rows.iter().min() {
+            let mut i = *x as usize;
+            // Convert negative ID to position and check
+            if i < 0 && self.rows + i < 0 {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
         }
