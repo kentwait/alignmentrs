@@ -93,9 +93,8 @@ impl SeqMatrix {
         let rows: Vec<usize> = self._norm_rows(ids);
         // Keep data whose index is not found in the rows vector
         // Remove if index is in the rows vector
-        self.data = self.data.into_iter().enumerate().filter(|(i, _)| {
-                !rows.contains(i)
-            })
+        self.data = self.data.into_iter().enumerate()
+            .filter(|(i, _)| !rows.contains(i))
             .map(|(_, x)| x )
             .collect();
         Ok(())
@@ -115,9 +114,8 @@ impl SeqMatrix {
         let rows: Vec<usize> = self._norm_rows(ids);
         // Keep data whose index is in the rows vector
         // Remove if index is not found in the rows vector
-        self.data = self.data.into_iter().enumerate().filter(|(i, _)| {
-                rows.contains(i)
-            })
+        self.data = self.data.into_iter().enumerate()
+            .filter(|(i, _)| rows.contains(i))
             .map(|(_, x)| x )
             .collect();
         Ok(())
@@ -135,7 +133,7 @@ impl SeqMatrix {
         // Normalize row ids to positive ids        
         let rows: Vec<usize> = self._norm_rows(ids);
         // Reorder using normalized row ids
-        self.data = rows.into_iter().map( |i| self.data[i] ).collect();
+        self.data = rows.into_iter().map(|i| self.data[i]).collect();
         Ok(())
     }
 
@@ -149,7 +147,8 @@ impl SeqMatrix {
 
     /// Converts row indices into positive-value row indices.
     pub fn _norm_rows(&self, ids: Vec<i32>) -> Vec<usize> {
-        let normed_rows: Vec<usize> = ids.iter().map(|i| {
+        let normed_rows: Vec<usize> = ids.iter()
+            .map(|i| {
                 if *i >= 0 { 
                     *i as usize
                 } else {
@@ -162,7 +161,8 @@ impl SeqMatrix {
 
     /// Converts column indices into positive-value column indices.
     pub fn _norm_cols(&self, ids: Vec<i32>) -> Vec<usize> {
-        let normed_cols: Vec<usize> = ids.iter().map(|i| {
+        let normed_cols: Vec<usize> = ids.iter()
+            .map(|i| {
                 if *i >= 0 { 
                     *i as usize
                 } else {
