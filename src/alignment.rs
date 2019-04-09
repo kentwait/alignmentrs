@@ -219,6 +219,79 @@ impl SeqMatrix {
     pub fn _get_cols<'a>(&self, ids: Vec<i32>) -> Result<Vec<Vec<String>>, &'a str> {
         self._get_chunks(ids, 1)
     }
+
+    /// Removes columns from the sequence matrix based on a list of column indices.
+    pub fn _remove_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+        self._drop_cols(ids, false)
+    }
+
+    /// Keep columns matching the specified columns indices, and removes everything else.
+    pub fn _retain_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+        self._drop_cols(ids, true)
+    }
+
+    /// Generalized method used to remove columns from the sequence matrix.
+    fn _drop_cols<'a>(&mut self, ids: Vec<i32>, invert: bool) -> Result<(), &'a str> {
+        self._is_empty_matrix()?;
+        let sorted_ids: Vec<i32> = ids.clone();
+        sorted_ids.sort_unstable();
+        if sorted_ids.len() == 0 {
+            return Ok(())
+        } else if sorted_ids.len() == 1 {
+            self._is_valid_col_index(sorted_ids[0])?;
+        } else {
+            self._is_valid_col_index(sorted_ids[0])?;
+            self._is_valid_col_index(sorted_ids[sorted_ids.len()-1])?;
+        }
+        let cols: Vec<usize> = self._norm_cols(ids);
+        self.data = self.data.into_iter()
+            .map(|row| {
+                let sequence: String = row.char_indices()
+                    .filter(|(i, _)| {
+                        if invert {
+                            // cols in ids will be retained
+                            cols.contains(i)
+                        } else {
+                            // cols in ids will be removed
+                            !cols.contains(i)
+                        }
+                    })
+                    .map(|(_, x)| x )
+                    .collect();
+                sequence
+            })
+            .collect();
+        Ok(())
+    }
+
+    /// Reorders rows based on a given ordered vector of row indices.
+    pub fn _reorder_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+        self._is_empty_matrix()?;
+        if ids.len() != self.cols {
+            return Err(&format!("number of ids ({}) is not equal to the number of columns ({})", ids.len(), self.rows))
+        }
+        if let Some(x) = ids.iter().max() {
+            self._is_valid_col_index(*x)?;
+        }
+        if let Some(x) = ids.iter().min() {
+            self._is_valid_col_index(*x)?;
+        }
+        
+        // Normalize col ids to positive ids        
+        let cols: Vec<usize> = self._norm_cols(ids);
+        // Reorder using normalized col ids
+        self.data = self.data.into_iter()
+            .map(|row| {
+                let seq_vec: Vec<char> = row.chars().collect();
+                let sequence: String = cols.iter()
+                    .map(|j| seq_vec[*j])
+                    .collect();
+                sequence
+            })
+            .collect();
+        Ok(())
+    }
+
     // #endregion
 
 
@@ -479,23 +552,33 @@ impl SeqMatrix {
     /// remove_cols(indices, /)
     /// --
     /// 
-    /// Removes many alignment columns simulatenously based on a
-    /// list of column indices.
-    pub fn remove_cols(&mut self, mut cols: Vec<i32>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        cols.sort_unstable();
-        cols.dedup();
-        if let Some(x) = cols.iter().max() {
-            check_col_index(self, *x as usize)?;
+    /// Removes many alignment columns simulatenously based on a list of column indices.
+    pub fn remove_cols(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
+        match self._remove_cols(ids) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
         }
-        for row in 0..self.data.len() {
-            let sequence: String = self.data[row].char_indices()
-                .filter(|(i, _)| !cols.contains(&(*i as i32)))
-                .map(|(_, x)| x )
-                .collect();
-            self.data[row] = sequence;
+    }
+
+    /// retain_cols(indices, /)
+    /// 
+    /// Keep  alignment columns at the specified column indices and removes everything else.
+    pub fn retain_cols(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        match self._retain_cols(ids) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
         }
-        Ok(())
+    }
+
+    /// reorder_cols(ids, /)
+    /// --
+    /// 
+    /// Reorders the alignment columns inplace based on a list of current column indices.
+    pub fn reorder_cols(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        match self._reorder_cols(ids) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+        }
     }
 
     // insert
@@ -547,28 +630,6 @@ impl SeqMatrix {
     //     Ok(())
     // }
 
-    
-
-    /// retain_cols(indices, /)
-    /// 
-    /// Keep  alignment columns at the specified column indices and
-    /// removes everything else.
-    pub fn retain_cols(&mut self, cols: Vec<i32>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        let cols: Vec<i32> = (0..self.ncols()?)
-            .filter(|i| !cols.contains(&(*i as i32)) )
-            .map(|i| i as i32 )
-            .collect();        
-        self.remove_cols(cols)
-    }
-
-    pub fn drain_cols(&mut self, cols: Vec<i32>) -> PyResult<BaseAlignment> {
-        let mut aln = self.copy()?;
-        aln.retain_cols(cols.clone())?;
-        self.remove_cols(cols.clone())?;
-        Ok(aln)
-    }
-
     /// replace_col(coordinate, sequence, /)
     /// --
     /// 
@@ -598,29 +659,12 @@ impl SeqMatrix {
     //     Ok(())
     // }
 
-    /// reorder_cols(ids, /)
-    /// --
-    /// 
-    /// Reorders the alignment columns inplace based on a list of current
-    /// column indices.
-    pub fn reorder_cols(&mut self, cols: Vec<i32>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        if let Some(x) = cols.iter().max() {
-            check_col_index(self, *x as usize)?;
-        }
-        if cols.len() != self.data.len() {
-            return Err(exceptions::ValueError::py_err(
-                "length mismatch."))
-        }
-        for i in 0..self.data.len() {
-            let seq_vec: Vec<char> = self.data[i].chars().collect();
-            let sequence: String = cols.iter()
-                .map(|j| seq_vec[(*j) as usize])
-                .collect();
-            self.data[i] = sequence;
-        }
-        Ok(())
-    }
+    // pub fn drain_cols(&mut self, cols: Vec<i32>) -> PyResult<BaseAlignment> {
+    //     let mut aln = self.copy()?;
+    //     aln.retain_cols(cols.clone())?;
+    //     self.remove_cols(cols.clone())?;
+    //     Ok(aln)
+    // }
 
     pub fn has(&self, query: &str, case_sensitive: bool, mode: &str, step_size: i32, chunk_size: i32) -> PyResult<Vec<i32>> {
         check_empty_alignment(self)?;
