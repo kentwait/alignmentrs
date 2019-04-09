@@ -433,7 +433,7 @@ impl SeqMatrix {
     fn get_row(&self, id: i32) -> PyResult<String> {
         match self._get_row(id) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -444,7 +444,7 @@ impl SeqMatrix {
     fn get_rows(&self, ids: Vec<i32>) -> PyResult<Vec<String>> {
         match self._get_rows(ids) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -455,7 +455,7 @@ impl SeqMatrix {
     fn remove_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._remove_rows(ids) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -465,7 +465,7 @@ impl SeqMatrix {
     fn retain_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._retain_rows(ids) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -476,62 +476,9 @@ impl SeqMatrix {
     pub fn reorder_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._reorder_rows(ids) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
-
-    /// insert_records(position, ids, descriptions, sequences, /)
-    /// 
-    /// Inserts one or more samples at the specified position.
-    // fn insert_records(&mut self, mut row: i32, values: Vec<&Record>) -> PyResult<()> {
-    //     if self.nrows()? < row {
-    //         return Err(exceptions::IndexError::py_err(
-    //             "row index out of range."))
-    //     }
-    //     for value in values.into_iter() {
-    //         self.records.insert(row as usize, value.clone());
-    //         row += 1;
-    //     }
-    //     Ok(())
-    // }    
-
-    // fn replace_record(&mut self, row: i32, value: &Record) -> PyResult<()> {
-    //     self.replace_records(vec![row], vec![value])
-    // }
-
-    // fn replace_records(&mut self, rows: Vec<i32>, values: Vec<&Record>) -> PyResult<()> {
-    //     check_length_match(&rows, &values)?;
-    //     check_empty_alignment(self)?;
-    //     if let Some(x) = rows.iter().max() {
-    //         check_row_index(self, *x as usize)?;
-    //     }
-    //     for (i, row) in rows.into_iter().map(|x| x as usize).enumerate() {
-    //         // TODO: Make function that checks if records have the same length and string length
-    //         check_length_match_i32(values[i].len_str()?, self.records[i].len_str()?)?;
-    //         check_length_match_i32(values[i].len()?, self.records[i].len()?)?;
-    //         self.records[row] = values[i].clone();
-    //     }
-    //     Ok(())
-    // }
-
-    // pub fn drain_rows(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
-    //     check_empty_alignment(self)?;
-    //     rows.sort_unstable();
-    //     rows.dedup();
-    //     if let Some(x) = rows.iter().max() {
-    //         check_row_index(self, *x as usize)?;
-    //     }
-    //     let mut data: Vec<String> = Vec::new();
-    //     let mut i: i32 = 0;
-    //     while i != self.data.len() as i32 {
-    //         if rows.contains(&i) {
-    //             data.push(self.data.remove(i as usize));
-    //         } else {
-    //             i += 1;
-    //         }
-    //     }
-    //     Ok(BaseAlignment{ data }) 
-    // }
     
     // #endregion
 
@@ -547,7 +494,7 @@ impl SeqMatrix {
     -> PyResult<Vec<String>> {
         match self._get_chunk(id, chunk_size) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -559,7 +506,7 @@ impl SeqMatrix {
     -> PyResult<Vec<Vec<String>>> {
         match self._get_chunks(ids, chunk_size) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -570,7 +517,7 @@ impl SeqMatrix {
     fn get_col(&self, id: i32) -> PyResult<Vec<String>> {
         match self._get_col(id) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -581,7 +528,7 @@ impl SeqMatrix {
     fn get_cols(&self, ids: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
         match self._get_cols(ids) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -592,7 +539,7 @@ impl SeqMatrix {
     pub fn remove_cols(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
         match self._remove_cols(ids) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -602,7 +549,7 @@ impl SeqMatrix {
     pub fn retain_cols(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._retain_cols(ids) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
 
@@ -613,94 +560,9 @@ impl SeqMatrix {
     pub fn reorder_cols(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._reorder_cols(ids) {
             Ok(res) => Ok(res),
-            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+            Err(x) => Err(exceptions::IndexError::py_err(x)),
         }
     }
-
-    // insert
-    // fn insert_col(&mut self, col: usize, value: Vec<&str>) -> PyResult<()> {
-    //     self.insert_cols(col, vec![value])
-    // }
-
-    // fn insert_cols(&mut self, mut col: usize, values: Vec<Vec<&str>>)
-    // -> PyResult<()> {
-    //     if values.len() == 0 {
-    //         return Ok(())
-    //     }
-    //     // TODO: Add immediate return to other methods when value length is 0
-    //     check_col_index(self, col)?;
-    //     check_length_match(&values[0], &self.data)?;
-    //     check_chunk_size(self, &values[0])?;
-    //     for value in values.iter() {
-    //         for i in 0..self.records.len() {
-    //             self.records[i].sequence.insert(
-    //                 col as usize, value[i].to_string());
-    //         }
-    //         col += 1;
-    //     }
-    //     Ok(())
-    // }
-
-    // for value in values.into_iter() {
-    //     self.records.insert(row as usize, value.clone());
-    //     row += 1;
-    // }
-    // Ok(())
-
-    // append
-    // fn append_col(&mut self, value: Vec<&str>) -> PyResult<()> {
-    //     self.append_cols(vec![value])
-    // }
-
-    // fn append_cols(&mut self, values: Vec<Vec<&str>>) -> PyResult<()> {
-    //     if values.len() == 0 {
-    //         return Ok(())
-    //     }
-    //     check_length_match(&values[0], &self.records)?;
-    //     check_chunk_size(self, &values[0])?;
-    //     for i in 0..self.records.len() {
-    //         for value in values.iter() {
-    //             self.records[i].sequence.push(value[i].to_string());
-    //         }
-    //     }
-    //     Ok(())
-    // }
-
-    /// replace_col(coordinate, sequence, /)
-    /// --
-    /// 
-    /// Replaces the all the characters in an alignment column.
-    // fn replace_col(&mut self, col: i32, value: Vec<&str>) -> PyResult<()> {
-    //     self.replace_cols(vec![col], vec![value])
-    // }
-
-    /// replace_cols(coordinates, sequences, /)
-    /// --
-    /// 
-    /// Replaces the all the characters in each specified column from a list of
-    /// alignment columns.
-    // fn replace_cols(&mut self, cols: Vec<i32>, values: Vec<Vec<&str>>)
-    // -> PyResult<()> {
-    //     check_length_match(&cols, &values)?;
-    //     check_empty_alignment(self)?;
-    //     if let Some(x) = cols.iter().max() {
-    //         check_col_index(self, *x as usize)?;
-    //     }
-    //     for (i, col) in cols.iter().enumerate() {
-    //         check_length_match(&self.records, &values[i])?;
-    //         for row in 0..self.records.len() {
-    //             self.records[row].sequence[*col as usize] = values[i][row].to_string();
-    //         }
-    //     }
-    //     Ok(())
-    // }
-
-    // pub fn drain_cols(&mut self, cols: Vec<i32>) -> PyResult<BaseAlignment> {
-    //     let mut aln = self.copy()?;
-    //     aln.retain_cols(cols.clone())?;
-    //     self.remove_cols(cols.clone())?;
-    //     Ok(aln)
-    // }
 
     // #endregion
 
@@ -730,93 +592,55 @@ impl SeqMatrix {
     // #endregion
 
 
-    pub fn has(&self, query: &str, case_sensitive: bool, mode: &str, step_size: i32, chunk_size: i32) -> PyResult<Vec<i32>> {
-        check_empty_alignment(self)?;
-        let mut positions: Vec<i32> = Vec::new();
-        let seq_vec: Vec<Vec<char>> = self.data.iter()
-            .map(|seq| {seq.chars().collect()})
-            .collect();
-        let chunk_size = chunk_size as usize;
-        let step_size = step_size as usize;
-        if step_size < chunk_size {
-            return Err(exceptions::ValueError::py_err(
-                    "step_size is less than chunk_size"))
-        }
-        let query: String = match case_sensitive {
-            true => query.to_string(),
-            false => query.to_string().to_uppercase(),
-        };
-        for j in (0..seq_vec[0].len()).step_by(chunk_size) {
-            let res: Vec<bool> = seq_vec.iter().map(
-                |row| {
-                    let mut chars: String = row[j..j+chunk_size]
-                        .into_iter().collect();
-                    if !case_sensitive {
-                        chars = chars.to_uppercase();
-                    }
-                    if chars.contains(&query) {
-                        true
-                    } else {
-                        false
-                    }
-                }
-            ).collect();
-            if mode == "any" {
-                if res.contains(&true) {
-                    let mut curr_positions: Vec<i32> = (j..j+chunk_size)
-                        .map(|i| i as i32).collect();
-                    positions.append(&mut curr_positions);
-                }
-            } else if mode == "all" {
-                if !res.contains(&false) {
-                    let mut curr_positions: Vec<i32> = (j..j+chunk_size)
-                        .map(|i| i as i32).collect();
-                    positions.append(&mut curr_positions);
-                }
-            } else {
-                return Err(exceptions::ValueError::py_err(
-                    "mode must be \"any\" or \"all\""))
-            }
-        }
-        Ok(positions)
-    }
-
-    /// subset(row_indices, column_indices, /)
-    /// --
-    /// 
-    /// Returns the subset of rows and columns in the alignment as a new
-    /// RawAlignment.
-    // fn subset(&self, rows: Vec<i32>, cols: Vec<i32>)
-    // -> PyResult<BaseAlignment> {
+    // pub fn has(&self, query: &str, case_sensitive: bool, mode: &str, step_size: i32, chunk_size: i32) -> PyResult<Vec<i32>> {
     //     check_empty_alignment(self)?;
-    //     if let Some(x) = rows.iter().max() {
-    //         check_row_index(self, *x as usize)?;
+    //     let mut positions: Vec<i32> = Vec::new();
+    //     let seq_vec: Vec<Vec<char>> = self.data.iter()
+    //         .map(|seq| {seq.chars().collect()})
+    //         .collect();
+    //     let chunk_size = chunk_size as usize;
+    //     let step_size = step_size as usize;
+    //     if step_size < chunk_size {
+    //         return Err(exceptions::ValueError::py_err(
+    //                 "step_size is less than chunk_size"))
     //     }
-    //     if let Some(x) = cols.iter().max() {
-    //         check_col_index(self, *x as usize)?;
-    //     }
-    //     let mut records: Vec<Record> = Vec::new();
-    //     let chunk_size = self.chunk_size;
-    //     let ncols = cols.len();
-    //     for row in rows.into_iter().map(|x| x as usize) {
-    //         let sequence: Vec<String> = self.records[row].sequence.iter().enumerate()
-    //             .filter(|(i, _)| cols.contains(&(*i as i32)) )
-    //             .map(|(_, item)| item.to_string() )
-    //             .collect();
-    //         // Make sure sequence length == ncols
-    //         if sequence.len() != ncols {
+    //     let query: String = match case_sensitive {
+    //         true => query.to_string(),
+    //         false => query.to_string().to_uppercase(),
+    //     };
+    //     for j in (0..seq_vec[0].len()).step_by(chunk_size) {
+    //         let res: Vec<bool> = seq_vec.iter().map(
+    //             |row| {
+    //                 let mut chars: String = row[j..j+chunk_size]
+    //                     .into_iter().collect();
+    //                 if !case_sensitive {
+    //                     chars = chars.to_uppercase();
+    //                 }
+    //                 if chars.contains(&query) {
+    //                     true
+    //                 } else {
+    //                     false
+    //                 }
+    //             }
+    //         ).collect();
+    //         if mode == "any" {
+    //             if res.contains(&true) {
+    //                 let mut curr_positions: Vec<i32> = (j..j+chunk_size)
+    //                     .map(|i| i as i32).collect();
+    //                 positions.append(&mut curr_positions);
+    //             }
+    //         } else if mode == "all" {
+    //             if !res.contains(&false) {
+    //                 let mut curr_positions: Vec<i32> = (j..j+chunk_size)
+    //                     .map(|i| i as i32).collect();
+    //                 positions.append(&mut curr_positions);
+    //             }
+    //         } else {
     //             return Err(exceptions::ValueError::py_err(
-    //                 format!("Unexpected number of columns: {} != {}",
-    //                     sequence.len(), ncols)))
+    //                 "mode must be \"any\" or \"all\""))
     //         }
-    //         records.push(Record{
-    //             id: self.records[row].id.to_string(),
-    //             description: self.records[row].description.to_string(),
-    //             sequence,
-    //             chunk_size,
-    //         })
     //     }
-    //     Ok(BaseAlignment{ records, chunk_size })
+    //     Ok(positions)
     // }
 }
 
