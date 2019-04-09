@@ -68,64 +68,58 @@ impl SeqMatrix {
 
     /// Removes rows from the sequence matrix based on a list of row indices.
     pub fn _remove_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
-        let mut rows = ids.clone();
-        if let Some(x) = rows.iter().max() {
+        if let Some(x) = ids.iter().max() {
             let mut i = *x as usize;
             // Check positive ID
             if i >= self.rows {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
         }
-        if let Some(x) = rows.iter().min() {
+        if let Some(x) = ids.iter().min() {
             let mut i = *x as usize;
             // Convert negative ID to position and check
             if i < 0 && self.rows + i < 0 {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
         }
-        
-        let rows: Vec<i32> = rows.iter().map(|i| {
-                if *i >= 0 { 
-                    *i
-                } else {
-                    self.rows as i32 + *i
-                }
+        // Normalize row ids to positive ids
+        let rows: Vec<usize> = self._norm_rows(ids);
+        // Keep data whose index is not found in the rows vector
+        // Remove if index is in the rows vector
+        self.data = self.data.into_iter().enumerate().filter(|(i, _)| {
+                !rows.contains(i)
             })
+            .map(|(_, x)| x )
             .collect();
-        rows.sort_unstable();
-        rows.dedup();
-        rows.reverse();
-
-        for row in rows.iter().map(|x| *x as usize) {
-            self.data.remove(row);
-        }
-        self.data = self.data.iter().enumerate().filter(|(i, _)| {
-
-        })
         Ok(())
     }
 
     /// Keep rows matching the specified row indices, and removes everything else.
     pub fn _retain_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
-        let mut rows = ids.clone();
-        rows.sort_unstable();
-        rows.dedup();
-        if let Some(x) = rows.iter().max() {
+        if let Some(x) = ids.iter().max() {
             let mut i = *x as usize;
             // Check positive ID
             if i >= self.rows {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
         }
-        if let Some(x) = rows.iter().min() {
+        if let Some(x) = ids.iter().min() {
             let mut i = *x as usize;
             // Convert negative ID to position and check
             if i < 0 && self.rows + i < 0 {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
         }
-        let ids = self.invert_rows(rows)?;
-        self._remove_rows(ids)
+        // Normalize row ids to positive ids        
+        let rows: Vec<usize> = self._norm_rows(ids);
+        // Keep data whose index is in the rows vector
+        // Remove if index is not found in the rows vector
+        self.data = self.data.into_iter().enumerate().filter(|(i, _)| {
+                rows.contains(i)
+            })
+            .map(|(_, x)| x )
+            .collect();
+        Ok(())
     }
 
     /// Converts row indices into positive-value row indices.
