@@ -297,6 +297,40 @@ impl SeqMatrix {
     // #endregion
 
 
+    // SeqMatrix methods
+
+    /// Concatenates sequence matrices across columns, preserving the number of rows.
+    pub fn _concat<'a>(&mut self, others: Vec<&SeqMatrix>) -> Result<SeqMatrix, &'a str> {
+        self._is_empty_matrix()?;
+        if others.len() == 0 {
+            return Ok(self._copy())
+        } else {
+            let rows_true: usize = others.iter()
+                .map(|m| if self.rows == m.rows { 1 } else { 0 })
+                .sum();
+            if others.len() != rows_true {
+                return Err(&format!("number of rows of other matrices is not equal to {}", self.rows))
+            }
+        }
+        let sq = self._copy();
+        for aln in others.iter() {
+            for j in 0..self.data.len() {
+                sq.data[j].push_str(&aln.data[j]);
+            }
+        }
+        Ok(sq)
+    }
+
+    // TODO: implement clone()
+
+    pub fn _copy(&self) -> SeqMatrix {
+        SeqMatrix{
+            data: self.data.clone(),
+            rows: self.rows,
+            cols: self.cols,
+        }
+    }
+
     // Utility methods
     // #region
 
@@ -668,6 +702,34 @@ impl SeqMatrix {
     //     Ok(aln)
     // }
 
+    // #endregion
+
+
+    // SeqMatrix methods
+    // #region
+
+    /// concat(others, /)
+    /// --
+    /// 
+    /// Returns a new sequence matrix by concatenating this matrix to a list of other matrices.
+    pub fn concat(&mut self, others: Vec<&SeqMatrix>) -> PyResult<SeqMatrix> {
+        match self._concat(others) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::ValueError::py_err(x)),
+        }
+    }
+
+    /// copy()
+    /// --
+    /// 
+    /// Returns a deep copy of the current sequence matrix.
+    fn copy(&self) -> PyResult<SeqMatrix> {
+        Ok(self._copy())
+    }
+
+    // #endregion
+
+
     pub fn has(&self, query: &str, case_sensitive: bool, mode: &str, step_size: i32, chunk_size: i32) -> PyResult<Vec<i32>> {
         check_empty_alignment(self)?;
         let mut positions: Vec<i32> = Vec::new();
@@ -756,25 +818,6 @@ impl SeqMatrix {
     //     }
     //     Ok(BaseAlignment{ records, chunk_size })
     // }
-
-
-    pub fn concat(&mut self, others: Vec<&BaseAlignment>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        if let Err(_) = check_empty_list(&others) {
-            return Ok(())
-        };
-        for aln in others.iter() {
-            check_length_match(&self.data, &aln.data)?;
-            for j in 0..self.data.len() {
-                self.data[j].push_str(&aln.data[j]);
-            }
-        }
-        Ok(())
-    }
-
-    pub fn copy(&self) -> PyResult<BaseAlignment> {
-        Ok(BaseAlignment{ data: self.data.clone() })
-    }
 }
 
 // Customizes __repr__ and __str__ of PyObjectProtocol trait
