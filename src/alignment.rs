@@ -42,7 +42,9 @@ impl SeqMatrix {
         if self.rows == 0 {
             return Err("empty sequence matrix")
         }
-        if let Some(x) = ids.iter().max() {
+        let mut rows = ids.clone();
+        rows.sort_unstable();
+        if let Some(x) = rows.iter().max() {
             let mut i = *x as usize;
             // Convert negative ID to position and check
             if i < 0 && self.rows + i < 0 {
@@ -53,12 +55,35 @@ impl SeqMatrix {
                 return Err(&format!("row ID is greater than the number of rows: {}", i))
             }
         }
-        let result: Vec<String> = ids.iter().map(|id| {
+        let result: Vec<String> = rows.iter().map(|id| {
             let id = *id as usize;
             let i: usize = if id >= 0 { id } else { self.rows + id };
             self.data[i]
         }).collect();
         Ok(result)
+    }
+
+    /// Removes rows from the sequence matrix based on a list of row indices.
+    pub fn _remove_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+        let mut rows = ids.clone();
+        rows.sort_unstable();
+        rows.dedup();
+        if let Some(x) = rows.iter().max() {
+            let mut i = *x as usize;
+            // Convert negative ID to position and check
+            if i < 0 && self.rows + i < 0 {
+                return Err(&format!("row ID is greater than the number of rows: {}", i))
+            }
+            // Check positive ID
+            else if i >= self.rows {
+                return Err(&format!("row ID is greater than the number of rows: {}", i))
+            }
+        }
+        rows.reverse();
+        for row in rows.iter().map(|x| *x as usize) {
+            self.data.remove(row);
+        }
+        Ok(())
     }
 }
 
@@ -67,7 +92,7 @@ impl SeqMatrix {
 impl SeqMatrix {
     #[new]
     /// Creates a new SeqMatrix object from a list of sequences.
-    pub fn __new__(obj: &PyRawObject, sequences: Vec<String>) -> PyResult<()> {
+    fn __new__(obj: &PyRawObject, sequences: Vec<String>) -> PyResult<()> {
         let rows: usize = sequences.len();
         let mut cols: usize = 0;
         // Check whether each row has the same number of chars as the first row
@@ -89,19 +114,19 @@ impl SeqMatrix {
     
     #[getter]
     /// int: Returns the number of rows in the BaseAlignment.
-    pub fn nrows(&self) -> PyResult<i32> {
+    fn nrows(&self) -> PyResult<i32> {
         Ok(self._nrows() as i32)
     }
 
     #[getter]
     /// int: Returns the number of columns in the alignment.
-    pub fn ncols(&self) -> PyResult<i32> {
+    fn ncols(&self) -> PyResult<i32> {
         Ok(self._ncols() as i32)
     }
 
     #[getter]
     /// list of str: Returns the list of sequences.
-    pub fn sequences(&self) -> PyResult<Vec<String>> {
+    fn sequences(&self) -> PyResult<Vec<String>> {
         Ok(self.data.clone())
     }
 
@@ -109,7 +134,7 @@ impl SeqMatrix {
     /// --
     /// 
     /// Returns a string sequence from the sequence matrix based on the given row index.
-    pub fn get_row(&self, id: i32) -> PyResult<String> {
+    fn get_row(&self, id: i32) -> PyResult<String> {
         match self._get_row(id) {
             Ok(res) => Ok(res),
             Err(x) => return Err(exceptions::IndexError::py_err(x)),
@@ -120,8 +145,19 @@ impl SeqMatrix {
     /// --
     /// 
     /// Returns a list of string sequences from the sequence matrix based on the given list of row indices.
-    pub fn get_rows(&self, ids: Vec<i32>) -> PyResult<Vec<String>> {
+    fn get_rows(&self, ids: Vec<i32>) -> PyResult<Vec<String>> {
         match self._get_rows(ids) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+        }
+    }
+
+    /// remove_rows(ids, /)
+    /// --
+    /// 
+    /// Removes rows from the sequence matrix based on a list of row indices.
+    pub fn remove_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
+        match self._remove_rows(ids) {
             Ok(res) => Ok(res),
             Err(x) => return Err(exceptions::IndexError::py_err(x)),
         }
@@ -140,26 +176,7 @@ impl SeqMatrix {
     //         row += 1;
     //     }
     //     Ok(())
-    // }
-
-    /// remove_records(indices, /)
-    /// --
-    /// 
-    /// Removes many entries simulatenously based on a
-    /// list of row indices.
-    pub fn remove_rows(&mut self, mut rows: Vec<i32>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        rows.sort_unstable();
-        rows.dedup();
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        rows.reverse();
-        for row in rows.iter().map(|x| *x as usize) {
-            self.data.remove(row);
-        }
-        Ok(())
-    }
+    // }    
 
     /// retain_records(indices, /)
     /// 
