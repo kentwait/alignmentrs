@@ -469,13 +469,34 @@ impl SeqMatrix {
     /// --
     /// 
     /// Returns a list of list of sequences representing columns in the sequence matrix based on the given list of column indices.
-    pub fn get_cols(&self, ids: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
+    fn get_cols(&self, ids: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
         match self._get_cols(ids) {
             Ok(res) => Ok(res),
             Err(x) => return Err(exceptions::IndexError::py_err(x)),
         }
     }
 
+    /// remove_cols(indices, /)
+    /// --
+    /// 
+    /// Removes many alignment columns simulatenously based on a
+    /// list of column indices.
+    pub fn remove_cols(&mut self, mut cols: Vec<i32>) -> PyResult<()> {
+        check_empty_alignment(self)?;
+        cols.sort_unstable();
+        cols.dedup();
+        if let Some(x) = cols.iter().max() {
+            check_col_index(self, *x as usize)?;
+        }
+        for row in 0..self.data.len() {
+            let sequence: String = self.data[row].char_indices()
+                .filter(|(i, _)| !cols.contains(&(*i as i32)))
+                .map(|(_, x)| x )
+                .collect();
+            self.data[row] = sequence;
+        }
+        Ok(())
+    }
 
     // insert
     // fn insert_col(&mut self, col: usize, value: Vec<&str>) -> PyResult<()> {
@@ -526,27 +547,7 @@ impl SeqMatrix {
     //     Ok(())
     // }
 
-    /// remove_cols(indices, /)
-    /// --
-    /// 
-    /// Removes many alignment columns simulatenously based on a
-    /// list of column indices.
-    pub fn remove_cols(&mut self, mut cols: Vec<i32>) -> PyResult<()> {
-        check_empty_alignment(self)?;
-        cols.sort_unstable();
-        cols.dedup();
-        if let Some(x) = cols.iter().max() {
-            check_col_index(self, *x as usize)?;
-        }
-        for row in 0..self.data.len() {
-            let sequence: String = self.data[row].char_indices()
-                .filter(|(i, _)| !cols.contains(&(*i as i32)))
-                .map(|(_, x)| x )
-                .collect();
-            self.data[row] = sequence;
-        }
-        Ok(())
-    }
+    
 
     /// retain_cols(indices, /)
     /// 
