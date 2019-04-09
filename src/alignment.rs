@@ -183,7 +183,7 @@ impl SeqMatrix {
     }
 
     /// Returns row indices not found in the given vector of row indices.
-    pub fn invert_rows<'a>(&self, ids: Vec<usize>) -> Vec<usize> {
+    pub fn _invert_rows<'a>(&self, ids: Vec<usize>) -> Vec<usize> {
         let rows: Vec<usize> = (0..self.rows)
                 .filter(|i| !ids.contains(i) )
                 .collect();
@@ -191,7 +191,7 @@ impl SeqMatrix {
     }
 
     /// Returns column indices not found in the given vector of column indices.
-    pub fn invert_cols<'a>(&self, ids: Vec<usize>) -> Vec<usize> {
+    pub fn _invert_cols<'a>(&self, ids: Vec<usize>) -> Vec<usize> {
         let cols: Vec<usize> = (0..self.cols)
                 .filter(|i| !ids.contains(i) )
                 .collect();
