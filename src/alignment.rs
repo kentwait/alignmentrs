@@ -168,7 +168,7 @@ impl SeqMatrix {
     // Column methods
     // #region
 
-    /// Returns a single contiguous n-char column of the sequence matrix as vector of String for a given column ID and chunk size.
+    /// Returns a single contiguous n-char column of the sequence matrix as vector of String for a given column index and chunk size.
     pub fn _get_chunk<'a>(&self, id: i32, chunk_size: usize) -> Result<Vec<String>, &'a str> {
         self._is_empty_matrix()?;
         self._is_valid_col_index(id)?;
@@ -183,7 +183,7 @@ impl SeqMatrix {
         Ok(sequences)
     }
 
-    /// Returns one or more contiguous n-char columns of the sequence matrix as vector of vector of String for a given vector of column IDs and a chunk size.
+    /// Returns one or more contiguous n-char columns of the sequence matrix as vector of vector of String for a given vector of column indices and a chunk size.
     pub fn _get_chunks<'a>(&self, ids: Vec<i32>, chunk_size: usize) -> Result<Vec<Vec<String>>, &'a str> {
         self._is_empty_matrix()?;
         let sorted_ids: Vec<i32> = ids.clone();
@@ -430,6 +430,10 @@ impl SeqMatrix {
     // Column methods
     // #region
 
+    /// get_chunk(id, chunk_size, /)
+    /// --
+    /// 
+    /// Returns a single contiguous n-char column of the sequence matrix as list of str for a given column index and chunk size.
     fn get_chunk(&self, id: i32, chunk_size: usize) 
     -> PyResult<Vec<String>> {
         match self._get_chunk(id, chunk_size) {
@@ -438,6 +442,10 @@ impl SeqMatrix {
         }
     }
 
+    /// get_chunks(ids, chunk_size, /)
+    /// --
+    /// 
+    /// Returns one or more contiguous n-char columns of the sequence matrix as list of list of str for a given vector of column indices and a chunk size.
     fn get_chunks(&self, ids: Vec<i32>, chunk_size: usize) 
     -> PyResult<Vec<Vec<String>>> {
         match self._get_chunks(ids, chunk_size) {
@@ -446,6 +454,10 @@ impl SeqMatrix {
         }
     }
 
+    /// get_col(id, /)
+    /// --
+    /// 
+    /// Returns a list of sequence representing a column in the sequence matrix based on the given column index.
     fn get_col(&self, id: i32) -> PyResult<Vec<String>> {
         match self._get_col(id) {
             Ok(res) => Ok(res),
@@ -453,11 +465,10 @@ impl SeqMatrix {
         }
     }
 
-    /// get_cols(col_indices, /)
+    /// get_cols(ids, /)
     /// --
     /// 
-    /// Returns a new RawAlignment object containing the specific
-    /// alignment columns based on a list of indices. 
+    /// Returns a list of list of sequences representing columns in the sequence matrix based on the given list of column indices.
     pub fn get_cols(&self, ids: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
         match self._get_cols(ids) {
             Ok(res) => Ok(res),
