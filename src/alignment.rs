@@ -289,7 +289,7 @@ impl SeqMatrix {
     /// --
     /// 
     /// Reorders the sequences inplace based on a list of current row indices.
-    pub fn reorder_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
+    pub fn reorder_rows(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._reorder_rows(ids) {
             Ok(res) => Ok(res),
             Err(x) => return Err(exceptions::IndexError::py_err(x)),
