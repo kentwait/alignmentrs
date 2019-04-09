@@ -80,7 +80,7 @@ impl SeqMatrix {
     // Row methods
     // #region
 
-    /// Returns a string sequence from the sequence matrix based on the given index.
+    /// Returns a string sequence representing a row in the sequence matrix based on a given row index.
     pub fn _get_row<'a>(&self, id: i32) -> Result<String, &'a str> {
         self._is_empty_matrix()?;
         // Convert negative index (count from end) to positive (count from start)
@@ -88,7 +88,7 @@ impl SeqMatrix {
         Ok(self.data[id].to_string())
     }
 
-    /// Returns a vector of string sequences from the sequence matrix based on the given vector of indices.
+    /// Returns a vector of string sequences representing rows in the sequence matrix based on the given vector of indices.
     pub fn _get_rows<'a>(&self, ids: Vec<i32>) -> Result<Vec<String>, &'a str> {
         self._is_empty_matrix()?;
         if let Some(x) = ids.iter().max() {
