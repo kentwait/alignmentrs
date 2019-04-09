@@ -33,40 +33,40 @@ impl SeqMatrix {
     // #region
 
     /// Returns an error if the matrix is empty.
-    pub fn _is_empty_matrix<'a>(&self) -> Result<(), &'a str> {
+    pub fn _is_empty_matrix<'a>(&self) -> Result<(), String> {
         if self.rows == 0 {
-            return Err("empty sequence matrix")
+            return Err("empty sequence matrix".to_owned())
         }
         Ok(())
     }
 
     /// Returns an error if a positive or negative index is greater than the size of the matrix
-    pub fn _is_valid_row_index<'a>(&self, i: i32) -> Result<(), &'a str> {
+    pub fn _is_valid_row_index<'a>(&self, i: i32) -> Result<(), String> {
         // Error if a negative index normalized to the start (0) is a negative number.
         if i < 0 {
             let norm = self.rows as i32 + i;
             if norm < 0 {
-                return Err(&format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
+                return Err(format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
             }
         }
         // Check positive ID
         if i >= self.rows as i32 {
-            return Err(&format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
+            return Err(format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
         }
         Ok(())
     }
 
-    pub fn _is_valid_col_index<'a>(&self, i: i32) -> Result<(), &'a str> {
+    pub fn _is_valid_col_index<'a>(&self, i: i32) -> Result<(), String> {
         // Error if a negative index normalized to the start (0) is a negative number.
         if i < 0 {
             let norm = self.cols as i32 + i;
             if norm < 0 {
-                return Err(&format!("column ID ({}) is greater than the number of column ({})", i, self.cols))
+                return Err(format!("column ID ({}) is greater than the number of column ({})", i, self.cols))
             }
         }
         // Check positive ID
         if i >= self.cols as i32 {
-            return Err(&format!("column ID is greater than the number of columns: {}", i))
+            return Err(format!("column ID is greater than the number of columns: {}", i))
         }
         Ok(())
     }
@@ -78,7 +78,7 @@ impl SeqMatrix {
     // #region
 
     /// Returns a string sequence representing a row in the sequence matrix based on a given row index.
-    pub fn _get_row<'a>(&self, id: i32) -> Result<String, &'a str> {
+    pub fn _get_row<'a>(&self, id: i32) -> Result<String, String> {
         self._is_empty_matrix()?;
         // Convert negative index (count from end) to positive (count from start)
         let id: usize = if id < 0 { (self.rows as i32 + id) as usize } else { id as usize };
@@ -86,7 +86,7 @@ impl SeqMatrix {
     }
 
     /// Returns a vector of string sequences representing rows in the sequence matrix based on the given vector of indices.
-    pub fn _get_rows<'a>(&self, ids: Vec<i32>) -> Result<Vec<String>, &'a str> {
+    pub fn _get_rows<'a>(&self, ids: Vec<i32>) -> Result<Vec<String>, String> {
         self._is_empty_matrix()?;
         if let Some(x) = ids.iter().max() {
             self._is_valid_row_index(*x)?;
@@ -96,23 +96,23 @@ impl SeqMatrix {
         }
         // Normalize row ids to positive values and get rows
         let result: Vec<String> = self._norm_rows(ids).into_iter()
-            .map(|i| self.data[i])
+            .map(|i| self.data[i].clone())
             .collect();
         Ok(result)
     }
 
     /// Removes rows from the sequence matrix based on a list of row indices.
-    pub fn _remove_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+    pub fn _remove_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), String> {
         self._drop_rows(ids, false)
     }
 
     /// Keep rows matching the specified row indices, and removes everything else.
-    pub fn _retain_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+    pub fn _retain_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), String> {
         self._drop_rows(ids, true)
     }
 
     /// Generalized method used to remove rows from the sequence matrix.
-    fn _drop_rows<'a>(&mut self, ids: Vec<i32>, invert: bool) -> Result<(), &'a str> {
+    fn _drop_rows<'a>(&mut self, ids: Vec<i32>, invert: bool) -> Result<(), String> {
         self._is_empty_matrix()?;
         if let Some(x) = ids.iter().max() {
             self._is_valid_row_index(*x)?;
@@ -125,7 +125,7 @@ impl SeqMatrix {
         let rows: Vec<usize> = self._norm_rows(ids);
         // Keep data whose index is not found in the rows vector
         // Remove if index is in the rows vector
-        self.data = self.data.into_iter().enumerate()
+        self.data = self.data.clone().into_iter().enumerate()
             .filter(|(i, _)| {
                 if invert {
                     // rows in ids will be retained
@@ -142,10 +142,10 @@ impl SeqMatrix {
     }
 
     /// Reorders rows based on a given ordered vector of row indices.
-    pub fn _reorder_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+    pub fn _reorder_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), String> {
         self._is_empty_matrix()?;
         if ids.len() != self.rows {
-            return Err(&format!("number of ids ({}) is not equal to the number of rows ({})", ids.len(), self.rows))
+            return Err(format!("number of ids ({}) is not equal to the number of rows ({})", ids.len(), self.rows))
         }
         if let Some(x) = ids.iter().max() {
             self._is_valid_row_index(*x)?;
@@ -157,7 +157,7 @@ impl SeqMatrix {
         // Normalize row ids to positive ids        
         let rows: Vec<usize> = self._norm_rows(ids);
         // Reorder using normalized row ids
-        self.data = rows.into_iter().map(|i| self.data[i]).collect();
+        self.data = rows.into_iter().map(|i| self.data[i].clone()).collect();
         Ok(())
     }
 
@@ -168,7 +168,7 @@ impl SeqMatrix {
     // #region
 
     /// Returns a single contiguous n-char column of the sequence matrix as vector of String for a given column index and chunk size.
-    pub fn _get_chunk<'a>(&self, id: i32, chunk_size: usize) -> Result<Vec<String>, &'a str> {
+    pub fn _get_chunk<'a>(&self, id: i32, chunk_size: usize) -> Result<Vec<String>, String> {
         self._is_empty_matrix()?;
         self._is_valid_col_index(id)?;
         let col: usize = if id < 0 { (self.rows as i32 + id) as usize } else { id as usize };
@@ -183,9 +183,9 @@ impl SeqMatrix {
     }
 
     /// Returns one or more contiguous n-char columns of the sequence matrix as vector of vector of String for a given vector of column indices and a chunk size.
-    pub fn _get_chunks<'a>(&self, ids: Vec<i32>, chunk_size: usize) -> Result<Vec<Vec<String>>, &'a str> {
+    pub fn _get_chunks<'a>(&self, ids: Vec<i32>, chunk_size: usize) -> Result<Vec<Vec<String>>, String> {
         self._is_empty_matrix()?;
-        let sorted_ids: Vec<i32> = ids.clone();
+        let mut sorted_ids: Vec<i32> = ids.clone();
         sorted_ids.sort_unstable();
         if sorted_ids.len() == 0 {
             return Ok(vec![Vec::new()])
@@ -210,29 +210,29 @@ impl SeqMatrix {
     }
 
     /// Returns a vector of string sequence representing a column in the sequence matrix based on the given index.
-    pub fn _get_col<'a>(&self, id: i32) -> Result<Vec<String>, &'a str> {
+    pub fn _get_col<'a>(&self, id: i32) -> Result<Vec<String>, String> {
         self._get_chunk(id, 1)
     }
 
     /// Returns a vector of vector of string sequences representing columns in the sequence matrix based on the given vector of indices.
-    pub fn _get_cols<'a>(&self, ids: Vec<i32>) -> Result<Vec<Vec<String>>, &'a str> {
+    pub fn _get_cols<'a>(&self, ids: Vec<i32>) -> Result<Vec<Vec<String>>, String> {
         self._get_chunks(ids, 1)
     }
 
     /// Removes columns from the sequence matrix based on a list of column indices.
-    pub fn _remove_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+    pub fn _remove_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), String> {
         self._drop_cols(ids, false)
     }
 
     /// Keep columns matching the specified columns indices, and removes everything else.
-    pub fn _retain_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+    pub fn _retain_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), String> {
         self._drop_cols(ids, true)
     }
 
     /// Generalized method used to remove columns from the sequence matrix.
-    fn _drop_cols<'a>(&mut self, ids: Vec<i32>, invert: bool) -> Result<(), &'a str> {
+    fn _drop_cols<'a>(&mut self, ids: Vec<i32>, invert: bool) -> Result<(), String> {
         self._is_empty_matrix()?;
-        let sorted_ids: Vec<i32> = ids.clone();
+        let mut sorted_ids: Vec<i32> = ids.clone();
         sorted_ids.sort_unstable();
         if sorted_ids.len() == 0 {
             return Ok(())
@@ -243,7 +243,7 @@ impl SeqMatrix {
             self._is_valid_col_index(sorted_ids[sorted_ids.len()-1])?;
         }
         let cols: Vec<usize> = self._norm_cols(ids);
-        self.data = self.data.into_iter()
+        self.data = self.data.clone().into_iter()
             .map(|row| {
                 let sequence: String = row.char_indices()
                     .filter(|(i, _)| {
@@ -264,10 +264,10 @@ impl SeqMatrix {
     }
 
     /// Reorders rows based on a given ordered vector of row indices.
-    pub fn _reorder_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+    pub fn _reorder_cols<'a>(&mut self, ids: Vec<i32>) -> Result<(), String> {
         self._is_empty_matrix()?;
         if ids.len() != self.cols {
-            return Err(&format!("number of ids ({}) is not equal to the number of columns ({})", ids.len(), self.rows))
+            return Err(format!("number of ids ({}) is not equal to the number of columns ({})", ids.len(), self.rows))
         }
         if let Some(x) = ids.iter().max() {
             self._is_valid_col_index(*x)?;
@@ -279,7 +279,7 @@ impl SeqMatrix {
         // Normalize col ids to positive ids        
         let cols: Vec<usize> = self._norm_cols(ids);
         // Reorder using normalized col ids
-        self.data = self.data.into_iter()
+        self.data = self.data.clone().into_iter()
             .map(|row| {
                 let seq_vec: Vec<char> = row.chars().collect();
                 let sequence: String = cols.iter()
@@ -297,7 +297,7 @@ impl SeqMatrix {
     // SeqMatrix methods
 
     /// Concatenates sequence matrices across columns, preserving the number of rows.
-    pub fn _concat<'a>(&mut self, others: Vec<&SeqMatrix>) -> Result<SeqMatrix, &'a str> {
+    pub fn _concat<'a>(&mut self, others: Vec<&SeqMatrix>) -> Result<SeqMatrix, String> {
         self._is_empty_matrix()?;
         if others.len() == 0 {
             return Ok(self._copy())
@@ -306,10 +306,10 @@ impl SeqMatrix {
                 .map(|m| if self.rows == m.rows { 1 } else { 0 })
                 .sum();
             if others.len() != rows_true {
-                return Err(&format!("number of rows of other matrices is not equal to {}", self.rows))
+                return Err(format!("number of rows of other matrices is not equal to {}", self.rows))
             }
         }
-        let sq = self._copy();
+        let mut sq = self._copy();
         for aln in others.iter() {
             for j in 0..self.data.len() {
                 sq.data[j].push_str(&aln.data[j]);
