@@ -106,6 +106,16 @@ impl SeqMatrix {
 
     /// Removes rows from the sequence matrix based on a list of row indices.
     pub fn _remove_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+        self._drop_rows(ids, false)
+    }
+
+    /// Keep rows matching the specified row indices, and removes everything else.
+    pub fn _retain_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
+        self._drop_rows(ids, true)
+    }
+
+    /// Generalized method used to remove rows from the sequence matrix.
+    fn _drop_rows<'a>(&mut self, ids: Vec<i32>, invert: bool) -> Result<(), &'a str> {
         self._is_empty_matrix()?;
         if let Some(x) = ids.iter().max() {
             self._is_valid_row_index(*x)?;
@@ -119,35 +129,27 @@ impl SeqMatrix {
         // Keep data whose index is not found in the rows vector
         // Remove if index is in the rows vector
         self.data = self.data.into_iter().enumerate()
-            .filter(|(i, _)| !rows.contains(i))
+            .filter(|(i, _)| {
+                if invert {
+                    // rows in ids will be retained
+                    rows.contains(i)
+                } else {
+                    // rows in ids will be removed
+                    !rows.contains(i)
+                }
+                
+            })
             .map(|(_, x)| x )
             .collect();
         Ok(())
     }
 
-    /// Keep rows matching the specified row indices, and removes everything else.
-    pub fn _retain_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
-        self._is_empty_matrix()?;
-        if let Some(x) = ids.iter().max() {
-            self._is_valid_row_index(*x)?;
-        }
-        if let Some(x) = ids.iter().min() {
-            self._is_valid_row_index(*x)?;
-        }
-        
-        // Normalize row ids to positive ids        
-        let rows: Vec<usize> = self._norm_rows(ids);
-        // Keep data whose index is in the rows vector
-        // Remove if index is not found in the rows vector
-        self.data = self.data.into_iter().enumerate()
-            .filter(|(i, _)| rows.contains(i))
-            .map(|(_, x)| x )
-            .collect();
-        Ok(())
-    }
-
+    /// Reorders rows based on a given ordered vector of row indices.
     pub fn _reorder_rows<'a>(&mut self, ids: Vec<i32>) -> Result<(), &'a str> {
         self._is_empty_matrix()?;
+        if ids.len() != self.rows {
+            return Err(&format!("number of ids ({}) is not equal to the number of rows ({})", ids.len(), self.rows))
+        }
         if let Some(x) = ids.iter().max() {
             self._is_valid_row_index(*x)?;
         }
@@ -176,7 +178,7 @@ impl SeqMatrix {
         let sequences: Vec<String> = self.data.iter()
             .map(|row| {
                 let row: Vec<char> = row.chars().collect();
-                let seq: String = row[col..col+chunk_size].into_iter().collect();
+                let seq: String = row[col..col+chunk_size].iter().collect();
                 seq
             })
             .collect();
