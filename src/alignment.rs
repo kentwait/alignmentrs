@@ -42,13 +42,11 @@ impl SeqMatrix {
     // Row methods
 
     /// Returns a string sequence from the sequence matrix based on the given index.
-    pub fn _get_row<'a>(&self, mut id: i32) -> Result<String, &'a str> {
+    pub fn _get_row<'a>(&self, id: i32) -> Result<String, &'a str> {
         self._is_empty_matrix()?;
         // Convert negative index (count from end) to positive (count from start)
-        if id < 0 {
-            id = self.rows as i32 + id
-        }
-        Ok(self.data[id as usize].to_string())
+        let id: usize = if id < 0 { (self.rows as i32 + id) as usize } else { id as usize };
+        Ok(self.data[id].to_string())
     }
 
     /// Returns a vector of string sequences from the sequence matrix based on the given vector of indices.
