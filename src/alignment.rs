@@ -166,11 +166,64 @@ impl SeqMatrix {
 
 
     // Column methods
+    // #region
 
+    /// Returns a single contiguous n-char column of the sequence matrix as vector of String for a given column ID and chunk size.
+    pub fn _get_chunk<'a>(&self, id: i32, chunk_size: usize) -> Result<Vec<String>, &'a str> {
+        self._is_empty_matrix()?;
+        self._is_valid_col_index(id)?;
+        let col: usize = if id < 0 { (self.rows as i32 + id) as usize } else { id as usize };
+        let sequences: Vec<String> = self.data.iter()
+            .map(|row| {
+                let row: Vec<char> = row.chars().collect();
+                let seq: String = row[col..col+chunk_size].into_iter().collect();
+                seq
+            })
+            .collect();
+        Ok(sequences)
+    }
 
+    /// Returns one or more contiguous n-char columns of the sequence matrix as vector of vector of String for a given vector of column IDs and a chunk size.
+    pub fn _get_chunks<'a>(&self, ids: Vec<i32>, chunk_size: usize) -> Result<Vec<Vec<String>>, &'a str> {
+        self._is_empty_matrix()?;
+        let sorted_ids: Vec<i32> = ids.clone();
+        sorted_ids.sort_unstable();
+        if sorted_ids.len() == 0 {
+            return Ok(vec![Vec::new()])
+        } else if sorted_ids.len() == 1 {
+            self._is_valid_col_index(sorted_ids[0])?;
+        } else {
+            self._is_valid_col_index(sorted_ids[0])?;
+            self._is_valid_col_index(sorted_ids[sorted_ids.len()-1])?;
+        }
+        let seq_vec: Vec<Vec<char>> = self.data.iter()
+            .map(|row| row.chars().collect())
+            .collect();
+        let sequences_vec: Vec<Vec<String>> = self._norm_cols(ids).into_iter()
+            .map(|col| {
+                let sequences: Vec<String> = seq_vec.iter()
+                    .map(|row| row[col..col+chunk_size].iter().collect())
+                    .collect();
+                sequences
+            })
+            .collect();
+        Ok(sequences_vec)
+    }
+
+    /// Returns a vector of string sequence representing a column in the sequence matrix based on the given index.
+    pub fn _get_col<'a>(&self, id: i32) -> Result<Vec<String>, &'a str> {
+        self._get_chunk(id, 1)
+    }
+
+    /// Returns a vector of vector of string sequences representing columns in the sequence matrix based on the given vector of indices.
+    pub fn _get_cols<'a>(&self, ids: Vec<i32>) -> Result<Vec<Vec<String>>, &'a str> {
+        self._get_chunks(ids, 1)
+    }
+    // #endregion
 
 
     // Utility methods
+    // #region
 
     /// Converts row indices into positive-value row indices.
     pub fn _norm_rows(&self, ids: Vec<i32>) -> Vec<usize> {
@@ -215,6 +268,7 @@ impl SeqMatrix {
                 .collect();
         cols
     }
+    // #endregion
 }
 
 // Wrappers for pyo3
@@ -261,6 +315,7 @@ impl SeqMatrix {
     }
 
     // Row methods
+    // #region
 
     /// get_row(id, /)
     /// --
@@ -369,13 +424,33 @@ impl SeqMatrix {
     //     Ok(BaseAlignment{ data }) 
     // }
     
-
+    // #endregion
 
 
     // Column methods
+    // #region
 
-    pub fn get_col(&self, col: i32) -> PyResult<Vec<String>> {
-        self.get_chunk(col, 1)
+    fn get_chunk(&self, id: i32, chunk_size: usize) 
+    -> PyResult<Vec<String>> {
+        match self._get_chunk(id, chunk_size) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+        }
+    }
+
+    fn get_chunks(&self, ids: Vec<i32>, chunk_size: usize) 
+    -> PyResult<Vec<Vec<String>>> {
+        match self._get_chunks(ids, chunk_size) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+        }
+    }
+
+    fn get_col(&self, id: i32) -> PyResult<Vec<String>> {
+        match self._get_col(id) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
+        }
     }
 
     /// get_cols(col_indices, /)
@@ -383,46 +458,13 @@ impl SeqMatrix {
     /// 
     /// Returns a new RawAlignment object containing the specific
     /// alignment columns based on a list of indices. 
-    pub fn get_cols(&self, cols: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
-        self.get_chunks(cols, 1)
-    }
-
-    pub fn get_chunk(&self, col: i32, chunk_size: i32) 
-    -> PyResult<Vec<String>> {
-        check_empty_alignment(self)?;
-        check_col_index(self, col as usize)?;
-        let col = col as usize;
-        let chunk_size = chunk_size as usize;
-        let seq_vec: Vec<Vec<char>> = self.data.iter()
-            .map(|seq| {seq.chars().collect()})
-            .collect();
-        let sequences: Vec<String> = seq_vec.into_iter()
-            .map(|row| row[col..col+chunk_size].into_iter().collect())
-            .collect();
-        Ok(sequences)
-    }
-
-    pub fn get_chunks(&self, cols: Vec<i32>, chunk_size: i32) 
-    -> PyResult<Vec<Vec<String>>> {
-        check_empty_alignment(self)?;
-        if let Some(x) = cols.iter().max() {
-            check_col_index(self, *x as usize)?;
+    pub fn get_cols(&self, ids: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
+        match self._get_cols(ids) {
+            Ok(res) => Ok(res),
+            Err(x) => return Err(exceptions::IndexError::py_err(x)),
         }
-        let chunk_size = chunk_size as usize;
-        let seq_vec: Vec<Vec<char>> = self.data.iter()
-            .map(|seq| seq.chars().collect())
-            .collect();
-        let sequences_vec: Vec<Vec<String>> = cols.into_iter()
-            .map(|col| {
-                let col = col as usize;
-                let sequences: Vec<String> = seq_vec.iter()
-                    .map(|row| row[col..col+chunk_size].iter().collect())
-                    .collect();
-                sequences
-            })
-            .collect();
-        Ok(sequences_vec)
     }
+
 
     // insert
     // fn insert_col(&mut self, col: usize, value: Vec<&str>) -> PyResult<()> {
