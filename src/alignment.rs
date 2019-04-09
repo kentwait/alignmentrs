@@ -311,25 +311,6 @@ impl SeqMatrix {
     //     Ok(())
     // }    
 
-    pub fn drain_rows(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
-        check_empty_alignment(self)?;
-        rows.sort_unstable();
-        rows.dedup();
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        let mut data: Vec<String> = Vec::new();
-        let mut i: i32 = 0;
-        while i != self.data.len() as i32 {
-            if rows.contains(&i) {
-                data.push(self.data.remove(i as usize));
-            } else {
-                i += 1;
-            }
-        }
-        Ok(BaseAlignment{ data }) 
-    }
-
     // fn replace_record(&mut self, row: i32, value: &Record) -> PyResult<()> {
     //     self.replace_records(vec![row], vec![value])
     // }
@@ -349,23 +330,25 @@ impl SeqMatrix {
     //     Ok(())
     // }
 
-    /// reorder_records(ids, /)
-    /// --
-    /// 
-    /// Reorders the sequences inplace based on a list of current row indices.
-    pub fn reorder_rows(&mut self, rows: Vec<i32>) -> PyResult<()> {
-        check_length_match(&rows, &self.data)?;
-        check_empty_alignment(self)?;
-        if let Some(x) = rows.iter().max() {
-            check_row_index(self, *x as usize)?;
-        }
-        let mut data: Vec<String> = Vec::with_capacity(rows.len());
-        for row in rows.into_iter().map(|x| x as usize) {
-            data.push(self.data[row].clone());
-        }
-        self.data = data;
-        Ok(())
-    }
+    // pub fn drain_rows(&mut self, mut rows: Vec<i32>) -> PyResult<BaseAlignment> {
+    //     check_empty_alignment(self)?;
+    //     rows.sort_unstable();
+    //     rows.dedup();
+    //     if let Some(x) = rows.iter().max() {
+    //         check_row_index(self, *x as usize)?;
+    //     }
+    //     let mut data: Vec<String> = Vec::new();
+    //     let mut i: i32 = 0;
+    //     while i != self.data.len() as i32 {
+    //         if rows.contains(&i) {
+    //             data.push(self.data.remove(i as usize));
+    //         } else {
+    //             i += 1;
+    //         }
+    //     }
+    //     Ok(BaseAlignment{ data }) 
+    // }
+    
 
 
 
