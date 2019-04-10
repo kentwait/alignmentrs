@@ -533,7 +533,7 @@ impl SeqMatrix {
     /// --
     /// 
     /// Removes many alignment columns simulatenously based on a list of column indices.
-    pub fn remove_cols(&mut self, mut ids: Vec<i32>) -> PyResult<()> {
+    pub fn remove_cols(&mut self, ids: Vec<i32>) -> PyResult<()> {
         match self._remove_cols(ids) {
             Ok(res) => Ok(res),
             Err(x) => Err(exceptions::IndexError::py_err(x)),
