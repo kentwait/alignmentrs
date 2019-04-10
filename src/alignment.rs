@@ -17,8 +17,9 @@ pub fn new_seqmatrix(sequences: Vec<String>) -> Result<SeqMatrix, String> {
     // Check whether each row has the same number of chars as the first row
     if rows > 0 {
         for row in sequences.iter() {
-            if cols != row.chars().count() {
-                return Err(format!("sequences have different character lengths"))
+            let cnt = row.chars().count();
+            if cols != cnt {
+                return Err(format!("detected different sequences lengths: {} != {}", cols, cnt))
             }
         }
     }
