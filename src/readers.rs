@@ -3,9 +3,10 @@ use pyo3::exceptions;
 
 use std::fs::File;
 use std::io::{BufReader, BufRead};
+use std::collections::HashMap;
 use regex::Regex;
 
-use crate::record::Record;
+use crate::alignment::SeqMatrix;
 
 lazy_static! {
     static ref WHITESPACE_REGEX: Regex = Regex::new(r"\s+").unwrap();
@@ -13,24 +14,21 @@ lazy_static! {
 
 // FASTA file readers
 
-#[pyfunction]
-/// fasta_file_to_records(data_str, /)
-/// --
-/// 
-/// Reads FASTA file and creates a list of Record objects.
-fn fasta_to_records(path: &str) -> PyResult<(Vec<Record>, Vec<String>)> {
+pub fn fasta_to_hashmap(path: &str) -> Result<HashMap<String, Vec<String>>, String> {
     // Open the path in read-only mode, returns `io::Result<File>`
     let f = match File::open(path) {
         Err(_) => {
-            return Err(exceptions::IOError::py_err(format!(
-                "encountered an error while trying to open file {:?}", path)))
+            return Err(format!(
+                "encountered an error while trying to open file {:?}", path))
         },
         Ok(x) => x
     };
     let f = BufReader::new(f);
 
     // Declare variables
-    let mut records: Vec<Record> = Vec::new();
+    let mut ids: Vec<String> = Vec::new();
+    let mut descriptions: Vec<String> = Vec::new();
+    let mut sequences: Vec<String> = Vec::new();
     let mut comments: Vec<String> = Vec::new();
 
     // Declare temp variables
@@ -42,17 +40,16 @@ fn fasta_to_records(path: &str) -> PyResult<(Vec<Record>, Vec<String>)> {
     for line in f.lines() {
         let line = match line {
             Err(_) => {
-                return Err(exceptions::IOError::py_err(format!(
-                    "encountered an error while reading file {:?}", path)))
+                return Err(format!(
+                    "encountered an error while reading file {:?}", path))
             },
             Ok(x) => x.trim().to_string()
         };
         if line.starts_with(">") {
             if sequence.len() > 0 {
-                let id = id.clone();
-                let description = description.clone();
-                let sequence: String = sequence.to_string();
-                records.push(Record{ id, description, sequence});
+                ids.push(id.clone());
+                descriptions.push(description.clone());
+                sequences.push(sequence.clone());
             }
             let matches: Vec<&str> = WHITESPACE_REGEX
                 .splitn(line.trim_start_matches(">"), 2)
@@ -72,12 +69,36 @@ fn fasta_to_records(path: &str) -> PyResult<(Vec<Record>, Vec<String>)> {
         }
     }
     if sequence.len() > 0 {
-        let id = id.clone();
-        let description = description.clone();
-        let sequence: String = sequence.to_string();
-        records.push(Record{ id, description, sequence});
+        ids.push(id.clone());
+        descriptions.push(description.clone());
+        sequences.push(sequence.clone());
     }
-    Ok((records, comments))
+
+    let map: HashMap<String, Vec<String>> = [
+        ("ids".to_string(), ids),
+        ("descriptions".to_string(), descriptions),
+        ("sequences".to_string(), sequences),
+        ("comments".to_string(), comments),
+    ].iter().cloned().collect();
+
+    Ok(map)
+}
+
+#[pyfunction]
+/// fasta_to_dict(data_str, /)
+/// --
+/// 
+/// Reads FASTA file and creates a list of Record objects.
+fn fasta_to_dict(path: &str) -> PyResult<(SeqMatrix, HashMap<String, Vec<String>>)> {
+    match fasta_to_hashmap(path) {
+        Ok(mut d) => {
+            let data = d.remove("sequences").unwrap();
+            let rows = data.len();
+            let cols = if rows > 0 {data[0].len()} else {0};
+            Ok((SeqMatrix{ data, rows, cols }, d))
+        },
+        Err(x) => Err(exceptions::IOError::py_err(x))
+    }
 }
 
 // TODO: Make readers for other file types: PHYLIP, NEXUS
@@ -86,7 +107,7 @@ fn fasta_to_records(path: &str) -> PyResult<(Vec<Record>, Vec<String>)> {
 // Register python functions to PyO3
 #[pymodinit]
 fn readers(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_function!(fasta_to_records))?;
+    m.add_function(wrap_function!(fasta_to_dict))?;
 
     Ok(())
 }
