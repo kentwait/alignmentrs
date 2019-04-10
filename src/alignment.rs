@@ -645,19 +645,12 @@ impl SeqMatrix {
 #[pyproto]
 impl PyObjectProtocol for SeqMatrix {
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("BaseAlignment(nrows={nrows}, ncols={ncols})",
+        Ok(format!("SeqMatrix(nrows={nrows}, ncols={ncols})",
             nrows=self.nrows()?, ncols=self.ncols()?))
     }
 
     fn __str__(&self) -> PyResult<String> {
-        if self.nrows()? == 0 {
-            return Ok(String::new())
-        }
-        let mut fasta_strings: Vec<String> = Vec::new();
-        for seq in self.data.iter() {
-            fasta_strings.push(seq.to_string());
-        }
-        Ok(fasta_strings.join("\n"))
+        Ok(self.data.clone().join("\n"))
     }
 
     // Determines the "truthyness" of the object
