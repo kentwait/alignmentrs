@@ -6,8 +6,8 @@ use pyo3::{PyObjectProtocol, exceptions};
 #[derive(Clone)]
 pub struct SeqMatrix {
     pub data: Vec<String>,
-    pub rows: usize,
-    pub cols: usize,
+    rows: usize,
+    cols: usize,
 }
 
 // Rust functions
