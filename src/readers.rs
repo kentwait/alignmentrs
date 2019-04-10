@@ -6,7 +6,7 @@ use std::io::{BufReader, BufRead};
 use std::collections::HashMap;
 use regex::Regex;
 
-use crate::alignment::SeqMatrix;
+use crate::alignment::{SeqMatrix, new_seqmatrix};
 
 lazy_static! {
     static ref WHITESPACE_REGEX: Regex = Regex::new(r"\s+").unwrap();
@@ -93,9 +93,11 @@ fn fasta_to_dict(path: &str) -> PyResult<(SeqMatrix, HashMap<String, Vec<String>
     match fasta_to_hashmap(path) {
         Ok(mut d) => {
             let data = d.remove("sequences").unwrap();
-            let rows = data.len();
-            let cols = if rows > 0 {data[0].len()} else {0};
-            Ok((SeqMatrix{ data, rows, cols }, d))
+            let seq_matrix = match new_seqmatrix(data) {
+                Ok(x) => x,
+                Err(x) => return Err(exceptions::ValueError::py_err(x)),
+            };
+            Ok((seq_matrix, d))
         },
         Err(x) => Err(exceptions::IOError::py_err(x))
     }

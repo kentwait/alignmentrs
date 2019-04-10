@@ -10,6 +10,21 @@ pub struct SeqMatrix {
     cols: usize,
 }
 
+pub fn new_seqmatrix(sequences: Vec<String>) -> Result<SeqMatrix, String> {
+    let data = sequences.clone();
+    let rows = data.len();    
+    let cols = if rows > 0 { data[0].chars().count() } else { 0 };
+    // Check whether each row has the same number of chars as the first row
+    if rows > 0 {
+        for row in sequences.iter() {
+            if cols != row.chars().count() {
+                return Err(format!("sequences have different character lengths"))
+            }
+        }
+    }
+    Ok(SeqMatrix{ data, rows, cols })
+}
+
 // Rust functions
 impl SeqMatrix {
 
@@ -383,23 +398,12 @@ impl SeqMatrix {
     #[new]
     /// Creates a new SeqMatrix object from a list of sequences.
     fn __new__(obj: &PyRawObject, sequences: Vec<String>) -> PyResult<()> {
-        let rows: usize = sequences.len();
-        let mut cols: usize = 0;
-        // Check whether each row has the same number of chars as the first row
-        if sequences.len() > 0 {
-            cols = sequences[0].chars().count();
-            for row in sequences.iter() {
-                if cols != row.chars().count() {
-                    return Err(exceptions::ValueError::py_err(
-                    "sequences have different character lengths"))
-                }
-            }
-        }
-        let data = sequences.clone();
+        let seq_matrix = match new_seqmatrix(sequences) {
+            Ok(x) => x,
+            Err(x) => return Err(exceptions::ValueError::py_err(x)),
+        };
         // Instantiates the struct
-        obj.init(|_| {
-            SeqMatrix{ data, rows, cols }
-        })
+        obj.init(|_| seq_matrix)
     }
     
     #[getter]
