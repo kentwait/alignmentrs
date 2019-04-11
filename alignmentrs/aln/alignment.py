@@ -87,7 +87,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
         # sequence matrix is required and forms the foundation of the
         # Alignment object.
-        self.data: SeqMatrix = self.data_constructor(matrix)
+        self.data: SeqMatrix = self._data_constructor(matrix)
 
         # Construct row metadata dataframe using the row_metadata input OR
         # from row_ids and row_descriptions.
@@ -120,7 +120,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self.col = ColData(self)
 
     # Constructors
-    def data_constructor(self, data):
+    def _data_constructor(self, data):
         # Constructs a SeqMatrix from the input if the input
         # is not already a SeqMatrix.
         # Input can be a SeqMatrix (no change),
