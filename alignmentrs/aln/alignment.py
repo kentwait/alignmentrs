@@ -185,7 +185,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 return data
             elif isinstance(data, dict):
                 if not ids:
-                    pass
+                    return pd.DataFrame(data)
                 # Constructs dataframe from data and ids
                 return pd.DataFrame(data, index=ids)
             raise TypeError('cannot construct column metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
@@ -206,7 +206,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 return data
             elif isinstance(data, dict):
                 if not ids:
-                    pass
+                    return pd.DataFrame(data)
                 # Constructs dataframe from data and ids
                 return pd.DataFrame(data, index=ids)
             raise TypeError('cannot construct row metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
