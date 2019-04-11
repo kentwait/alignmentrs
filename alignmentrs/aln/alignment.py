@@ -117,28 +117,55 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self.col = ColData(self)
 
     # Constructors
-    def data_constructor(self, records):
-        # Constructs a BaseAlignemnt from the input
-        # `records` can be a list of Record or a BaaseAlignment
-        # Otherwise, raises a TypeError
-        # TODO: Handle possibility of empty alignment
-        if isinstance(records, list):
-            if sum((isinstance(rec, Record) for rec in records)) \
-                == len(records):
-                return BaseAlignment(records)
-            raise TypeError('records must be a list of Record objects')
-        elif isinstance(records, BaseAlignment):
-            return records.copy()
-        raise TypeError('records must be a list of Record objects or a BaseAlignment')
+    def data_constructor(self, data):
+        # Constructs a SeqMatrix from the input if the input
+        # is not already a SeqMatrix.
+        # Input can be a SeqMatrix (no change),
+        # list of str, or list of list of str
+        if isinstance(data, SeqMatrix):
+            return data
+        elif isinstance(data, list):
+            # Convert all inner data into a string, if possible
+            str_list = []
+            for item in list:
+                if isinstance(item, str):
+                    str_list.append(item)
+                elif isinstance(item, list):
+                    try:
+                        string = ''.join(item)
+                    except TypeError:
+                        raise TypeError('expected str instance, {} found'.format(type(item)))
+                    str_list.append(string)
+                else:
+                    raise TypeError('cannot construct sequence from item: {}'.format(item))
+            return SeqMatrix(str_list)
+        
+        raise TypeError('unsupported data type: {}'.format(type(data)))
 
-    def _comments_constructor(self, comments):
+    def _comments_constructor(self, metadata):
         # Constructs metadata dictionary
-        # `metadata` can be a ditionary or None
-        # TODO: Handle any kind of mapping instead of only a dictionary
-        if comments is None:
+        # `metadata` can be a ditionary, list of tuple (size 2)
+        if metadata is None:
             return dict()
-        elif isinstance(comments, dict):
+        elif isinstance(metadata, dict):
             return comments
+        elif isinstance(metadata, list):
+            d = {}
+            for i, item in enumerate(metadata):
+                if isinstance(item, str):
+                    d[i] = item
+                    continue
+                elif isinstance(item, list) and len(item) == 2:
+                    if isinstance(item[0], str) and isinstance(item[1], str):
+                        d[item[0]] = item[1]
+                        continue
+                    raise TypeError('cannot construct entry from list item: {}'.format(item))
+                elif isinstance(item, tuple) and len(item) == 2:
+                    if isinstance(item[0], str) and isinstance(item[1], str):
+                        d[item[0]] = item[1]
+                        continue
+                    raise TypeError('cannot construct entry from list item: {}'.format(item))
+                raise TypeError('cannot construct entry from list item: {}'.format(item))
         raise TypeError('comments must be a dictionary of keys and values')
 
     def _col_metadata_constructor(self, records, column_metadata, index):
