@@ -13,7 +13,7 @@ from alignmentrs.utils import add_to_history
 __all__ = ['RowData']
 
 
-class RowData:
+class RowMethods:
     def __init__(self, instance):
         self._instance = instance
         self._axis = 0

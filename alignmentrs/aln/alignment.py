@@ -16,7 +16,8 @@ from alignmentrs.history import History
 from alignmentrs.history import Record as Record_
 from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
 from alignmentrs.utils import add_to_history
-from .mutator import RowData, ColData
+from .row import RowMethods
+from .col import ColMethods
 from .metadata import MetadataRedirect
 
 
