@@ -237,18 +237,19 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     @property
     def nrows(self):
         """int: Returns the number of rows in the alignment."""
-        return self.data.nrows
+        return self.data.nrows()
 
     @property
     def ncols(self):
         """int: Returns the number of columns in the alignment."""
-        return self.data.ncols
+        return self.data.ncols()
 
-    @property
-    def records(self):
-        """list of Record: Returns the list of records."""
-        return [Record(vals[0], vals[1]['description'], self.data.get_row(i))
-                for i, vals in enumerate(self.row_metadata.iterrows())]
+    # Return all row metadata as part of the record
+    # @property
+    # def records(self):
+    #     """list of Record: Returns the list of records."""
+    #     return [Record(vals[0], vals[1]['description'], self.data.get_row(i))
+    #             for i, vals in enumerate(self.row_metadata.iterrows())]
 
     @property
     def ids(self):
@@ -258,18 +259,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     @property
     def sequences(self):
         """list of str: Returns the list of sequences."""
-        return self.data.sequences
+        return self.data.data
 
-    @property
-    def history(self):
-        """History: Returns history of previous actions performed that may have
-        changed the state of the alignment."""
-        return self._history
+    # @property
+    # def history(self):
+    #     """History: Returns history of previous actions performed that may have
+    #     changed the state of the alignment."""
+    #     return self._history
 
     @property
     def row_and_metadata(self):
         df = self.row_metadata.copy(deep=True)
-        df['sequence'] = self.data.sequences
+        df['sequence'] = self.data.data
         return df
 
     @property
