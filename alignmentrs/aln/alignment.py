@@ -4,8 +4,8 @@ import os
 import inspect
 import warnings
 
-import pandas
-import numpy
+import pandas as pd
+import numpy as np
 
 from libalignmentrs.alignment import SeqMatrix
 from libalignmentrs.record import Record
@@ -89,20 +89,23 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Alignment object.
         self.data: SeqMatrix = self.data_constructor(matrix)
 
-        # Construct row metadata dataframe based on given row_ids
+        # Construct row metadata dataframe using the row_metadata input OR
+        # from row_ids and row_descriptions.
         if row_metadata is None:
-            self.row_metadata = self._make_row_meta(row_ids, row_descriptions)
+            self.row_metadata = \
+                self._make_row_meta(ids=row_ids, descriptions=row_descriptions)
         else:
-            self.row_metadata = row_metadata
+            self.row_metadata = self._make_row_meta(data=row_metadata)
 
-        # Construct column metadata dataframe based on given col_ids
+        # Construct row metadata dataframe using the row_metadata input OR
+        # from row_ids and row_descriptions.
         if col_metadata is None:
             self.column_metadata = \
-                self._make_col_meta(col_ids, col_descriptions)
+                self._make_col_meta(ids=col_ids, descriptions=col_descriptions)
         else:
-            self.column_metadata = col_metadata
+            self.column_metadata = self._make_row_meta(data=col_metadata)
 
-        # Construct
+        # Construct alignment metadata from specified aln_metadata
         self.aln_metadata = self._comments_constructor(aln_metadata)
 
         # self._history = History() if store_history else None
@@ -143,15 +146,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         raise TypeError('unsupported data type: {}'.format(type(data)))
 
     def _comments_constructor(self, metadata):
-        # Constructs metadata dictionary
-        # `metadata` can be a ditionary, list of tuple (size 2)
+        # Constructs metadata for the entire alignment
+        # alignment metadata is a dictionary
+        # input `metadata` can be a dictionary, list of tuple (size 2)
         if metadata is None:
             return dict()
         elif isinstance(metadata, dict):
             return comments
         elif isinstance(metadata, list):
+            # Converts items into a dictionary
             d = {}
             for i, item in enumerate(metadata):
+                # Tries to convert each item into a key-value entry
                 if isinstance(item, str):
                     d[i] = item
                     continue
@@ -166,29 +172,29 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                         continue
                     raise TypeError('cannot construct entry from list item: {}'.format(item))
                 raise TypeError('cannot construct entry from list item: {}'.format(item))
+            return d
         raise TypeError('comments must be a dictionary of keys and values')
 
-    def _col_metadata_constructor(self, records, column_metadata, index):
-        # Constructs column metadata DataFrame from `column_metadata` and
-        # `index` inputs`.
-        # `column_metadata` must be None, dict, or pandas.DataFrame
+    def _col_metadata_constructor(self, ids=None, descriptions=None, data=None):
+        # Constructs column metadata DataFrame from
+        # a list of ids and descriptions, OR
+        # uses data
         # Otherwise raises TypeError.
-        if column_metadata is None:
-            df = pandas.DataFrame(None, index=index)
-        elif isinstance(column_metadata, dict):
-            # Check if values match the length of the index
-            for key, val in column_metadata.items():
-                if len(val) != len(index):
-                    raise ValueError('{} value length does not match the number of columns')
-            df = pandas.DataFrame(column_metadata, index=index)
-        elif isinstance(column_metadata, pandas.DataFrame):
-            if len(column_metadata) != len(index):
-                raise ValueError('length of column_metadata dataframe does not match the number of columns')
-            df = column_metadata
-            df.index = index
-        else:
-            raise TypeError('column_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
-        return df
+        if data:
+            if isinstance(data, pd.DataFrame):
+                return data
+            elif isinstance(data, dict):
+                if not ids:
+                    pass
+                # Constructs dataframe from data and ids
+                return pd.DataFrame(data, index=ids)
+            raise TypeError('cannot construct column metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
+        # Construct from ids and descriptions
+        if not ids:
+            return pd.DataFrame({'description': descriptions})
+        if not descriptions:
+            return pd.DataFrame([], index=ids)
+        return pd.DataFrame(None)
 
     def _row_metadata_constructor(self, records, row_metadata):
         # Constructs row metadata DataFrame from `row_metadata`
