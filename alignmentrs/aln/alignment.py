@@ -7,7 +7,7 @@ import warnings
 import pandas
 import numpy
 
-from libalignmentrs.alignment import BaseAlignment
+from libalignmentrs.alignment import SeqMatrix
 from libalignmentrs.record import Record
 from alignmentrs.utils import idseq_to_display
 from alignmentrs.aln.mixins import (RecordsSerdeMixin, FastaSerdeMixin,
@@ -45,26 +45,36 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     metadata : dict
         Other information related to the alignment.
     """
-    def __init__(self, records, name=None, index=None, comments: dict=None,    
-                 row_metadata=None, column_metadata=None, store_history=True,
+    def __init__(self, matrix, name='',
+                 row_metadata=None, col_metadata=None,
+                 row_ids:list=None, row_descriptions:list=None,
+                 col_ids:list=None, col_descriptions:list=None,
+                 aln_metadata:dict=None, store_history=True,
                  **kwargs):
-        """Creates a new Alignment object from a sample BaseAlignment.
+        """Creates a new Alignment object from a sequence matrix and
+        row and column metadata.
 
         Parameters
         ----------
-        name : str
+        matrix: SeqMatrix
+            Aligned sequences.
+        name : str, optional
             Name of the alignment.
-        records : list of Record
-            Aligned sequences as a list of records.
-        index : pandas.Index optional
-            Index for alignment columns.
-        comments : dict, optional
-            Other information related to the alignment. (default is None,
-            which creates a blank dictionary)
         row_metadata : pandas.DataFrame or dict, optional
             DataFrame containing annotation for columns.
-        column_metadata : pandas.DataFrame or dict, optional
+        col_metadata : pandas.DataFrame or dict, optional
             DataFrame containing annotation for columns.
+        row_ids : list of str or list of int, optional
+            List of sample identifiers.
+        row_descriptions : list of str, optional
+            List of sample descriptions.
+        col_ids : list of str or list of int, optional
+            List of column (site) identifiers
+        col_descriptions : list of str, optional
+            List of column (site) descriptions.
+        aln_metadata : dict, optional
+            Other information related to the alignment. (default is None,
+            which creates a blank dictionary)
         store_history : bool, optional
             Whether or not to store actions when the state of the Alignment changes.
         **kwargs
