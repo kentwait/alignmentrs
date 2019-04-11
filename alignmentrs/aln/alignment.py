@@ -196,34 +196,26 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return pd.DataFrame([], index=ids)
         return pd.DataFrame(None)
 
-    def _row_metadata_constructor(self, records, row_metadata):
-        # Constructs row metadata DataFrame from `row_metadata`
-        index = pandas.Index([rec.id for rec in records])
-        df = pandas.DataFrame({
-            'description': [rec.description for rec in records]
-        }, index=index)
-        if isinstance(row_metadata, dict):
-            # Check if values match the length of the index
-            for key, val in row_metadata.items():
-                if len(val) != self.nrows:
-                    raise ValueError('{} value length does not match the number of rows'.format(key))
-            temp_df = pandas.DataFrame(row_metadata, index=index)
-            if 'description' in temp_df.keys():
-                df = temp_df
-            else:
-                df = df.join(temp_df)
-        elif isinstance(row_metadata, pandas.DataFrame):
-            if not all(row_metadata.index == index):
-                raise ValueError('index of row_metadata DataFrame does not match the ids in the alignment')
-            if 'description' in row_metadata.keys():
-                df = row_metadata
-            else:
-                df = df.join(row_metadata)
-        elif row_metadata is None:
-            pass
-        else:
-            raise TypeError('row_metadata must be a dictionary or a {} object'.format(pandas.DataFrame.__mro__[0]))
-        return df
+    def _row_metadata_constructor(self, ids=None, descriptions=None, data=None):
+        # Constructs column metadata DataFrame from
+        # a list of ids and descriptions, OR
+        # uses data
+        # Otherwise raises TypeError.
+        if data:
+            if isinstance(data, pd.DataFrame):
+                return data
+            elif isinstance(data, dict):
+                if not ids:
+                    pass
+                # Constructs dataframe from data and ids
+                return pd.DataFrame(data, index=ids)
+            raise TypeError('cannot construct row metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
+        # Construct from ids and descriptions
+        if not ids:
+            return pd.DataFrame({'description': descriptions})
+        if not descriptions:
+            return pd.DataFrame([], index=ids)
+        return pd.DataFrame(None)
 
     # Properties
     @property
