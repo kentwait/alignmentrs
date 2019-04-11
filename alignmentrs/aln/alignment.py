@@ -84,22 +84,35 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
         """
         self.name = name
-        self.data: BaseAlignment = self.data_constructor(records)
-        self.row_metadata = \
-            self._row_metadata_constructor(records, row_metadata)
-        if index is None:
-            index = pandas.Index(range(self.data.ncols))
-        self.column_metadata = \
-            self._col_metadata_constructor(records, column_metadata, index)
-        self.comments = self._comments_constructor(comments)
-        self._history = History() if store_history else None
-        add_to_history(
-            self, self.__class__.__name__, name, records,
-            index=index, comments=comments, 
-            row_metadata=row_metadata, column_metadata=column_metadata,
-            store_history=store_history,
-            **kwargs
-        )
+
+        # sequence matrix is required and forms the foundation of the
+        # Alignment object.
+        self.data: SeqMatrix = self.data_constructor(matrix)
+
+        # Construct row metadata dataframe based on given row_ids
+        if row_metadata is None:
+            self.row_metadata = self._make_row_meta(row_ids, row_descriptions)
+        else:
+            self.row_metadata = row_metadata
+
+        # Construct column metadata dataframe based on given col_ids
+        if col_metadata is None:
+            self.column_metadata = \
+                self._make_col_meta(col_ids, col_descriptions)
+        else:
+            self.column_metadata = col_metadata
+
+        # Construct
+        self.aln_metadata = self._comments_constructor(aln_metadata)
+
+        # self._history = History() if store_history else None
+        # add_to_history(
+        #     self, self.__class__.__name__, name, records,
+        #     index=index, comments=comments, 
+        #     row_metadata=row_metadata, column_metadata=column_metadata,
+        #     store_history=store_history,
+        #     **kwargs
+        # )
         self.row = RowData(self)
         self.col = ColData(self)
 
