@@ -80,37 +80,6 @@ class ColMethods:
         if copy is True:
             return aln
 
-    # def drain(self, positions, **kwargs):
-    #     if isinstance(positions, int):
-    #         positions = [positions]
-    #     elif isinstance(positions, list) and \
-    #         sum((isinstance(pos, int) for pos in positions)):
-    #         pass
-    #     else:        
-    #         raise TypeError('positions must be an int or a list of int')
-    #     remove_positions = self._instance.data.invert_cols(positions)
-    #     new_baln = self._instance.data.drain_cols(remove_positions)
-    #     new_col_metadata = self._instance \
-    #         .column_metadata.iloc[remove_positions].copy(deep=True)
-    #     self._instance.column_metadata = self._instance \
-    #         .column_metadata.iloc[positions].copy(deep=True)
-    #     aln = self._instance.__class__(
-    #         self._instance.name,
-    #         new_baln, 
-    #         chunk_size=self._instance.chunk_size,
-    #         index=pandas.Index(new_col_metadata.index), 
-    #         metadata=deepcopy(self._instance.metadata), 
-    #         column_metadata=new_col_metadata)
-    #     # Add to history
-    #     add_to_history(
-    #         self._instance, '.col.drain[from]', positions,
-    #         **kwargs
-    #     )
-    #     add_to_history(
-    #         aln, '.col.drain[to]', positions,
-    #         **kwargs
-    #     )
-    #     return aln
 
     def reorder(self, positions, copy=False, **kwargs):
         aln = self._instance
