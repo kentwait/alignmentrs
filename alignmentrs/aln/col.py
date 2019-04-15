@@ -61,7 +61,7 @@ class ColMethods:
         Returns
         -------
         Alignment
-            Returns the edited alignment after removing the specified
+            When `copy` is True, returns the edited alignment after removing the specified
             columns.
 
         """
@@ -113,7 +113,7 @@ class ColMethods:
         Returns
         -------
         Alignment
-            Returns the edited alignment after removing columns.
+            When `copy` is True, returns the edited alignment after removing columns.
 
         """
         # Check input
@@ -153,15 +153,11 @@ class ColMethods:
             original intact, or reorder the alignment inplace. (default is
             False, reordering is done inplace)
         
-        Raises
-        ------
-        TypeError
-            [description]
-        
         Returns
         -------
-        [type]
-            [description]
+        Alignment
+            When `copy` is True, returns the edited alignment after reordering
+            columns.
         """
 
         # Check input
@@ -216,8 +212,7 @@ class ColMethods:
         Returns
         -------
         Alignment
-            When `copy` is True, returns the edited alignment after removing columns that
-            evaluated False.
+            When `copy` is True, returns the edited alignment after removing columns that evaluated False.
         dict
             When `dry_run` is True, return a dictionary where True and False
             are keys, and the list of respective column positions are the
