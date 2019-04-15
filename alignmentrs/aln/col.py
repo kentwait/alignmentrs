@@ -42,12 +42,29 @@ class ColMethods:
             pass
         else:
             raise TypeError('positions must be an int or a list of int')
+
+        aln = self._instance
         return aln.col.retain(positions, copy=True)
 
     def remove(self, positions, copy=False, **kwargs):
-        aln = self._instance
-        if copy is True:
-            aln = self._instance.copy()
+        """Removes the specified column/s from the alignment.
+        
+        Parameters
+        ----------
+        positions : int or iterable
+            Column index/indices of columns to be removed.
+        copy : bool, optional
+            Whether to return a new copy of the edited alignment or
+            remove columns inplace.
+        
+        Returns
+        -------
+        Alignment
+            Returns the edited alignment after removing the specified
+            columns.
+
+        """
+        # Check input
         if isinstance(positions, int):
             positions = [positions]
         elif isinstance(positions, list) and \
@@ -58,16 +75,24 @@ class ColMethods:
             pass
         else:
             raise TypeError('positions must be an int or a list of int')
-        retain_positions = aln.data.invert_cols(positions)        
+        
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+
+        # Remove columns from SeqMatrix
         aln.data.remove_cols(positions)
+        # Remove column metadata
         indices = aln.column_metadata.index[positions]
         aln.column_metadata.drop(indices, axis=0, inplace=True)
-        # Add to history
-        add_to_history(
-            self._instance, '.col.remove', positions,
-            copy=copy,
-            **kwargs
-        )
+
+        # # Add to history
+        # add_to_history(
+        #     self._instance, '.col.remove', positions,
+        #     copy=copy,
+        #     **kwargs
+        # )
+        
         if copy is True:
             return aln
 
