@@ -190,59 +190,89 @@ class ColMethods:
 
     def filter(self, function, copy=False, dry_run=False, inverse=False,
                chunk_size=1, **kwargs):
-        aln = self._instance
-        if copy is True:
-            aln = self._instance.copy()
-        
-        printout_title = 'Filter'
-        if '_printout_title' in kwargs.keys():
-            printout_title = kwargs['_printout_title']
-        printout_true = True
-        if '_printout_true' in kwargs.keys():
-            printout_true = kwargs['_printout_true'] + ' (True)'
-        printout_false = False
-        if '_printout_false' in kwargs.keys():
-            printout_false = kwargs['_printout_false']  + ' (False)'
+        # Check input
 
+        # Checks if function is callable
         # Function accepts a list of str, outputs true or false
         if not(function is not None and callable(function)):
             raise TypeError('missing filter function')
-        positions = [
+        # Checks if chunk_size value is valid
+        if chunk_size < 1:
+            raise ValueError('chunk_size value must be greater than zero')
+
+        # Check optional kwargs
+        custom_title = 'Filter'
+        if 'custom_title' in kwargs.keys():
+            custom_title = kwargs['custom_title']
+        custom_class_true = True
+        if 'custom_class_true' in kwargs.keys():
+            custom_class_true = kwargs['custom_class_true'] + ' (True)'
+        custom_class_false = False
+        if 'custom_class_false' in kwargs.keys():
+            custom_class_false = kwargs['custom_class_false']  + ' (False)'
+
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+
+        # Get the list of positions based on the result of the
+        # filtering function. Only columns that are True are recorded.
+        # There are 2 different ways to create the positions list depending on
+        # whether the chunk_size is 1 (default) or greater than 1.
+        if chunk_size == 1:
+            positions = [
             i for i, col in enumerate(aln.col.iter(chunk_size=chunk_size)) 
             if function(col)
         ]
-        if chunk_size > 1:
+        else:
             positions = list(itertools.chain(
                 *[range(i*chunk_size, (i*chunk_size)+chunk_size)
                   for i in positions]))
-        remove_positions = aln.data.invert_cols(positions)
+
+        # Generate list of column ids that are "opposite" of what was given
+        other_positions = aln.data.invert_cols(positions)
+
+        # "dry_run" shows the columns that will are True or False based
+        # on the given filtering function.
+        # This prints out the number of columns in the True or False categories
+        # and returns the lists of column ids that are classified as True or
+        # False.
         if dry_run:
             parts = []
-            parts.append('[{}]'.format(printout_title))
+            parts.append('[{}]'.format(custom_title))
             parts.append('{} = {}/{}'.format(
-                printout_true, len(positions), aln.ncols))
+                custom_class_true, len(positions), aln.ncols))
             parts.append('{} = {}/{}'.format(
-                printout_false, len(remove_positions), aln.ncols))
+                custom_class_false, len(other_positions), aln.ncols))
             print('\n'.join(parts))
             return {
                 True: positions,
-                False: remove_positions
+                False: other_positions
             }
+
+        # By default, the filter method will keep columns that are
+        # True according to the filter function, and will remove
+        # columns that are False.
+        # However, if `inverse` is True, the filter method will do the
+        # opposite. It will keep columns that are False and will remove
+        # columsn that are True
         if inverse:
             aln.col.remove(positions, _record_history=False)
         else:
-            aln.col.remove(remove_positions, _record_history=False)
-        # Add to history
-        func_sig = function.__qualname__ + \
-            repr(inspect.signature(function)) \
-                .lstrip('<Signature ').rstrip('>')
-        add_to_history(
-            aln, '.col.filter', func_sig,
-            copy=copy,
-            dry_run=dry_run,
-            inverse=inverse,
-            **kwargs
-        )
+            aln.col.retain(positions, _record_history=False)
+            
+        # # Add to history
+        # func_sig = function.__qualname__ + \
+        #     repr(inspect.signature(function)) \
+        #         .lstrip('<Signature ').rstrip('>')
+        # add_to_history(
+        #     aln, '.col.filter', func_sig,
+        #     copy=copy,
+        #     dry_run=dry_run,
+        #     inverse=inverse,
+        #     **kwargs
+        # )
+        
         if copy is True:
             return aln
 
