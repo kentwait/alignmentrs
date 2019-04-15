@@ -328,7 +328,7 @@ class ColMethods:
         Returns
         -------
         list
-            List of column positions that match the query.
+            List of column positions that matches the query.
         """
         # Check input
         if step and chunk_size:
@@ -345,100 +345,6 @@ class ColMethods:
         # Pass inputs to Rust-backed function and output
         return self._instance.data.has(
             query, case_sensitive, mode, step, chunk_size)
-
-    def drop(self, value, case_sensitive=False, copy=False, dry_run=False,
-             mode='any', **kwargs):
-        if case_sensitive and mode == 'any':
-            func = lambda x: value in x
-        elif case_sensitive and mode == 'all':
-            func = lambda x: [value]*len(x) == x
-        elif not case_sensitive and mode == 'any':
-            func = lambda x: \
-                value.upper() in [chars.upper() for chars in x]
-        elif not case_sensitive and mode == 'all':
-            func = lambda x: \
-                [value.upper()]*len(x) == [chars.upper() for chars in x]
-        else:
-            raise ValueError('invalid mode')
-        
-        res = self.filter(func, copy=copy, dry_run=dry_run, inverse=True,
-                          _record_history=False)
-        # Add to history
-        if not dry_run:
-            add_to_history(
-                res if copy else self._instance, '.col.drop', value,
-                case_sensitive=case_sensitive,
-                copy=copy,
-                dry_run=dry_run,
-                mode=mode,
-                **kwargs
-            )
-        return res
-
-    def drop_except(self, value, case_sensitive=False, copy=False, 
-                    dry_run=False, mode='any', **kwargs):
-        if case_sensitive and mode == 'any':
-            func = lambda x: value in x
-        elif case_sensitive and mode == 'all':
-            func = lambda x: [value]*len(x) == x
-        elif not case_sensitive and mode == 'any':
-            func = lambda x: \
-                value.upper() in [chars.upper() for chars in x]
-        elif not case_sensitive and mode == 'all':
-            func = lambda x: \
-                [value.upper()]*len(x) == [chars.upper() for chars in x]
-        else:
-            raise ValueError('invalid mode')
-        res = self.filter(func, copy=copy, dry_run=dry_run, inverse=False,
-                          _record_history=False)
-        # Add to history
-        if not dry_run:
-            add_to_history(
-                res if copy else self._instance, '.col.drop_except', value,
-                case_sensitive=case_sensitive,
-                copy=copy,
-                dry_run=dry_run,
-                mode=mode,
-                **kwargs
-            )
-        return res
-
-    def drop_n(self, n_char='N', case_sensitive=False, copy=False, 
-               dry_run=False, mode='any', **kwargs):
-        res = self.drop(n_char, case_sensitive=case_sensitive,
-                         copy=copy, dry_run=dry_run, mode=mode,
-                         _record_history=False)
-        # Add to history
-        if not dry_run:
-            add_to_history(
-                res if copy else self._instance, '.col.drop_n',
-                n_char=n_char,
-                case_sensitive=case_sensitive,
-                copy=copy,
-                dry_run=dry_run,
-                mode=mode,
-                **kwargs
-            )
-        return res
-
-    def drop_gap(self, gap_char='-', copy=False, dry_run=False, mode='any',
-                 **kwargs):
-        case_sensitive = True
-        res = self.drop(gap_char, case_sensitive=case_sensitive, copy=copy,
-                        dry_run=dry_run, mode=mode,
-                        _record_history=False)
-        # Add to history
-        if not dry_run:
-            add_to_history(
-                res if copy else self._instance, '.col.drop_gap',
-                gap_char=gap_char,
-                case_sensitive=case_sensitive,
-                copy=copy,
-                dry_run=dry_run,
-                mode=mode,
-                **kwargs
-            )
-        return res
 
     def map(self, function, skip_n=None, chunk_size=None, lazy=False):
         for col in self.iter(skip_n=skip_n, chunk_size=chunk_size, lazy=lazy):
