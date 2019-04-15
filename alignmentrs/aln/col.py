@@ -139,26 +139,52 @@ class ColMethods:
         if copy is True:
             return aln
 
+    def reorder(self, position_list, copy=False, **kwargs):
+        """Reorders columns according the specified list of positions.
+        
+        Parameters
+        ----------
+        position_list : list of int
+            Ordered list of column indices indicating the new order of columns.
+        copy : bool, optional
+            Whether to return a new copy of the reordered alignment, keeping the
+            original intact, or reorder the alignment inplace.
+        
+        Raises
+        ------
+        TypeError
+            [description]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
 
-    def reorder(self, positions, copy=False, **kwargs):
+        # Check input
+        if isinstance(position_list, list) and \
+            sum((isinstance(pos, int) for pos in position_list)):
+            if len(list) != self._instance.ncols:
+                raise TypeError('length of position list must be equal to the '
+                    'number of columns in the alignment: {} != {}'.format(
+                        len(list), self._instance.ncols
+                    ))
+        else:
+            raise TypeError('position list must be a list of int')
+
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
-        if isinstance(positions, int):
-            positions = [positions]
-        elif isinstance(positions, list) and \
-            sum((isinstance(pos, int) for pos in positions)):
-            pass
-        else:
-            raise TypeError('positions must be an int or a list of int')
-        aln.data.reorder_cols(positions)
-        aln.column_metadata = aln.column_metadata.iloc[positions]
-        # Add to history
-        add_to_history(
-            aln, '.col.reorder', positions,
-            copy=copy,
-            **kwargs
-        )
+        aln.data.reorder_cols(position_list)
+        aln.column_metadata = aln.column_metadata.iloc[position_list]
+
+        # # Add to history
+        # add_to_history(
+        #     aln, '.col.reorder', positions,
+        #     copy=copy,
+        #     **kwargs
+        # )
+
         if copy is True:
             return aln
 
