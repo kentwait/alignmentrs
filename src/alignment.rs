@@ -391,6 +391,73 @@ impl SeqMatrix {
         cols
     }
     // #endregion
+
+
+    // pub fn has(&self, query: &str, case_sensitive: bool, mode: &str, step_size: i32, chunk_size: i32) -> PyResult<Vec<i32>> {
+    //     self._is_empty_matrix()?;
+    //     let mut positions: Vec<i32> = Vec::new();
+    //     let seq_vec: Vec<Vec<char>> = self.data.iter()
+    //         .map(|seq| {seq.chars().collect()})
+    //         .collect();
+    //     let chunk_size = chunk_size as usize;
+    //     let step_size = step_size as usize;
+    //     if step_size < chunk_size {
+    //         return Err(exceptions::ValueError::py_err(
+    //                 "step_size is less than chunk_size"))
+    //     }
+    //     let query: String = match case_sensitive {
+    //         true => query.to_string(),
+    //         false => query.to_string().to_uppercase(),
+    //     };
+    //     for j in (0..seq_vec[0].len()).step_by(chunk_size) {
+    //         let res: Vec<bool> = seq_vec.iter().map(
+    //             |row| {
+    //                 let mut chars: String = row[j..j+chunk_size]
+    //                     .into_iter().collect();
+    //                 if !case_sensitive {
+    //                     chars = chars.to_uppercase();
+    //                 }
+    //                 if chars.contains(&query) {
+    //                     true
+    //                 } else {
+    //                     false
+    //                 }
+    //             }
+    //         ).collect();
+    //         if mode == "any" {
+    //             if res.contains(&true) {
+    //                 let mut curr_positions: Vec<i32> = (j..j+chunk_size)
+    //                     .map(|i| i as i32).collect();
+    //                 positions.append(&mut curr_positions);
+    //             }
+    //         } else if mode == "all" {
+    //             if !res.contains(&false) {
+    //                 let mut curr_positions: Vec<i32> = (j..j+chunk_size)
+    //                     .map(|i| i as i32).collect();
+    //                 positions.append(&mut curr_positions);
+    //             }
+    //         } else {
+    //             return Err(exceptions::ValueError::py_err(
+    //                 "mode must be \"any\" or \"all\""))
+    //         }
+    //     }
+    //     Ok(positions)
+    // }
+
+    pub fn has(&self, query: &str, case_sensitive: bool, step_size: usize, chunk_size: usize) -> Result<Vec<bool>, String> {
+        let bool_vec: Vec<bool> = Vec::new();
+        Ok(bool_vec)
+    }
+    
+    pub fn is_any(&self, query: &str) -> Result<Vec<i32>, String> {
+        let positions: Vec<i32> = Vec::new();
+        Ok(positions)
+    }
+
+    pub fn is_all(&self, query: &str) -> Result<Vec<i32>, String> {
+        let positions: Vec<i32> = Vec::new();
+        Ok(positions)
+    }
 }
 
 // Wrappers for pyo3
