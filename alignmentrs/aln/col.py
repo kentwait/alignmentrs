@@ -19,8 +19,22 @@ class ColMethods:
         self._axis = 1
 
     def get(self, positions, **kwargs):
-        aln = self._instance.copy()
-        # TODO: Handle str, list of str
+        """Returns one or more columns from the alignment as a new alignment.
+        
+        Parameters
+        ----------
+        positions : int or iterable
+            Column index/indices of column/s to return.
+        
+        Returns
+        -------
+        Alignment
+            Returns the subset of the alignment containing only
+            the specified columns. This returns a copy of the
+            original alignment.
+
+        """
+        # Check input
         if isinstance(positions, int):
             positions = [positions]
         elif isinstance(positions, list) and \
