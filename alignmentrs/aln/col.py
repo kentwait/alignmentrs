@@ -55,7 +55,8 @@ class ColMethods:
             Column index/indices of columns to be removed.
         copy : bool, optional
             Whether to return a new copy of the edited alignment, keeping the
-            original intact, or edit the alignment inplace.
+            original intact, or edit the alignment inplace. (default is False,
+            editing is done inplace)
         
         Returns
         -------
@@ -106,7 +107,8 @@ class ColMethods:
             Column index/indices of columns to be retained.
         copy : bool, optional
             Whether to return a new copy of the edited alignment, keeping the
-            original intact, or edit the alignment inplace.
+            original intact, or edit the alignment inplace. (default is False,
+            editing is done inplace)
         
         Returns
         -------
@@ -148,7 +150,8 @@ class ColMethods:
             Ordered list of column indices indicating the new order of columns.
         copy : bool, optional
             Whether to return a new copy of the reordered alignment, keeping the
-            original intact, or reorder the alignment inplace.
+            original intact, or reorder the alignment inplace. (default is
+            False, reordering is done inplace)
         
         Raises
         ------
@@ -190,6 +193,37 @@ class ColMethods:
 
     def filter(self, function, copy=False, dry_run=False, inverse=False,
                chunk_size=1, **kwargs):
+        """Returns the list of column positions where the given function
+        is True.
+        
+        Parameters
+        ----------
+        function : callable
+            Function used to evaluate each column. The function should expect a list of list of str as input and return a bool as output.
+        copy : bool, optional
+            Whether to return a new copy of the filtered alignment, keeping the
+            original intact, or filter the alignment inplace.
+            (default is False, filtering is performed inplace)
+        dry_run : bool, optional
+            If True, evaluates the function and returns the list of True and False column position only. Nothing is edited. Otherwise,
+            column positions that evaluated False are removed from the
+            alignment. (the default is False, the alignment is edited)
+        inverse : bool, optional
+            If True, columns that evaluate True are removed. (default is False, column positions that evaluate False are removed)
+        chunk_size : int, optional
+            Number of characters to group as one column. (default is 1)
+
+        Returns
+        -------
+        Alignment
+            When `copy` is True, returns the edited alignment after removing columns that
+            evaluated False.
+        dict
+            When `dry_run` is True, return a dictionary where True and False
+            are keys, and the list of respective column positions are the
+            values.
+            
+        """
         # Check input
 
         # Checks if function is callable
@@ -295,7 +329,6 @@ class ColMethods:
             Number of characters to skip. (default is 1)
         chunk_size : int, optional
             Number of characters to group as one column. (default is 1)
-        
 
         Returns
         -------
