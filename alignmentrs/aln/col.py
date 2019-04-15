@@ -54,8 +54,8 @@ class ColMethods:
         positions : int or iterable
             Column index/indices of columns to be removed.
         copy : bool, optional
-            Whether to return a new copy of the edited alignment or
-            remove columns inplace.
+            Whether to return a new copy of the edited alignment, keeping the
+            original intact, or edit the alignment inplace.
         
         Returns
         -------
@@ -92,14 +92,29 @@ class ColMethods:
         #     copy=copy,
         #     **kwargs
         # )
-        
+
         if copy is True:
             return aln
 
     def retain(self, positions, copy=False, **kwargs):
-        aln = self._instance
-        if copy is True:
-            aln = self._instance.copy()
+        """Retains the specified column/s in the alignment. Removes all the
+        other columns.
+        
+        Parameters
+        ----------
+        positions : int or iterable
+            Column index/indices of columns to be retained.
+        copy : bool, optional
+            Whether to return a new copy of the edited alignment, keeping the
+            original intact, or edit the alignment inplace.
+        
+        Returns
+        -------
+        Alignment
+            Returns the edited alignment after removing columns.
+
+        """
+        # Check input
         if isinstance(positions, int):
             positions = [positions]
         elif isinstance(positions, list) and \
@@ -107,15 +122,20 @@ class ColMethods:
             pass
         else:        
             raise TypeError('positions must be an int or a list of int')
-        remove_positions = aln.data.invert_cols(positions)
-        aln.data.remove_cols(remove_positions)
+
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+        aln.data.retain_cols(positions)
         aln.column_metadata = aln.column_metadata.iloc[positions]
-        # Add to history
-        add_to_history(
-            self._instance, '.col.retain', positions,
-            copy=copy,
-            **kwargs
-        )
+
+        # # Add to history
+        # add_to_history(
+        #     self._instance, '.col.retain', positions,
+        #     copy=copy,
+        #     **kwargs
+        # )
+
         if copy is True:
             return aln
 
