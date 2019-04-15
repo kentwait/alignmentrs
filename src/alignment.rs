@@ -583,6 +583,22 @@ impl SeqMatrix {
         }
     }
 
+    /// invert_rows(ids, /)
+    /// --
+    /// 
+    /// Returns row indices that are not part of the given list of row indices.
+    fn invert_rows(&self, ids: Vec<usize>) -> PyResult<Vec<usize>> {
+        Ok(self._invert_rows(ids))
+    }
+
+    /// invert_cols(ids, /)
+    /// --
+    /// 
+    /// Returns column indices that are not part of the given list of column indices.
+    fn invert_cols(&self, ids: Vec<usize>) -> PyResult<Vec<usize>> {
+        Ok(self._invert_cols(ids))
+    }
+
     /// copy()
     /// --
     /// 
