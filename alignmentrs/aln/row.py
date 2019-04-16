@@ -191,43 +191,73 @@ class RowMethods:
 
     def filter(self, function, copy=False, dry_run=False, inverse=False,
                **kwargs):
+        # Check input
+
+        # Checks if function is callable
+        # Function accepts a list of str, outputs true or false
+        if not(function is not None and callable(function)):
+            raise TypeError('missing filter function')
+
+        # Check optional kwargs
+        custom_title = 'Filter'
+        if 'custom_title' in kwargs.keys():
+            custom_title = kwargs['custom_title']
+        custom_class_true = True
+        if 'custom_class_true' in kwargs.keys():
+            custom_class_true = kwargs['custom_class_true'] + ' (True)'
+        custom_class_false = False
+        if 'custom_class_false' in kwargs.keys():
+            custom_class_false = kwargs['custom_class_false']  + ' (False)'
+
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
-        # Function accepts a Record, outputs true or false
-        if not(function is not None and callable(function)):
-            raise TypeError('missing filter function')
-        positions = [i for i in range(aln.nrows) 
-                     if function(aln.data.get_row(i))]
-        remove_positions = aln.data.invert_rows(positions)
+
+        # Get the list of positions based on the result of the filtering
+        # function. Only position of rows that are True are recorded. 
+        positions = [i for i, row in enumerate(aln.data) 
+                     if function(row)]
+        other_positions = aln.data.invert_rows(positions)
+
+        # `dry_run` shows True or False rows as evaluated by the filtering
+        # function.
+        # If dry_run=True, this prints out the number of rows in True or
+        # False categories and returns the lists of integer positons in
+        # True or False classifications.
         if dry_run:
             parts = []
-            parts.append('[Filter]')
-            parts.append('True = {}/{}'.format(
-                len(positions), aln.nrows))
-            parts.append('False = {}/{}'.format(
-                len(remove_positions), aln.nrows))
+            parts.append('[{}]'.format(custom_title))
+            parts.append('{} = {}/{}'.format(
+                custom_class_true, len(positions), aln.nrows))
+            parts.append('{} = {}/{}'.format(
+                custom_class_false, len(other_positions), aln.nrows))
             print('\n'.join(parts))
             return {
-                'function': function,
                 True: positions,
-                False: remove_positions
+                False: other_positions
             }
+
+        # The default behavior of filter is to keep rows evaluating True for the
+        # given filter function, and will remove rows that are False.
+        # However, if `inverse` is True, the filter method will do the opposite.
+        # It will keep rows that are False and will remove rows that are True.
         if inverse:
             aln.row.remove(positions, _record_history=False)
         else:
-            aln.row.remove(remove_positions, _record_history=False)
-        # Add to history
-        func_sig = function.__qualname__ + \
-            repr(inspect.signature(function)) \
-                .lstrip('<Signature ').rstrip('>')
-        add_to_history(
-            aln, '.row.filter', func_sig,
-            copy=copy,
-            dry_run=dry_run,
-            inverse=inverse,
-            **kwargs
-        )
+            aln.row.retain(positions, _record_history=False)
+
+        # # Add to history
+        # func_sig = function.__qualname__ + \
+        #     repr(inspect.signature(function)) \
+        #         .lstrip('<Signature ').rstrip('>')
+        # add_to_history(
+        #     aln, '.row.filter', func_sig,
+        #     copy=copy,
+        #     dry_run=dry_run,
+        #     inverse=inverse,
+        #     **kwargs
+        # )
+        
         if copy is True:
             return aln
 
