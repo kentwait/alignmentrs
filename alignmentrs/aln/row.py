@@ -142,49 +142,50 @@ class RowMethods:
         if copy is True:
             return aln
 
-    def reorder(self, positions, copy=False, **kwargs):
-        """Reorder records in the alignment based on a given order.
+    def reorder(self, position_list, copy=False, **kwargs):
+        """Reorder samples according to the specified list of positions.
         
         Parameters
         ---------- 
         positions : list of int
-            Position list.
+            Ordered list of integer positons indicating the new order of rows
+            in the alignment.
         copy : bool, optional
-            Whether to remove records from a copy of the alignment, keeping
-            the current alignment intact, or remove the records inplace. 
-            (default is False, insertiong is performed inplace)
-        
-        Raises
-        ------
-        TypeError
-            Value of records is not a Record or List of Record
+            Whether to return a new copy of the reordered alignment, keeping the
+            original intact, or reorder the alignment inplace. (default is
+            False, reordering is done inplace)
         
         Returns
         -------
-        Alignment or None
-            If copy is True, returns a deep copy of the Alignment containing
-            only the specified records. Otherwise, removal is performed inplace
-            and does not return any value.
+        Alignment
+            When `copy` is True, returns the edited alignment after reordering
+            rows.
 
         """
+        # Check input
+        if isinstance(position_list, list) and \
+            sum((isinstance(pos, int) for pos in position_list)):
+            if len(list) != self._instance.ncols:
+                raise TypeError('length of position list must be equal to the '
+                    'number of rows in the alignment: {} != {}'.format(
+                        len(list), self._instance.nrows
+                    ))
+        else:
+            raise TypeError('position list must be a list of int')
+
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
-        if isinstance(positions, int):
-            positions = [positions]
-        elif isinstance(positions, list) and \
-            sum((isinstance(pos, int) for pos in positions)) == len(positions):
-            pass
-        else:        
-            raise TypeError('positions must be an int or a list of int')
-        aln.data.reorder_rows(positions)
-        aln.row_metadata = aln.row_metadata.iloc[positions]
-        # Add to history
-        add_to_history(
-            self._instance, '.row.reorder', positions,
-            copy=copy,
-            **kwargs
-        )
+        aln.data.reorder_rows(position_list)
+        aln.row_metadata = aln.row_metadata.iloc[position_list]
+
+        # # Add to history
+        # add_to_history(
+        #     self._instance, '.row.reorder', positions,
+        #     copy=copy,
+        #     **kwargs
+        # )
+
         if copy is True:
             return aln
 
