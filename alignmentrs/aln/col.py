@@ -24,7 +24,7 @@ class ColMethods:
         Parameters
         ----------
         positions : int or iterable
-            Column index/indices of column/s to return.
+            Position index/indices of columns to return.
         
         Returns
         -------
@@ -52,7 +52,7 @@ class ColMethods:
         Parameters
         ----------
         positions : int or iterable
-            Column index/indices of columns to be removed.
+            Position index/indices of columns to remove.
         copy : bool, optional
             Whether to return a new copy of the edited alignment, keeping the
             original intact, or edit the alignment inplace. (default is False,
@@ -104,7 +104,7 @@ class ColMethods:
         Parameters
         ----------
         positions : int or iterable
-            Column index/indices of columns to be retained.
+            Position index/indices of columns to be retained.
         copy : bool, optional
             Whether to return a new copy of the edited alignment, keeping the
             original intact, or edit the alignment inplace. (default is False,
@@ -147,7 +147,8 @@ class ColMethods:
         Parameters
         ----------
         position_list : list of int
-            Ordered list of column indices indicating the new order of columns.
+            Ordered list of position indices indicating the new order
+            of columns.
         copy : bool, optional
             Whether to return a new copy of the reordered alignment, keeping the
             original intact, or reorder the alignment inplace. (default is
