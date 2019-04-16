@@ -46,51 +46,53 @@ class RowMethods:
         return aln.row.retain(positions, copy=True)
 
     def remove(self, positions, copy=False, **kwargs):
-        """Removes one or more records from the alignment naively
+        """Removes the specified row/s from the alignment naively
         (without realignment).
-        
+
         Parameters
         ---------- 
         positions : int, list of int
-            Positions to remove.
+            Integer index positions of rows to remove.
         copy : bool, optional
-            Whether to remove records from a copy of the alignment, keeping
-            the current alignment intact, or remove the records inplace. 
-            (default is False, insertiong is performed inplace)
-        
-        Raises
-        ------
-        TypeError
-            Value of records is not a Record or List of Record
-        
+            Whether to return a new copy of the edited alignment, keeping the
+            original intact, or edit the alignment inplace. (default is False,
+            editing it done inplace)
+
         Returns
         -------
-        Alignment or None
-            If copy is True, returns a deep copy of the Alignment, removing
-            the specified records. Otherwise, removal is performed inplace
-            and does not return any value.
+        Alignment
+            When `copy` is True, returns the edited alignment after removing the specified rows.
 
         """
-        aln = self._instance
-        if copy is True:
-            aln = self._instance.copy()
-        # TODO: Handle str, list of str
+        # Check input
         if isinstance(positions, int):
             positions = [positions]
+        elif isinstance(positions, list) and \
+            len(positions) == 0:
+            pass
         elif isinstance(positions, list) and \
             sum((isinstance(pos, int) for pos in positions)) == len(positions):
             pass
         else:
             raise TypeError('positions must be an int or a list of int')
+
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+
+        # Remove rows from SeqMatrix
         aln.data.remove_rows(positions)
+        # Remove row metadata
         indices = aln.row_metadata.index[positions]
         aln.row_metadata.drop(indices, axis=0, inplace=True)
-        # Add to history
-        add_to_history(
-            self._instance, '.row.remove', positions,
-            copy=copy,
-            **kwargs
-        )
+
+        # # Add to history
+        # add_to_history(
+        #     self._instance, '.row.remove', positions,
+        #     copy=copy,
+        #     **kwargs
+        # )
+
         if copy is True:
             return aln
 
