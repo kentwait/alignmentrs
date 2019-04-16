@@ -498,6 +498,74 @@ class ColMethods:
         if copy is True:
             return aln
 
+    def add_metadata(self, metadata, name=None, copy=False, **kwargs):
+        """Adds a new category to the column metadata. This adds a column
+        to the column metadata DataFrame.
+        
+        Parameters
+        ----------
+        metadata : list, dict, pandas.Series or pandas.DataFrame
+            Metadata to be added.
+        name : str, optional
+            Name of the new metadata category.
+        copy : bool, optional
+            Whether to return a new copy of the edited alignment, keeping the
+            original intact, or edit the alignment inplace. (default is False,
+            editing is done inplace)
+
+        Returns
+        -------
+        Alignment
+            When `copy` is True, returns the edited alignment after adding new column metadata categories.
+        
+        """
+        raise NotImplementedError()
+
+    def remove_metadata(self, name, copy=False, **kwargs):
+        """Removes one or more categories from the column metadata. This removes
+        columns from the column metadata DataFrame.
+        
+        Parameters
+        ----------
+        name : str or list of str
+            Name/s of the new metadata categories.
+        copy : bool, optional
+            Whether to return a new copy of the edited alignment, keeping the
+            original intact, or edit the alignment inplace. (default is False,
+            editing is done inplace)
+
+        Returns
+        -------
+        Alignment
+            When `copy` is True, returns the edited alignment after removing column metadata categories.
+        
+        """
+        raise NotImplementedError()
+
+    def replace_metadata(self, name, metadata, copy=False):
+        """Replaces metadata in the given column metadata category.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the metadata category. This is also the column name
+            in the underlying column metadata DataFrame.
+        metadata: list
+            List of metadata to replace existing information.
+        copy : bool, optional
+            Whether to return a new copy of the edited alignment, keeping the
+            original intact, or edit the alignment inplace. (default is False,
+            editing is done inplace)
+
+        Returns
+        -------
+        Alignment
+            When `copy` is True, returns the edited alignment after replacing
+            the metadata in the specified column metadata category.
+        
+        """
+        raise NotImplementedError()
+
     @staticmethod
     def _insert_metadata(aln, position, column_values):
         if isinstance(column_values, list) and \
