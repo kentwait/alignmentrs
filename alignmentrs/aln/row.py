@@ -18,6 +18,32 @@ class RowMethods:
         self._instance = instance
         self._axis = 0
 
+    @property
+    def metadata(self):
+        """pandas.core.DataFrame: Returns the row metadata of the alignment.
+        """
+        return self._instance.row_metadata
+
+    @metadata.setter
+    def set_metadata(self, metadata):
+        """Sets the row metadata of the alignment."""
+        if not isinstance(metadata, pandas.DataFrame):
+            data = pandas.DataFrame(metadata)
+        self._instance.row_metadata = metadata
+
+    @property
+    def index(self):
+        """pandas.indexes.base.Index: Returns the row index of the alignment.   
+        """
+        return self._instance.row_metadata.index
+
+    @index.setter
+    def set_index(self, index):
+        """Sets the row index of the alignment."""
+        if not isinstance(index, pandas.Index):
+            index = pandas.Index(index)
+        self._instance.row_metadata.index = index
+
     def get(self, positions, **kwargs):
         """Returns one or more rows from the alignment as a new alignment.
         
