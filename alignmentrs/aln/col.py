@@ -159,7 +159,6 @@ class ColMethods:
             When `copy` is True, returns the edited alignment after reordering
             columns.
         """
-
         # Check input
         if isinstance(position_list, list) and \
             sum((isinstance(pos, int) for pos in position_list)):
@@ -461,17 +460,40 @@ class ColMethods:
                 for col in self._instance.data.get_chunks(indices, chunk_size):
                     yield col
 
-    def reset_index(self, copy=False, **kwargs):
+    def reset_index(self, copy=False, drop=False, **kwargs):
+        """Resets the column index to the default integer index.
+        
+        Parameters
+        ----------
+        copy : bool, optional
+            Whether to return a new copy of the edited alignment, keeping the
+            original intact, or edit the alignment inplace. (default is False,
+            editing is done inplace)
+        drop : bool, optional
+            If True, do not try to insert the original index into dataframe
+            columns. (default is False, the original index is inserted as a
+            column named `index`)
+        
+        Returns
+        -------
+        Alignment
+            When `copy` is True, returns the edited alignment after removing columns that evaluated False. Note that this returns the whole
+            Alignment object and not only the pandas DataFrame containing
+            column metadata.
+
+        """
         aln = self._instance
         if copy is True:
             aln = self._instance.copy()
-        aln.column_metadata.reset_index(drop=True, inplace=True)
-        # Add to history
-        add_to_history(
-            aln, '.col.reset_index',
-            copy=copy,
-            **kwargs
-        )
+        aln.column_metadata.reset_index(drop=drop, inplace=True)
+
+        # # Add to history
+        # add_to_history(
+        #     aln, '.col.reset_index',
+        #     copy=copy,
+        #     **kwargs
+        # )
+
         if copy is True:
             return aln
 
