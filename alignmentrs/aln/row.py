@@ -24,7 +24,7 @@ class RowMethods:
         Parameters
         ----------
         positions : int or iterable
-            Integer index positions of rows to return.
+            Position index/indices of rows to return.
         
         Returns
         -------
@@ -52,7 +52,7 @@ class RowMethods:
         Parameters
         ---------- 
         positions : int, list of int
-            Integer index positions of rows to remove.
+            Position index/indices of rows to remove.
         copy : bool, optional
             Whether to return a new copy of the edited alignment, keeping the
             original intact, or edit the alignment inplace. (default is False,
@@ -103,7 +103,7 @@ class RowMethods:
         Parameters
         ---------- 
         positions : int, list of int
-            Position index/indices of rows to be retained.
+            Position index/indices of rows to retained.
         copy : bool, optional
             Whether to return a new copy of the edited alignment, keeping the
             original intact, or edit the alignment inplace. (default is False,
