@@ -306,12 +306,16 @@ class RowMethods:
             yield function(record)
 
     def iter(self):
-        for i in range(self._instance.nrows):
-            yield self._instance.data.get_row(i)
+        """Iterates over the sequence matrix row-wise.
+        
+        Yields
+        ------
+        str
+            Each row's sequence is represented as an str.
 
-    def iter_sequences(self):
-        for i in range(self._instance.nrows):
-            yield self._instance.data.get_row(i)
+        """
+        for row in self._instance.data.data:
+            yield row
 
     def __iter__(self):
         return self.iter()
