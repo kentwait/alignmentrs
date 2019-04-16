@@ -242,7 +242,7 @@ class RowMethods:
 
         # Get the list of positions based on the result of the filtering
         # function. Only position of rows that are True are recorded. 
-        positions = [i for i, row in enumerate(aln.data) 
+        positions = [i for i, row in enumerate(aln.data.data) 
                      if function(row)]
         other_positions = aln.data.invert_rows(positions)
 
