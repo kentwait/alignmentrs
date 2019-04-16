@@ -350,26 +350,72 @@ class ColMethods:
         for col in self.iter(skip_n=skip_n, chunk_size=chunk_size, lazy=lazy):
             yield function(col)
 
-    def iter(self, skip_n=None, chunk_size=None, lazy=False):
-        cnt = 0
-        if skip_n and chunk_size:
+    def iter(self, step=None, chunk_size=None, lazy=False):
+        # Check input type
+        if step is not None:
+            if not isinstance(step, int):
+                raise ValueError(
+                    '`step` must be None or int: {} ({})'.format(
+                        step, type(step)
+                    ))
+        if chunk_size is not None:
+            if not isinstance(chunk_size, int):
+                raise ValueError(
+                    '`chunk_size` must be None or int: {} ({})'.format(
+                        chunk_size, type(chunk_size)
+                    ))
+        # Check values
+        if step < 1:
+            raise ValueError('`step` must be greater than zero: {}'.format(
+                step
+            ))
+        if chunk_size < 1:
             raise ValueError(
-                'skip_n and chunk_size cannot be used simultaneously')
-        if skip_n is None:
+                '`chunk_size` must be greater than zero: {}'.format(
+                    chunk_size
+                ))
+        if step > 1 and chunk_size > 1:
+            raise ValueError(
+                '`step` and `chunk_size` cannot be used simultaneously')
+        
+        # Initialize values
+        # Default for step and chunk_size is None
+        # The values are changed depending on how step and chunk_size are
+        # set by the user.
+        # Note that both step and chunk_size cannot be set simultaneously by
+        # the user.
+
+        # step is not set, chunk_size is set
+        if step is None:
             if chunk_size is None:
-                skip_n = 1
+                # If both step and chunk_size are None, then step is 1
+                step = 1
             else:
-                skip_n = chunk_size
+                # If step is None but chunk_size is specified, step
+                # adopts the value of chunk_size to get consecutive
+                # columns.
+                step = chunk_size
+        # chunk_size is not set
         if chunk_size is None:
             chunk_size = 1
+        cnt = 0
+        col_range = range(0, self._instance.ncols - (chunk_size-1), step)
 
-        col_range = range(0, self._instance.ncols-(chunk_size-1), skip_n)
+        # iter method offers two ways to iterate: lazy and eager
+        # In lazy execution, the function uses yield to return a copy of
+        # the current column. Either get_chunk or get_col is used depending
+        # on whether the chunk_size is specified or not
         if lazy:
             for i in col_range:
                 if chunk_size == 1:
                     yield self._instance.data.get_col(i)
                 else:
                     yield self._instance.data.get_chunk(i, chunk_size)
+        # In eager execution, the function transforms the sequence matrix
+        # into a list of list of str column-wise using get_chunks or get_cols
+        # depending on whether the chunk_size is specified or not.
+        # Then the list of list of str is iterated, using yield to return
+        # each column (list of str) one by one.
         else:
             indices = list(col_range)
             if chunk_size == 1:
