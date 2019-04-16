@@ -19,8 +19,21 @@ class RowMethods:
         self._axis = 0
 
     def get(self, positions, **kwargs):
-        aln = self._instance.copy()
-        # TODO: Handle str, list of str
+        """Returns one or more rows from the alignment as a new alignment.
+        
+        Parameters
+        ----------
+        positions : int or iterable
+            Integer index positions of rows to return.
+        
+        Returns
+        -------
+        Alignment
+            Returns the subset of the alignment containing only the specified
+            rows. This returns a copy of the original alignment.
+
+        """
+        # Check input
         if isinstance(positions, int):
             positions = [positions]
         elif isinstance(positions, list) and \
@@ -28,6 +41,8 @@ class RowMethods:
             pass
         else:
             raise TypeError('positions must be an int or a list of int')
+
+        aln = self._instance
         return aln.row.retain(positions, copy=True)
 
     def remove(self, positions, copy=False, **kwargs):
