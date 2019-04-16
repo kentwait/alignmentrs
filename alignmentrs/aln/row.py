@@ -97,35 +97,25 @@ class RowMethods:
             return aln
 
     def retain(self, positions, copy=False, **kwargs):
-        """Retains one or more records from the alignment, and
-        removes all the others.
+        """Retains the specified row/s in the alignment. Removes all other
+        rows naively (without realignment).
         
         Parameters
         ---------- 
         positions : int, list of int
-            Positions to retain.
+            Position index/indices of rows to be retained.
         copy : bool, optional
-            Whether to remove records from a copy of the alignment, keeping
-            the current alignment intact, or remove the records inplace. 
-            (default is False, insertiong is performed inplace)
-        
-        Raises
-        ------
-        TypeError
-            Value of records is not a Record or List of Record
+            Whether to return a new copy of the edited alignment, keeping the
+            original intact, or edit the alignment inplace. (default is False,
+            editing is done inplace)
         
         Returns
         -------
-        Alignment or None
-            If copy is True, returns a deep copy of the Alignment containing
-            only the specified records. Otherwise, removal is performed inplace
-            and does not return any value.
+        Alignment
+            When `copy` is True, returns the edited alignment after removing rows.
 
         """
-        aln = self._instance
-        if copy is True:
-            aln = self._instance.copy()
-        # TODO: Handle str, list of str
+        # Check input
         if isinstance(positions, int):
             positions = [positions]
         elif isinstance(positions, list) and \
@@ -133,14 +123,22 @@ class RowMethods:
             pass
         else:
             raise TypeError('positions must be an int or a list of int')
+
+        aln = self._instance
+        if copy is True:
+            aln = self._instance.copy()
+
+        # Remove/retain rows
         aln.data.retain_rows(positions)
         aln.row_metadata = aln.row_metadata.iloc[positions]
-        # Add to history
-        add_to_history(
-            self._instance, '.row.retain', positions,
-            copy=copy,
-            **kwargs
-        )
+
+        # # Add to history
+        # add_to_history(
+        #     self._instance, '.row.retain', positions,
+        #     copy=copy,
+        #     **kwargs
+        # )
+
         if copy is True:
             return aln
 
