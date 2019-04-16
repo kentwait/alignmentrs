@@ -142,54 +142,6 @@ class RowMethods:
         if copy is True:
             return aln
 
-    # def drain(self, positions, **kwargs):
-    #     """Removes one or more records from the alignment, and returns
-    #     these records as a new alignment.
-        
-    #     Parameters
-    #     ---------- 
-    #     positions : int, list of int
-    #         Positions to drain from the alignment.
-        
-    #     Raises
-    #     ------
-    #     TypeError
-    #         Value of records is not a Record or List of Record
-        
-    #     Returns
-    #     -------
-    #     Alignment
-    #         Returns a deep copy of the Alignment containing the drained
-    #         records.
-
-    #     """
-    #     if isinstance(positions, int):
-    #         positions = [positions]
-    #     elif isinstance(positions, list) and \
-    #         sum((isinstance(pos, int) for pos in positions)) == len(positions):
-    #         pass
-    #     else:        
-    #         raise TypeError('positions must be an int or a list of int')
-    #     remove_positions = self._instance.data.invert_rows(positions)
-    #     new_baln = self._instance.data.drain_records(remove_positions)
-    #     aln = self._instance.__class__(
-    #         self._instance.name,
-    #         new_baln, 
-    #         chunk_size=self._instance.chunk_size,
-    #         index=self._instance._index.copy(deep=True), 
-    #         metadata=deepcopy(self._instance.metadata), 
-    #         column_metadata=self._instance.column_metadata.copy(deep=True))
-    #     # Add to history
-    #     add_to_history(
-    #         self._instance, '.row.drain[from]', positions,
-    #         **kwargs
-    #     )
-    #     add_to_history(
-    #         aln, '.row.drain[to]', positions,
-    #         **kwargs
-    #     )
-    #     return aln
-
     def reorder(self, positions, copy=False, **kwargs):
         """Reorder records in the alignment based on a given order.
         
