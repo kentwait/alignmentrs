@@ -289,6 +289,19 @@ class RowMethods:
             return aln
 
     def map(self, function):
+        """Maps the given function to the sequence matrix row-wise.
+
+        Parameters
+        ----------
+        function : callable
+            Function to be mapped. The function should expect a str as input.
+
+        Yields
+        ------
+        object
+            Each row is evaluated lazily using the given function.
+
+        """
         for record in self.iter():
             yield function(record)
 
