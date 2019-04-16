@@ -346,8 +346,25 @@ class ColMethods:
         return self._instance.data.has(
             query, case_sensitive, mode, step, chunk_size)
 
-    def map(self, function, skip_n=None, chunk_size=None, lazy=False):
-        for col in self.iter(skip_n=skip_n, chunk_size=chunk_size, lazy=lazy):
+    def map(self, function, step=None, chunk_size=None):
+        """Maps a function to the sequence matrix column-wise.
+        
+        Parameters
+        ----------
+        function : callable
+            Function to be mapped. The function should expect a list of str as input.
+        step : int, optional
+            Number of characters to skip. (default is None)
+        chunk_size : int, optional
+            Number of characters to group as one column. (default is None)
+
+        Yields
+        -------
+        object
+            Each column is evaluated using the given function
+
+        """
+        for col in self.iter(step=step, chunk_size=chunk_size, lazy=True):
             yield function(col)
 
     def iter(self, step=None, chunk_size=None, lazy=False):
