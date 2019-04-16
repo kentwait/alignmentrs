@@ -351,6 +351,25 @@ class ColMethods:
             yield function(col)
 
     def iter(self, step=None, chunk_size=None, lazy=False):
+        """Iterates over the sequence matrix column-wise.
+        Returns a list of list of str, the inner list representing a column.
+
+        Parameters
+        ----------
+        step : int, optional
+            Number of characters to skip. (default is None)
+        chunk_size : int, optional
+            Number of characters to group as one column. (default is None)
+        lazy : bool, optional
+            If True, uses lazy execution (saves memory), otherwise uses eager execution. (default is False, uses eager execution)
+
+        Yields
+        -------
+        list of str
+            Each column is represented as a list of str whose order is based
+            on the ordering of samples in the alignment.
+
+        """
         # Check input type
         if step is not None:
             if not isinstance(step, int):
