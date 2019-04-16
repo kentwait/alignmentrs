@@ -191,6 +191,33 @@ class RowMethods:
 
     def filter(self, function, copy=False, dry_run=False, inverse=False,
                **kwargs):
+        """Returns the list of row positions where the given function is True.
+
+        Parameters
+        ----------
+        function : callable
+            Function used to evaluate each row. The function should expect a list of str as input and a bool and returns a bool as output.
+        copy : bool, optional
+            Whether to return a new copy of the filtered alignment, keeping the
+            original intact, or filter the alignment inplace.
+            (default is False, filtering is performed inplace)
+        dry_run : bool, optional
+            If True, evaluates the function and returns the list of True and False column position only. Nothing is edited. Otherwise,
+            column positions that evaluated False are removed from the
+            alignment. (the default is False, the alignment is edited)
+        inverse : bool, optional
+            If True, columns that evaluate True are removed. (default is False, column positions that evaluate False are removed)
+
+        Returns
+        -------
+        Alignment
+            When `copy` is True, returns the edited alignment after removing columns that evaluated False.
+        dict
+            When `dry_run` is True, return a dictionary where True and False
+            are keys, and the list of respective column positions are the
+            values.
+
+        """
         # Check input
 
         # Checks if function is callable
@@ -257,7 +284,7 @@ class RowMethods:
         #     inverse=inverse,
         #     **kwargs
         # )
-        
+
         if copy is True:
             return aln
 
