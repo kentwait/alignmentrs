@@ -68,8 +68,7 @@ class RowMethods:
         else:
             raise TypeError('positions must be an int or a list of int')
 
-        aln = self._instance
-        return aln.row.retain(positions, copy=True)
+        return self.retain(positions, copy=True)
 
     def remove(self, positions, copy=False, **kwargs):
         """Removes the specified row/s from the alignment naively
