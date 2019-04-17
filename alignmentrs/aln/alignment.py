@@ -326,16 +326,17 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self.column_metadata[name] = data
         self.row.remove(i)
 
-        # Add to history
-        func_sig = func.__qualname__ + \
-            repr(inspect.signature(func)) \
-                .lstrip('<Signature ').rstrip('>')
-        add_to_history(
-            aln, '.set_record_as_column_metadata', i, func_sig,
-            name=name,
-            copy=copy,
-            **kwargs
-        )
+        # # Add to history
+        # func_sig = func.__qualname__ + \
+        #     repr(inspect.signature(func)) \
+        #         .lstrip('<Signature ').rstrip('>')
+        # add_to_history(
+        #     aln, '.set_record_as_column_metadata', i, func_sig,
+        #     name=name,
+        #     copy=copy,
+        #     **kwargs
+        # )
+        
         # TODO: Remove from row metadata
         if copy is True:
             return aln        
