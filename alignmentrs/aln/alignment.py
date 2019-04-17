@@ -106,7 +106,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             self.column_metadata = self._make_row_meta(data=col_metadata)
 
         # Construct alignment metadata from specified aln_metadata
-        self.aln_metadata = self._comments_constructor(aln_metadata)
+        self.alignment_metadata = self._comments_constructor(aln_metadata)
 
         # self._history = History() if store_history else None
         # add_to_history(
@@ -116,6 +116,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         #     store_history=store_history,
         #     **kwargs
         # )
+
+        # Set row and column aliases
         self.row = RowData(self)
         self.col = ColData(self)
 
@@ -229,10 +231,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         """Sets the column index of the alignment."""
         index = pandas.Index(index)
         self.column_metadata.index = index
-        # Add history by default
-        add_to_history(
-            self, '.index', index
-        )
+
+        # # Add history by default
+        # add_to_history(
+        #     self, '.index', index
+        # )
 
     @property
     def nrows(self):
@@ -372,8 +375,10 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         if copy is True:
             aln = self._instance.copy()
         aln.cols.reset_index(copy=False, _record_history=False)
-        # Add to history
-        add_to_history(aln, '.reset_index', copy=copy, **kwargs)
+
+        # # Add to history
+        # add_to_history(aln, '.reset_index', copy=copy, **kwargs)
+
         if copy is True:
             return aln
 
@@ -456,16 +461,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         res = self.col.drop(value, case_sensitive=case_sensitive,
                               copy=copy, dry_run=dry_run, mode=mode,
                               _record_history=False)
-        # Add to history
-        if not dry_run:
-            add_to_history(
-                res if copy else self, '.drop', value,
-                case_sensitive=case_sensitive,
-                copy=copy,
-                dry_run=dry_run,
-                mode=mode,
-                **kwargs
-            )
+        
+        # # Add to history
+        # if not dry_run:
+        #     add_to_history(
+        #         res if copy else self, '.drop', value,
+        #         case_sensitive=case_sensitive,
+        #         copy=copy,
+        #         dry_run=dry_run,
+        #         mode=mode,
+        #         **kwargs
+        #     )
+
         return res
 
     def drop_except(self, value, case_sensitive=False, copy=False,
@@ -508,16 +515,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         res = self.col.drop_except(value, case_sensitive=case_sensitive,
                                     copy=copy, dry_run=dry_run, mode=mode,
                                     _record_history=False)
-        # Add to history
-        if not dry_run:
-            add_to_history(
-                res if copy else self, '.drop_except', value,
-                case_sensitive=case_sensitive,
-                copy=copy,
-                dry_run=dry_run,
-                mode=mode,
-                **kwargs
-            )
+        
+        # # Add to history
+        # if not dry_run:
+        #     add_to_history(
+        #         res if copy else self, '.drop_except', value,
+        #         case_sensitive=case_sensitive,
+        #         copy=copy,
+        #         dry_run=dry_run,
+        #         mode=mode,
+        #         **kwargs
+        #     )
+
         return res
 
     def drop_n(self, n_char='N', case_sensitive=False, copy=False,
@@ -561,16 +570,18 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         res = self.col.drop_n(n_char=n_char, case_sensitive=case_sensitive,
                                copy=copy, dry_run=dry_run, 
                                _record_history=False)
-        # Add to history
-        if not dry_run:
-            add_to_history(
-                res if copy else self, '.drop_n',
-                n_char=n_char,
-                case_sensitive=case_sensitive,
-                copy=copy,
-                dry_run=dry_run,
-                **kwargs
-            )
+        
+        # # Add to history
+        # if not dry_run:
+        #     add_to_history(
+        #         res if copy else self, '.drop_n',
+        #         n_char=n_char,
+        #         case_sensitive=case_sensitive,
+        #         copy=copy,
+        #         dry_run=dry_run,
+        #         **kwargs
+        #     )
+
         return res
 
     def drop_gap(self, gap_char='-', copy=False, dry_run=False, **kwargs):
@@ -611,15 +622,17 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         """
         res = self.col.drop_gap(gap_char=gap_char, copy=copy, 
                                  dry_run=dry_run, _record_history=False)
-        # Add to history
-        if not dry_run:
-            add_to_history(
-                res if copy else self, '.drop_gap',
-                gap_char=gap_char,
-                copy=copy,
-                dry_run=dry_run,
-                **kwargs
-            )
+        
+        # # Add to history
+        # if not dry_run:
+        #     add_to_history(
+        #         res if copy else self, '.drop_gap',
+        #         gap_char=gap_char,
+        #         copy=copy,
+        #         dry_run=dry_run,
+        #         **kwargs
+        #     )
+
         return res
 
     def join(self, others, copy=False, **kwargs):
@@ -681,12 +694,14 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             inplace=True
         )
         aln.column_metadata.insert(1, '_src_name', name_list)
-        # Add to history
-        add_to_history(
-            aln, '.join', others,
-            copy=copy,
-            **kwargs
-        )
+        
+        # # Add to history
+        # add_to_history(
+        #     aln, '.join', others,
+        #     copy=copy,
+        #     **kwargs
+        # )
+
         if copy is True:
             return aln
 
@@ -809,6 +824,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return False
         return True
 
+    # TODO: Transfer __hash__ and __eq__ to Dict mixin
     def __hash__(self):
         # Generates an integer hash using the dictionary representation
         # of the instance
@@ -822,9 +838,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         return False
 
     def __deepcopy__(self, memo):
-        # (self, records, name=None, index=None, comments: dict=None,    
-        #          row_metadata=None, column_metadata=None, store_history=True,
-        #          **kwargs)
+        # Implements native deepcopy functionality
         obj = self.__class__.__new__(self.__class__)
 
         if '_instance' in self.__dict__.keys():
@@ -835,15 +849,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         obj.name = deepcopy(self.name, memo)
         obj.row_metadata = self.row_metadata.copy(deep=True)
         obj.column_metadata = self.column_metadata.copy(deep=True)
-        obj.comments = deepcopy(self.comments, memo)
-        obj._history = deepcopy(self._history, memo)
+        obj.alignment_metadata = deepcopy(self.alignment_metadata, memo)
         obj.row = RowData(obj)
         obj.col = ColData(obj)
         
-        # obj._history = deepcopy(self.history, memo)
-        # TODO: Add history after deepcopy
-        # Add to history
-        # if obj._history is not None:
-        #     obj._history = deepcopy(self._history, memo)
-        #     obj._history.add('deepcopy', obj._state())
         return obj
