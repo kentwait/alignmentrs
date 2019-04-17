@@ -183,20 +183,20 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # uses data
         # Otherwise raises TypeError.
         if data:
-            if isinstance(data, pd.DataFrame):
+            if isinstance(data, pandas.DataFrame):
                 return data
             elif isinstance(data, dict):
                 if not ids:
-                    return pd.DataFrame(data)
+                    return pandas.DataFrame(data)
                 # Constructs dataframe from data and ids
-                return pd.DataFrame(data, index=ids)
+                return pandas.DataFrame(data, index=ids)
             raise TypeError('cannot construct column metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
         # Construct from ids and descriptions
         if not ids:
-            return pd.DataFrame({'description': descriptions})
+            return pandas.DataFrame({'description': descriptions})
         if not descriptions:
-            return pd.DataFrame([], index=ids)
-        return pd.DataFrame(None)
+            return pandas.DataFrame([], index=ids)
+        return pandas.DataFrame(None)
 
     def _row_metadata_constructor(self, ids=None, descriptions=None, data=None):
         # Constructs column metadata DataFrame from
@@ -204,20 +204,20 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # uses data
         # Otherwise raises TypeError.
         if data:
-            if isinstance(data, pd.DataFrame):
+            if isinstance(data, pandas.DataFrame):
                 return data
             elif isinstance(data, dict):
                 if not ids:
-                    return pd.DataFrame(data)
+                    return pandas.DataFrame(data)
                 # Constructs dataframe from data and ids
-                return pd.DataFrame(data, index=ids)
+                return pandas.DataFrame(data, index=ids)
             raise TypeError('cannot construct row metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
         # Construct from ids and descriptions
         if not ids:
-            return pd.DataFrame({'description': descriptions})
+            return pandas.DataFrame({'description': descriptions})
         if not descriptions:
-            return pd.DataFrame([], index=ids)
-        return pd.DataFrame(None)
+            return pandas.DataFrame([], index=ids)
+        return pandas.DataFrame(None)
 
     # Properties
     @property
