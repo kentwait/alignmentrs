@@ -332,47 +332,6 @@ class ColMethods:
         if copy is True:
             return aln
 
-    def has(self, query, case_sensitive=False, mode='any',
-            step=None, chunk_size=None, **kwargs):
-        """Return the list of positions that matches the given conditions.
-        
-        Parameters
-        ----------
-        query : str
-            Query string
-        case_sensitive : bool, optional
-            Whether or not to look for a case-sensitive match. (default is False, matches are not case sensitive)
-        mode : str, optional
-            Specifies whether "any" or "all"-type matching is performed.
-            In "any" mode, the column is a match if any of the items matches
-            the query. In "all" mode, the column is a match if and only if
-            all items match the query. (default is "any")
-        step : int, optional
-            Number of characters to skip. (default is 1)
-        chunk_size : int, optional
-            Number of characters to group as one column. (default is 1)
-
-        Returns
-        -------
-        list
-            List of column positions that matches the query.
-        """
-        # Check input
-        if step and chunk_size:
-            raise ValueError(
-                'skip_n and chunk_size cannot be used simultaneously')
-        if step is None:
-            if chunk_size is None:
-                skip_n = 1
-            else:
-                skip_n = chunk_size
-        if chunk_size is None:
-            chunk_size = 1
-        
-        # Pass inputs to Rust-backed function and output
-        return self._instance.data.has(
-            query, case_sensitive, mode, step, chunk_size)
-
     def map(self, function, step=None, chunk_size=None):
         """Maps a function to the sequence matrix column-wise.
         
