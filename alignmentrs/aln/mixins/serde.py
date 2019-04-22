@@ -142,7 +142,7 @@ class FastaSerdeMixin:
         # >{sid} {desc}
         # {seq}
         info_generator = (
-            (vals[0], vals[1]['description'], self.data[i]) 
+            (vals[0], vals[1]['description'], self.data.data[i]) 
             for i, vals in enumerate(self.row_metadata.iterrows())
         )
         fasta_str = '\n'.join([
