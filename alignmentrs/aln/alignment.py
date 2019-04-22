@@ -28,23 +28,23 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 RecordsSerdeMixin, object):
     """Reperesents a multiple sequence alignment of samples.
 
-    The Alignment object encapsulates information generally
-    included in the FASTA format:
+    The Alignment object encapsulates the following information:
+    - biological sequences as an alignment matrix
     - sequence names/ids
-    - descriptions
-    - sequences
-
-    Additionally, the Alignment object also stores comments
-    (lines prefixed by a semicolon ";") as metadata.
+    - sequence descriptions (rows in the alignment matrix)
+    - descriptions about the alignment
+    - descriptions about sites (columns in the alignment matrix)
 
     Attributes
     ----------
     name : str
         Name of the alignment.
-    samples : BaseAlignment
+    data : SeqMatrix
         Alignment of sample sequences.
-    metadata : dict
-        Other information related to the alignment.
+    row_metadata : pandas.DataFrame
+    column_metadata : pandas.DataFrame
+    alignment_metadata : dict
+        
     """
     def __init__(self, matrix, name='',
                  row_metadata=None, col_metadata=None,
@@ -62,20 +62,24 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         name : str, optional
             Name of the alignment.
         row_metadata : pandas.DataFrame or dict, optional
-            DataFrame containing annotation for columns.
+            DataFrame containing annotation for columns. (default is None, sequences (rows) are integer indexed starting with 0 from the top of the alignment matrix)
         col_metadata : pandas.DataFrame or dict, optional
-            DataFrame containing annotation for columns.
+            DataFrame containing annotation for columns. (default is None, sites (columns) are integer indexed starting with 0 from the left of the alignment matrix)
         row_ids : list of str or list of int, optional
-            List of sample identifiers.
+            List of sample identifiers. (default is None)
+            Ignored if `row_metadata` is not None.
         row_descriptions : list of str, optional
-            List of sample descriptions.
+            List of sample descriptions. (default is None)
+            Ignored if `row_metadata` is not None.
         col_ids : list of str or list of int, optional
-            List of column (site) identifiers
+            List of column (site) identifiers. (default is None)
+            Ignored if `col_metadata` is not None.
         col_descriptions : list of str, optional
-            List of column (site) descriptions.
+            List of column (site) descriptions. (default is None)
+            Ignored if `col_metadata` is not None.
         aln_metadata : dict, optional
             Other information related to the alignment. (default is None,
-            which creates a blank dictionary)
+            a blank dictionary is created automatically)
         store_history : bool, optional
             Whether or not to store actions when the state of the Alignment changes.
         **kwargs
