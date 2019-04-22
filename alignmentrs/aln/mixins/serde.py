@@ -249,11 +249,11 @@ class PickleSerdeMixin(DictSerdeMixin):
 
     def __getstate__(self):
         d = {k: v for k, v in self.__dict__.items() if k != 'data'}
-        d['data'] = self.data.sequences
+        d['data'] = self.data.data
         return d
 
     def __setstate__(self, d):
-        d['data'] = from_list(d['data'])
+        d['data'] = SeqMatrix(d['data'])
         self.__dict__ = d
 
 
