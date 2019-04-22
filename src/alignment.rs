@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::{PyObjectProtocol, exceptions};
 // use pyo3::class::gc::{PyGCProtocol, PyVisit, PyTraverseError};
+use std::fmt;
 
 #[pyclass]
 #[derive(Clone)]
@@ -62,12 +63,12 @@ impl SeqMatrix {
         if i < 0 {
             let norm = self.rows as i32 + i;
             if norm < 0 {
-                return Err(format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
+                return Err(format!("row ID ({}) is out of range [0,{})", i, self.rows))
             }
         }
         // Check positive ID
         if i >= self.rows as i32 {
-            return Err(format!("row ID ({}) is greater than the number of rows ({})", i, self.rows))
+            return Err(format!("row ID ({}) is out of range [0,{})", i, self.rows))
         }
         Ok(())
     }
@@ -77,12 +78,12 @@ impl SeqMatrix {
         if i < 0 {
             let norm = self.cols as i32 + i;
             if norm < 0 {
-                return Err(format!("column ID ({}) is greater than the number of column ({})", i, self.cols))
+                return Err(format!("column ID ({}) is out of range [0,{})", i, self.cols))
             }
         }
         // Check positive ID
         if i >= self.cols as i32 {
-            return Err(format!("column ID is greater than the number of columns: {}", i))
+            return Err(format!("column ID ({}) is out of range [0,{})", i, self.cols))
         }
         Ok(())
     }
@@ -154,6 +155,7 @@ impl SeqMatrix {
             })
             .map(|(_, x)| x )
             .collect();
+        self.rows = self.data.len();
         Ok(())
     }
 
@@ -276,6 +278,7 @@ impl SeqMatrix {
                 sequence
             })
             .collect();
+        self.cols = self.data[0].len();
         Ok(())
     }
 
@@ -313,10 +316,10 @@ impl SeqMatrix {
     // SeqMatrix methods
 
     /// Concatenates sequence matrices across columns, preserving the number of rows.
-    pub fn _concat(&mut self, others: Vec<&SeqMatrix>) -> Result<SeqMatrix, String> {
+    pub fn _concat(&mut self, others: Vec<&SeqMatrix>) -> Result<(), String> {
         self._is_empty_matrix()?;
         if others.len() == 0 {
-            return Ok(self._copy())
+            return Ok(())
         } else {
             let rows_true: usize = others.iter()
                 .map(|m| if self.rows == m.rows { 1 } else { 0 })
@@ -325,13 +328,14 @@ impl SeqMatrix {
                 return Err(format!("number of rows of other matrices is not equal to {}", self.rows))
             }
         }
-        let mut sq = self._copy();
+        // let mut sq = self._copy();
         for aln in others.iter() {
             for j in 0..self.data.len() {
-                sq.data[j].push_str(&aln.data[j]);
+                self.data[j].push_str(&aln.data[j]);
             }
         }
-        Ok(sq)
+        self.cols = self.data[0].len();
+        Ok(())
     }
 
     // TODO: implement clone()
@@ -576,7 +580,7 @@ impl SeqMatrix {
     /// --
     /// 
     /// Returns a new sequence matrix by concatenating this matrix to a list of other matrices.
-    pub fn concat(&mut self, others: Vec<&SeqMatrix>) -> PyResult<SeqMatrix> {
+    pub fn concat(&mut self, others: Vec<&SeqMatrix>) -> PyResult<()> {
         match self._concat(others) {
             Ok(res) => Ok(res),
             Err(x) => return Err(exceptions::ValueError::py_err(x)),
@@ -630,6 +634,20 @@ impl PyObjectProtocol for SeqMatrix {
     }
 }
 
+// Implements equality comparison between SeqMatrix structs
+impl PartialEq for SeqMatrix {
+    fn eq(&self, other: &SeqMatrix) -> bool {
+        self.data == other.data && self.rows == other.rows && self.cols == other.cols
+    }
+}
+
+// Implements Debug in order to use format! and other printout methods
+impl fmt::Debug for SeqMatrix {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "SeqMatrix {{ data: {:?}, rows: {}, cols: {} }}", self.data, self.rows, self.cols)
+    }
+}
+
 // #[pyproto]
 // impl PyGCProtocol for BaseAlignment {
 //     fn __traverse__(&self, visit: PyVisit) -> Result<(), PyTraverseError> {
@@ -664,4 +682,581 @@ fn alignment(_py: Python, m: &PyModule) -> PyResult<()> {
     // m.add_function(wrap_function!(from_list))?;
 
     Ok(())
+}
+
+mod test {
+    use super::*;
+
+    // Test SeqMatrix creation
+    #[test]
+    fn test_new_seqmatrix() {
+        let exp = SeqMatrix{ 
+            data: vec![
+                "atcg".to_string(),
+                "atgg".to_string(),
+                "atcc".to_string(),
+                "tagc".to_string(),
+            ],
+            rows: 4,
+            cols: 4,
+        };
+        let res = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        assert_eq!(exp, res);
+    }
+
+    // Test SeqMatrix methods
+
+    // Test getter methods
+    #[test]
+    fn test_nrows() {
+        let res = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        assert_eq!(res.rows, 4);
+    }
+
+    #[test]
+    fn test_ncols() {
+        let res = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        assert_eq!(res.cols, 4);
+    }
+
+    // TODO: Place subsequent tests in another file
+
+    // Test methods that used for checking
+    #[test]
+    fn test_is_empty_matrix() {
+        let res = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        res._is_empty_matrix().unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "empty sequence matrix")]
+    fn test_is_empty_matrix_empty() {
+        let res = new_seqmatrix(vec![]).unwrap();
+        
+        res._is_empty_matrix().unwrap();
+    }
+
+    #[test]
+    fn test_is_valid_row_index() {
+        let res = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        res._is_valid_row_index(3).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "row ID (4) is out of range [0,4)")]
+    fn test_is_valid_row_index_invalid() {
+        let res = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        res._is_valid_row_index(4).unwrap();
+    }
+
+    #[test]
+    fn test_is_valid_col_index() {
+        let res = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        res._is_valid_col_index(3).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "column ID (4) is out of range [0,4)")]
+    fn test_is_valid_col_index_invalid() {
+        let res = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        res._is_valid_col_index(4).unwrap();
+    }
+
+    // Test row methods
+    // Test _get_row and _get_rows
+    #[test]
+    fn test_get_row() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_row(0).unwrap();
+        assert_eq!(res, "atcg");
+    }
+
+    #[test]
+    fn test_get_row_negative_index() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_row(-1).unwrap();
+        assert_eq!(res, "tagc");
+    }
+
+    #[test]
+    fn test_get_rows() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_rows(vec![0,2]).unwrap();
+        assert_eq!(res, vec!["atcg", "atcc"]);
+    }
+
+    #[test]
+    fn test_get_rows_mixed_index() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_rows(vec![0,-1]).unwrap();
+        assert_eq!(res, vec!["atcg", "tagc"]);
+    }
+
+    #[test]
+    // Test remove rows
+    fn test_remove_rows() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec!["atgg".to_string(), "tagc".to_string()]).unwrap();
+
+        mat._remove_rows(vec![0, 2]).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    #[test]
+    // Test retain rows
+    fn test_retain_rows() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec!["atcg".to_string(), "atcc".to_string()]).unwrap();
+
+        mat._retain_rows(vec![0, 2]).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    #[test]
+    // Test retain rows base - drop rows, true
+    fn test_drop_rows_true() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec!["atcg".to_string(), "atcc".to_string()]).unwrap();
+
+        mat._drop_rows(vec![0, 2], true).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    #[test]
+    // Test remove rows base - drop rows, false
+    fn test_drop_rows_false() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec!["atgg".to_string(), "tagc".to_string()]).unwrap();
+
+        mat._drop_rows(vec![0, 2], false).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    #[test]
+    // Test reorder rows
+    fn test_reorder_rows() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec![
+            "atgg".to_string(),  // 1
+            "tagc".to_string(),  // 3
+            "atcg".to_string(),  // 0
+            "atcc".to_string(),  // 2
+        ]).unwrap();
+
+        mat._reorder_rows(vec![1, 3, 0, 2]).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    // Test column methods
+    // Test _get_chunk and _get_chunks
+    #[test]
+    fn test_get_chunk() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_chunk(0, 1).unwrap();
+        assert_eq!(res, vec!["a","a","a","t"]);
+    }
+
+    #[test]
+    fn test_get_chunk_negative_index() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_chunk(-1, 1).unwrap();
+        assert_eq!(res, vec!["g","g","c","c"]);
+    }
+
+    #[test]
+    fn test_get_chunk_3() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_chunk(0, 3).unwrap();
+        assert_eq!(res, vec!["atc","atg","atc","tag"]);
+    }
+
+    #[test]
+    fn test_get_chunks() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_chunks(vec![0,2], 1).unwrap();
+        assert_eq!(res, vec![vec!["a","a","a","t"],vec!["c","g","c","g"]]);
+    }
+
+    #[test]
+    fn test_get_chunks_mixed_index() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_chunks(vec![0,-1], 1).unwrap();
+        assert_eq!(res, vec![vec!["a","a","a","t"],vec!["g","g","c","c"]]);
+    }
+
+    #[test]
+    fn test_get_chunks_3() {
+        let mat = new_seqmatrix(vec![
+            "atcgt".to_string(),
+            "atggt".to_string(),
+            "atccg".to_string(),
+            "tagcc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_chunks(vec![0,2], 3).unwrap();
+        assert_eq!(res, vec![vec!["atc","atg","atc","tag"],vec!["cgt","ggt","ccg","gcc"]]);
+    }
+
+    // Tests _get_col and _get_cols
+    #[test]
+    fn test_get_col() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_col(0).unwrap();
+        assert_eq!(res, vec!["a","a","a","t"]);
+    }
+
+    #[test]
+    fn test_get_col_negative_index() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_col(-1).unwrap();
+        assert_eq!(res, vec!["g","g","c","c"]);
+    }
+
+    #[test]
+    fn test_get_cols() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_cols(vec![0,2]).unwrap();
+        assert_eq!(res, vec![vec!["a","a","a","t"],vec!["c","g","c","g"]]);
+    }
+
+    #[test]
+    fn test_get_cols_mixed_index() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        
+        let res = mat._get_cols(vec![0,-1]).unwrap();
+        assert_eq!(res, vec![vec!["a","a","a","t"],vec!["g","g","c","c"]]);
+    }
+
+    // Tests _remove_cols
+    #[test]
+    fn test_remove_cols() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec![
+            "tg".to_string(),
+            "tg".to_string(),
+            "tc".to_string(),
+            "ac".to_string(),
+        ]).unwrap();
+
+        mat._remove_cols(vec![0, 2]).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    // Tests _retain_cols
+    #[test]
+    fn test_retain_cols() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec![
+            "ac".to_string(),
+            "ag".to_string(),
+            "ac".to_string(),
+            "tg".to_string(),
+        ]).unwrap();
+
+        mat._retain_cols(vec![0, 2]).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    // Tests _retain_cols base - _drop_cols, true
+    #[test]
+    fn test_drop_cols_true() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec![
+            "ac".to_string(),
+            "ag".to_string(),
+            "ac".to_string(),
+            "tg".to_string(),
+        ]).unwrap();
+
+        mat._drop_cols(vec![0, 2], true).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    // Test _remove_cols base - _drop_cols, false
+    #[test]
+    fn test_drop_cols_false() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec![
+            "tg".to_string(),
+            "tg".to_string(),
+            "tc".to_string(),
+            "ac".to_string(),
+        ]).unwrap();
+
+        mat._drop_cols(vec![0, 2], false).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    // Test _reorder_cols
+    #[test]
+    fn test_reorder_cols() {
+        let mut mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec![
+            "gatc".to_string(),
+            "gatg".to_string(),
+            "catc".to_string(),
+            "ctag".to_string(),
+        ]).unwrap();
+
+        mat._reorder_cols(vec![3, 0, 1, 2]).unwrap();
+        assert_eq!(mat, exp);
+    }
+
+    // Test normalization of index values
+    #[test]
+    fn test_norm_rows() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        assert_eq!(mat._norm_rows(vec![0, -1, 2, -3, -4, 3]), vec![0, 3, 2, 1, 0, 3]);
+    }
+
+    #[test]
+    fn test_norm_cols() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        assert_eq!(mat._norm_cols(vec![0, -1, 2, -3, -4, 3]), vec![0, 3, 2, 1, 0, 3]);
+    }
+
+    // Test index inversion
+    #[test]
+    fn test_invert_rows() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        assert_eq!(mat._invert_rows(vec![3, 0]), vec![1, 2]);
+    }
+
+    #[test]
+    fn test_invert_cols() {
+        let mat = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+        assert_eq!(mat._invert_cols(vec![3, 0]), vec![1, 2]);
+    }
+
+    // Tests concatenation
+    #[test]
+    fn test_concat() {
+        let mut mat1 = new_seqmatrix(vec![
+            "atcg".to_string(),
+            "atgg".to_string(),
+            "atcc".to_string(),
+            "tagc".to_string(),
+        ]).unwrap();
+
+        let mat2 = new_seqmatrix(vec![
+            "aaaa".to_string(),
+            "tttt".to_string(),
+            "cccc".to_string(),
+            "gggg".to_string(),
+        ]).unwrap();
+
+        let exp = new_seqmatrix(vec![
+            "atcgaaaa".to_string(),
+            "atggtttt".to_string(),
+            "atcccccc".to_string(),
+            "tagcgggg".to_string(),
+        ]).unwrap();
+
+        mat1._concat(vec![&mat2]).unwrap();
+        assert_eq!(mat1, exp);
+    }
 }
