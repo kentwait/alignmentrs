@@ -22,41 +22,6 @@ __all__ = [
 _whitespace_regexp = re.compile(r'\s+')
 _column_metadata_string_regexp = re.compile(r'meta\|(\S+)\=(\S+)')
 
-class RecordsSerdeMixin:
-    @classmethod
-    def from_records(cls, records, name=None, index=None, comments=None, 
-                     row_metadata=None, column_metadata=None,
-                     store_history=True, **kwargs):
-        """Create a new alignment from a list of records.
-
-        Parameters
-        ----------
-        records : list of Record
-        name : str, optional
-        index : pandas.Index, optional
-            Alingment column position index
-        comments : dict, optional
-            Comments about the alignment.
-        row_metadata : pandas.DataFrame, optional
-            Metadata about alignment records.
-        column_metadata : pandas.DataFrame, optional
-            Metadata for columns in the alignment.
-        store_history : bool, optional
-            Whether or not to record the actions performed on the alignment.
-
-        Returns
-        -------
-        Alignment
-
-        """
-
-        return cls(records, name=name, index=index, comments=comments, 
-            row_metadata=row_metadata, column_metadata=column_metadata,
-            store_history=store_history, **kwargs)
-
-    def to_records(self):
-        return [Record(vals[0], vals[1]['description'], self.data.get_row(i))
-                for i, vals in enumerate(self.row_metadata.iterrows())]
 
 class FastaSerdeMixin:
     """Adds ability to read/write an Alignment object
