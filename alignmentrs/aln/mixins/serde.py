@@ -173,6 +173,8 @@ class FastaSerdeMixin:
 
 
 class DictSerdeMixin:
+    """Adds ability to read/write an Alignment object from a dictionary.
+    """
     @classmethod
     def from_dict(cls, d, store_history=True, **kwargs):
         name = d['name']
@@ -274,88 +276,6 @@ class NexusSerdeMixin:
 class PhylipSerdeMixin:
     pass
 
-
-# class CsvSerdeMixin:
-#     @classmethod
-#     def from_csv(cls, path, delimiter='\t', metadata=True,
-#                  column_metadata=True, store_history=True,
-#                  **kwargs):
-#         # self, name, records, chunk_size: int=1,
-#         # index=None, metadata: dict=None, column_metadata=None,
-#         data_path = os.path.abspath(path)
-
-#         metadata_d = dict()
-#         name = None
-#         chunk_size = 1
-#         index = None
-#         records = []
-#         in_sequence = False
-#         with open(data_path, 'r') as reader:
-#             for line in reader.readlines():
-#                 line = line.rstrip()
-#                 if line.startswith('#'):
-#                     line = line.lstrip()
-#                     key, value = [string.strip() for string in line.lstrip().split('=')]
-#                     if key == 'name':
-#                         name = value
-#                     elif key == 'chunk_size':
-#                         chunk_size = value
-#                     elif key == 'index':
-#                         # TODO: Add re test for security
-#                         index = pandas.Index(eval(value))
-#                     else:
-#                         metadata[key] = value
-#                 elif line.startswith('id'):
-#                     in_sequence = True
-#                     continue
-#                 elif in_sequence is True:
-#                     sid, desc, seq = line.split(delimiter)
-#                     records.append(Record(sid, desc, seq, chunk_size))
-#         if column_metadata:
-#             l, r = path.rsplit('.', 1)
-#             meta_path = l + '.cols.' + r
-#             column_metadata_d = pandas.read_csv(meta_path, index_col=0, comment='#')
-#         return cls(name, records, chunk_size=chunk_size,
-#                    index=index, metadata=metadata_d,
-#                    column_metadata=column_metadata_d, store_history=store_history,
-#                    **kwargs)
-
-
-#     def to_csv(self, path=None, delimiter='\t', metadata=True, column_metadata=True):
-#         lines = []
-#         lines.append('# name = {}'.format(self.name))
-#         lines.append('# index = {}'.format(self.index.to_list()))
-#         lines.append('# chunk_size = {}'.format(self._alignment.chunk_size))
-#         if metadata is True:
-#             lines += [
-#                 '# {} = {}'.format(k, v) for k, v in metadata.items()
-#             ]
-#         lines.append(delimiter.join(['id', 'description', 'sequence']))
-#         lines += [
-#             delimiter.join([r.id, r.description.replace('\t', ' '),
-#                             r.sequence])
-#             for r in self._alignment.records
-#         ]
-#         dirpath = os.path.dirname(os.path.abspath(path))
-#         if not os.path.isdir(dirpath):
-#             raise OSError('{} does not exist'.format(dirpath))
-#         if not path.endswith('.csv'):
-#             data_path = path + '.csv'
-#             meta_path = path + '.cols.csv'
-#         else:
-#             data_path = path
-#             l, r = path.rsplit('.', 1)
-#             meta_path = l + '.cols.' + r
-#         csv_str = '\n'.join(lines)
-#         if path is None:
-#             return csv_str
-#         dirpath = os.path.dirname(os.path.abspath(path))
-#         if not os.path.isdir(dirpath):
-#             raise OSError('{} does not exist'.format(dirpath))
-#         with open(data_path, 'w') as writer:
-#             print(csv_str, file=writer)
-#         if column_metadata is True:
-#             self.column_metadata.to_csv(meta_path)
 
 def col_metadata_to_str(column_metadata, included_keys, encoders=None):
     """Transforms the column metadata DataFrame into a string representation.
