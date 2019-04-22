@@ -10,22 +10,21 @@ import numpy
 from libalignmentrs.alignment import SeqMatrix
 from libalignmentrs.record import Record
 from alignmentrs.utils import idseq_to_display
-from alignmentrs.aln.mixins import (RecordsSerdeMixin, FastaSerdeMixin,
-                                    JsonSerdeMixin, PickleSerdeMixin)
-from alignmentrs.history import History
-from alignmentrs.history import Record as Record_
-from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
-from alignmentrs.utils import add_to_history
+from alignmentrs.aln.mixins import (
+    FastaSerdeMixin, JsonSerdeMixin, PickleSerdeMixin)
+# from alignmentrs.history import History
+# from alignmentrs.history import Record as Record_
+# from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
+# from alignmentrs.utils import add_to_history
 from .row import RowMethods
 from .col import ColMethods
-from .metadata import MetadataRedirect
 
 
 __all__ = ['Alignment', 'CatAlignment']
 
 
 class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin, 
-                RecordsSerdeMixin, object):
+                object):
     """Reperesents a multiple sequence alignment of samples.
 
     The Alignment object encapsulates the following information:

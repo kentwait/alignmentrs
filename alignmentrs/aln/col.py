@@ -5,9 +5,7 @@ import itertools
 
 import pandas
 
-from libalignmentrs.alignment import BaseAlignment
-from libalignmentrs.record import Record
-from alignmentrs.utils import add_to_history
+# from alignmentrs.utils import add_to_history
 
 
 __all__ = ['ColData']
