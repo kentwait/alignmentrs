@@ -110,7 +110,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             self.column_metadata = self._make_col_meta(data=col_metadata)
 
         # Construct alignment metadata from specified aln_metadata
-        self.alignment_metadata = self._comments_constructor(aln_metadata)
+        self.alignment_metadata = self._make_aln_meta(aln_metadata)
 
         # self._history = History() if store_history else None
         # add_to_history(
@@ -150,36 +150,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return SeqMatrix(str_list)
         
         raise TypeError('unsupported data type: {}'.format(type(data)))
-
-    def _comments_constructor(self, metadata):
-        # Constructs metadata for the entire alignment
-        # alignment metadata is a dictionary
-        # input `metadata` can be a dictionary, list of tuple (size 2)
-        if metadata is None:
-            return dict()
-        elif isinstance(metadata, dict):
-            return comments
-        elif isinstance(metadata, list):
-            # Converts items into a dictionary
-            d = {}
-            for i, item in enumerate(metadata):
-                # Tries to convert each item into a key-value entry
-                if isinstance(item, str):
-                    d[i] = item
-                    continue
-                elif isinstance(item, list) and len(item) == 2:
-                    if isinstance(item[0], str) and isinstance(item[1], str):
-                        d[item[0]] = item[1]
-                        continue
-                    raise TypeError('cannot construct entry from list item: {}'.format(item))
-                elif isinstance(item, tuple) and len(item) == 2:
-                    if isinstance(item[0], str) and isinstance(item[1], str):
-                        d[item[0]] = item[1]
-                        continue
-                    raise TypeError('cannot construct entry from list item: {}'.format(item))
-                raise TypeError('cannot construct entry from list item: {}'.format(item))
-            return d
-        raise TypeError('comments must be a dictionary of keys and values')
 
     def _make_row_meta(self, ids=None, descriptions=None, data=None):
         # Constructs column metadata using data, or
@@ -252,6 +222,41 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # If both descriptions and ids are not specified,
         # use default integer indexing and return an empty DataFrame.
         return pandas.DataFrame(None, index=range(self.ncols))
+
+    def _make_aln_meta(self, metadata=None):
+        # Constructs alignment metadata from a list of tuple (size 2)
+        # or a dictionary.
+        if metadata is None:
+            # If metadata is None or not specified, returns an empty dictionary.
+            return dict()
+        elif isinstance(metadata, dict):
+            # If metadata is a dictionary, returns the dictionary as is
+            return metadata
+        elif (isinstance(metadata, list) or isinstance(metadata, tuple)):
+            # If metadata is a list, tries to converts items into a dictionary.
+            d = {}
+            for i, item in enumerate(metadata):
+                # Tries to convert each item into a key-value entry.
+                #
+                # If the item is a str, the order of the item in the list
+                # is used as the key and the str is used as the value.
+                #
+                # If the item is a list or tuple of size 2, then the
+                # first item of becomes the key and the second is the value.
+                #
+                # Otherwise, conversion fails.
+                if isinstance(item, str):
+                    d[i] = item
+                    continue
+                elif ((isinstance(item, list) and len(item) == 2) or
+                      (isinstance(item, tuple) and len(item) == 2)):
+                    if isinstance(item[0], str) and isinstance(item[1], str):
+                        d[item[0]] = item[1]
+                        continue
+                raise TypeError('cannot construct `alignment_metadata` entry from the following item: {}'.format(item))
+            return d
+        # metadata is not None, dict, list or tuple
+        raise TypeError('`metadata` must be a dictionary of keys and values, instead got: {}'.format(type(metadata)))
 
     # Properties
     @property
