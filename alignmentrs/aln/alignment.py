@@ -107,7 +107,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             self.column_metadata = \
                 self._make_col_meta(ids=col_ids, descriptions=col_descriptions)
         else:
-            self.column_metadata = self._make_row_meta(data=col_metadata)
+            self.column_metadata = self._make_col_meta(data=col_metadata)
 
         # Construct alignment metadata from specified aln_metadata
         self.alignment_metadata = self._comments_constructor(aln_metadata)
@@ -122,8 +122,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # )
 
         # Set row and column aliases
-        self.row = RowData(self)
-        self.col = ColData(self)
+        self.row = RowMethods(self)
+        self.col = ColMethods(self)
 
     # Constructors
     def _data_constructor(self, data):
