@@ -1,10 +1,7 @@
-from libalignmentrs.readers import fasta_to_records
 import libalignmentrs as librs
 
 from alignmentrs import aln
-# from alignmentrs import alnset
 from alignmentrs.aln import Alignment
-# from alignmentrs.alnset import Alignmentet, fasta_directory_to_alignmentset
 
 
 __author__ = 'Kent Kawashima'
@@ -13,9 +10,8 @@ __all__ = [
     # From dynamic library
     'librs',
     # Modules
-    'aln', 'alnset',
+    'aln',
     # Classes
-    'Alignment', 'AlignmentSet',
+    'Alignment',
     # Functions
-    'fasta_file_to_alignment', 'fasta_directory_to_alignmentset',
-    'fasta_to_records']
+    ]

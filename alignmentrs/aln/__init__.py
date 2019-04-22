@@ -1,4 +1,5 @@
-from alignmentrs.aln.classes import Alignment
+from alignmentrs.aln.alignment import Alignment
 
-__all__ = ['Alignment',
-           ]
+__all__ = [
+    'Alignment',
+]
