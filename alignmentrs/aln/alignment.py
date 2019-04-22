@@ -172,7 +172,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 # using the ids as index.
                 return pandas.DataFrame(data, index=ids)
             # data is neither DataFrame or dict
-            raise TypeError('cannot construct row metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
+            raise TypeError('Cannot construct `row_metadata` DataFrame using the given `row_metadata` input type: {}'.format(type(data)))
         # data is not specified
         # Construct a DataFrame from ids and descriptions.
         # If descriptions is supplied but ids is not specified,
@@ -208,7 +208,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 # ids as the index.
                 return pandas.DataFrame(data, index=ids)
             # data is neither DataFrame or dict
-            raise TypeError('cannot construct column metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
+            raise TypeError('Cannot construct `col_metadata` DataFrame using the given `col_metadata` input type: {}'.format(type(data)))
         # data is not specified
         # Construct a DataFrame from ids and descriptions.
         # If descriptions is specified but ids is not specified,
@@ -253,7 +253,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                     if isinstance(item[0], str) and isinstance(item[1], str):
                         d[item[0]] = item[1]
                         continue
-                raise TypeError('cannot construct `alignment_metadata` entry from the following item: {}'.format(item))
+                raise TypeError('Cannot construct `alignment_metadata` entry from the following item: {}'.format(item))
             return d
         # metadata is not None, dict, list or tuple
         raise TypeError('`metadata` must be a dictionary of keys and values, instead got: {}'.format(type(metadata)))
