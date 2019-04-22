@@ -154,7 +154,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                     raise TypeError('Cannot construct `data` SeqMatrix using the given `data` {} item type: {}'.format(type(data), type(item)))
             return SeqMatrix(str_list)
         # `data` is an unsupported type
-        raise TypeError('`data` must be a SeqMatrix, list or tuple, instead got:: {}'.format(type(data)))
+        raise TypeError('`data` must be a SeqMatrix, list or tuple, instead got: {}'.format(type(data)))
 
     def _make_row_meta(self, ids=None, descriptions=None, data=None):
         # Constructs column metadata using data, or
