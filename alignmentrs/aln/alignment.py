@@ -291,13 +291,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         """int: Returns the number of columns in the alignment."""
         return self.data.ncols()
 
-    # Return all row metadata as part of the record
-    # @property
-    # def records(self):
-    #     """list of Record: Returns the list of records."""
-    #     return [Record(vals[0], vals[1]['description'], self.data.get_row(i))
-    #             for i, vals in enumerate(self.row_metadata.iterrows())]
-
     @property
     def ids(self):
         """list of str: Returns the list of identifiers."""
