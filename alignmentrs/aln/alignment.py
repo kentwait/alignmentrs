@@ -91,7 +91,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
         # sequence matrix is required and forms the foundation of the
         # Alignment object.
-        self.data: SeqMatrix = self._data_constructor(matrix)
+        self.data: SeqMatrix = self._make_data(matrix)
 
         # Construct row metadata dataframe using the row_metadata input OR
         # from row_ids and row_descriptions.
@@ -126,30 +126,35 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         self.col = ColMethods(self)
 
     # Constructors
-    def _data_constructor(self, data):
-        # Constructs a SeqMatrix from the input if the input
-        # is not already a SeqMatrix.
-        # Input can be a SeqMatrix (no change),
-        # list of str, or list of list of str
-        if isinstance(data, SeqMatrix):
+    def _make_data(self, data=None):
+        # Constructs a SeqMatrix from the input data.
+        if not data:
+            # If `data` is None or not specified, returns an empty SeqMatrix.
+            return SeqMatrix([])
+        elif isinstance(data, SeqMatrix):
+            # If `data` is already a SeqMatrix, returns `data` with no changes
             return data
-        elif isinstance(data, list):
-            # Convert all inner data into a string, if possible
+        elif (isinstance(data, list) or isinstance(data, tuple)):
+            # If `data` is a list or a tuple, tries to convert to SeqMatrix
+            # The conversion process assumes that list items are either str or
+            # list/tuple of str. If the item is a list/tuple then this is joined
+            # to form a single string.
             str_list = []
-            for item in list:
+            for i, item in enumerate(data):
                 if isinstance(item, str):
                     str_list.append(item)
-                elif isinstance(item, list):
+                elif (isinstance(item, list) or isinstance(item, tuple)):
                     try:
                         string = ''.join(item)
                     except TypeError:
-                        raise TypeError('expected str instance, {} found'.format(type(item)))
+                        raise TypeError('Cannot construct `data` SeqMatrix using the given `data` input: item {} in {}, expected str instance, {} found'.format(i, type(data), type(item)))
                     str_list.append(string)
                 else:
-                    raise TypeError('cannot construct sequence from item: {}'.format(item))
+                    # Item type is not str/list/tuple and is not supported.
+                    raise TypeError('Cannot construct `data` SeqMatrix using the given `data` {} item type: {}'.format(type(data), type(item)))
             return SeqMatrix(str_list)
-        
-        raise TypeError('unsupported data type: {}'.format(type(data)))
+        # `data` is an unsupported type
+        raise TypeError('`data` must be a SeqMatrix, list or tuple, instead got:: {}'.format(type(data)))
 
     def _make_row_meta(self, ids=None, descriptions=None, data=None):
         # Constructs column metadata using data, or
