@@ -6,15 +6,10 @@ import pickle
 import re
 import io
 
-
 import pandas
 
-from libalignmentrs.alignment import BaseAlignment, from_list
-from libalignmentrs.record import Record
-from libalignmentrs.readers import fasta_to_records
-from alignmentrs.aln.mixins.functions import (
-    make_col_meta_string, make_col_meta_dict
-)
+from libalignmentrs.alignment import SeqMatrix
+from libalignmentrs.readers import fasta_to_dict
 from alignmentrs.utils import to_intlist
 
 
@@ -64,10 +59,11 @@ class RecordsSerdeMixin:
                 for i, vals in enumerate(self.row_metadata.iterrows())]
 
 class FastaSerdeMixin:
+    """Adds ability to read/write an Alignment object
+    from a FASTA formatted file.
+    """
     @classmethod
-    def from_fasta(cls, path, name=None, parse_row_metadata=True,  
-                   parse_column_metadata=True, store_history=True,
-                   column_metadata_decoders=None, **kwargs):
+    def from_fasta(cls, path, name=None, parse_row_metadata=True,  parse_column_metadata=True, store_history=True,column_metadata_decoders=None, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -91,31 +87,25 @@ class FastaSerdeMixin:
             descriptions, and sequences in the FASTA file.
 
         """
-        records, _ = fasta_to_records(path)
-        row_meta, col_meta = [], []
-        # row_meta_regexp = re.compile(r'[^(meta\|)](\S+)\=(\S+)')
-        # if parse_row_metadata:
-        #     for record in records:
-        #         matches = dict(row_meta_regexp.findall(record.description))
-        #         row_meta.append(matches)
-        # row_meta = {k: eval(v) for k, v in dict(ChainMap(*row_meta)).items()}
+        matrix, metadata = fasta_to_dict(path)
+        row_meta, col_meta = None, None
         if parse_column_metadata:
-            for record in records:
-                matches_d = make_col_meta_dict(
-                    record.description, 
-                    column_metadata_decoders if column_metadata_decoders else {}
-                )
-                col_meta.append(matches_d)
-        col_meta = dict(ChainMap(*col_meta))
+            # Parses metadata['descriptions'] and removes parsed info
+            pass
         if name is None:
             name = os.path.basename(path)
-        return cls(records, name=name,
-                #    row_metadata=row_meta,
-                   column_metadata=col_meta,
+        return cls(matrix, name,
+                   row_metadata=row_meta,
+                   # row_ids and row_descriptions are ignored
+                   # if row_meta is not None
+                   row_ids=metadata['ids'],
+                   row_descriptions=metadata['descriptions'],
+                   # col_meta is None unless parse_column_metadata is True
+                   col_metadata=col_meta,
+                   aln_metadata=metadata['comments'],
                    store_history=store_history, **kwargs)
 
-    def to_fasta(self, path=None, include_column_metadata=None, 
-                 column_metadata_encoders=None, **kwargs):
+    def to_fasta(self, path=None, include_column_metadata=None, column_metadata_encoders=None, **kwargs):
         """Saves the alignment as a FASTA-formatted file.
         Some metadata may not be lost.
 
@@ -123,37 +113,44 @@ class FastaSerdeMixin:
         ----------
         path : str
             Path to save the alignment to.
-        include_info : bool, optional
-            Whether or not to output alignment infomation,
-            ie. alignment name and coordinates.
-            (default is False, information are not written as FASTA comments
-            to ensure maximum compatibility)
-        include_column_metadata : list, optional
+        include_column_metadata : list of str, optional
             List of keys of columns in column metadata to include
             (default is None, information are not written as FASTA comments
             to ensure maximum compatibility)
+        column_metadata_encoders : dict of callable, optional
+            Dictionary of functions used to transform values of included
+            column metadata.
+            Keys are expected to match  specified column names.
+            (default is None, all included columns will be transformed using the
+            `str` string constructor)
 
         """
-        sp_sub = re.compile(r'\s+')
-        id_desc_seq = (
-            (vals[0], vals[1]['description'], self.data.get_row(i)) 
+        # Default values if not specified
+        if include_column_metadata is None:
+            include_column_metadata = []
+        if column_metadata_encoders is None:
+            column_metadata_encoders = {}
+
+        # Transform col metadata DataFrame into a stringed representation
+        # of columns and values.
+        col_meta_str = col_metadata_to_str(
+            self.column_metadata, include_column_metadata,
+            column_metadata_encoders
+        )
+        # Creates a generator that writes each entry as a string
+        # in the FASTA format:
+        # >{sid} {desc}
+        # {seq}
+        info_generator = (
+            (vals[0], vals[1]['description'], self.data[i]) 
             for i, vals in enumerate(self.row_metadata.iterrows())
         )
-        col_meta = make_col_meta_string(
-            self.column_metadata,
-            include_column_metadata if include_column_metadata else [],
-            column_metadata_encoders if column_metadata_encoders else {}
-        )
-        if 'col_meta_at' in kwargs.keys():
-            rows = to_intlist(kwargs['col_meta_at'])
-            _col_meta_at = self._col_meta_at(rows)
-        else:
-            _col_meta_at = self._col_meta_at(range(self.nrows))
         fasta_str = '\n'.join([
-            self._record_formatter(sid, desc, seq, _col_meta_at(col_meta))
-            for sid, desc, seq in id_desc_seq
+            self._entry_formatter(sid, desc, col_meta_str, seq)
+            for sid, desc, seq in info_generator
         ])
-        # TODO: Add ability to add row metedata thats not the description
+
+        # Write the FASTA string to file
         if path is None:
             return fasta_str
         dirpath = os.path.dirname(os.path.abspath(path))
@@ -162,48 +159,8 @@ class FastaSerdeMixin:
         with open(path, 'w') as writer:
             print(fasta_str, file=writer)
 
-    def _columns_as_string(self, included_keys, encoders={}):
-        # Encodes column metadata into a string representation if its name/key
-        # is in included_keys via a specific encoder function.
-        #
-        # Each included metadata column can be assigned a specific encoder
-        # function to create a string representation by including the name/key
-        # of the column and its corresponding encoder to the `encoders`
-        # keyword argument.
-        # 
-        # If an included column has no corresponding encoder assigned, or the
-        # `encoders` argument value is `None`, the string constructor `str` is
-        # used as the encoder function.
-        included_values = (
-            (k, v)
-            for k, v in self.column_metadata.to_dict(orient='list').items()
-            if k in included_keys
-        )
-        return ' '.join([
-            self._encode_column_metadata_as_string(
-                k, v, 
-                encoders[k] if k in encoders.keys() else str
-            )
-            for k, v in included_values
-        ])
-
     @staticmethod
-    def _encode_column_metadata_as_string(key, value, encoder: callable):
-        # Encodes a column in the column metadata DataFrame into
-        # some sort of string representation using an encoder function.
-        # 
-        # The encoder function can be the string constructor `str` or some
-        # user-defined function that creates the string representation.
-        # 
-        # Note that whitespaces are removed from the representation.
-        # String representations should not use whitespace patterns to create
-        # the data representation.
-        return 'meta|{}={}'.format(
-            key, _whitespace_regexp.sub('', encoder(value))
-        )
-
-    @staticmethod
-    def _record_formatter(sid, desc, seq, col_meta):
+    def _fasta_entry_formatter(sid, desc, col_meta, seq):
         if len(desc) > 0:
             if len(col_meta) > 0:
                 return '>{} {} {}\n{}'.format(sid, desc, col_meta, seq)
@@ -213,18 +170,6 @@ class FastaSerdeMixin:
             return '>{} {}\n{}'.format(sid, col_meta, seq)
         
         return '>{}\n{}'.format(sid, seq)
-
-    @staticmethod
-    def _col_meta_at(positions):
-        x = -1
-        pos_list = positions
-        def add(col_meta_string):
-            nonlocal x
-            x += 1
-            if x in pos_list:
-                return col_meta_string
-            return ''
-        return add
 
 
 class DictSerdeMixin:
@@ -411,3 +356,74 @@ class PhylipSerdeMixin:
 #             print(csv_str, file=writer)
 #         if column_metadata is True:
 #             self.column_metadata.to_csv(meta_path)
+
+def col_metadata_to_str(column_metadata, included_keys, encoders=None):
+    """Transforms the column metadata DataFrame into a string representation.
+    
+    Parameters
+    ----------
+    column_metadata : pandas.DataFrame
+        Column metadata
+    included_keys : list of str
+        List of column metadata column names that to be included in the
+        string representation.
+    encoders : dict of callable, optional
+        Dictionary of functions used to transform column metadata values.
+        Keys are expected to match the column names of the column metadata
+        DataFrame. (default is None, all columns will be transformed using the
+        `str` string constructor)
+    
+    Returns
+    -------
+    str
+        Column metadata categories and values represented as a string.
+
+    """
+    # Creates a tuple generator giving the filtered set of column metadata
+    # Each tuple generated consists of the column name and the list of values
+    # for that column. 
+    included_values = (
+        (k, v) for k, v in column_metadata.to_dict(orient='list').items()
+        if k in included_keys
+    )
+    if encoders is None:
+        encoders = dict()
+    # Creates a list of stringed column metadata where each string is the
+    # contains the stringed data of a column metadata category (column)
+    # The metadata column is transformed into a string by consuming
+    # the `included_values` generator and calling `col_metadata_str_formatter`
+    # for each item yielded.
+    str_list = [
+        col_metadata_str_formatter(
+            k, v, encoders[k] if k in encoders.keys() else str)
+        for k, v in included_values
+    ]
+    # Each column's string representation is separated by a whitespace
+    return ' '.join(str_list)
+
+def col_metadata_str_formatter(key, value, encoder: callable):
+    """Returns the string representation of a column metadata category.
+    
+    Parameters
+    ----------
+    key : str
+        Name of column metadata category (column name in the DataFrame).
+    value : list
+        Column metadata category values.
+    encoder : callable
+        Function used to transform the list of values into a string.
+    
+    Returns
+    -------
+    str
+        String representation of the column metadata category and its values.
+
+    """
+    return 'c|{}={}'.format(key, _whitespace_regexp.sub('', encoder(value)))
+
+def make_col_meta_dict(description, decoders):
+    matches = _column_metadata_string_regexp.findall(description)
+    return {
+        k: (decoders[k](v) if k in decoders.keys() else eval(v))
+        for k, v in matches
+    }
