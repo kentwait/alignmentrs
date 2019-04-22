@@ -674,7 +674,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         obj.row_metadata = self.row_metadata.copy(deep=True)
         obj.column_metadata = self.column_metadata.copy(deep=True)
         obj.alignment_metadata = deepcopy(self.alignment_metadata, memo)
-        obj.row = RowData(obj)
-        obj.col = ColData(obj)
+        obj.row = RowMethods(obj)
+        obj.col = ColMethods(obj)
         
         return obj
