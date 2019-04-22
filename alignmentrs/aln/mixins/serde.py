@@ -177,41 +177,29 @@ class DictSerdeMixin:
     """
     @classmethod
     def from_dict(cls, d, store_history=True, **kwargs):
-        name = d['name']
-        records = [
-            Record(
-                d['row_metadata_index'][i],
-                d['row_metadata']['description'][i],
-                d['data'][i]
-            )
-            for i in range(len(d['data']))
-        ]
-        index = d['column_metadata_index']
-        row_metadata = pandas.DataFrame(
-            d['row_metadata'], index=d['row_metadata_index']
-        )
-        column_metadata = pandas.DataFrame(
-            d['column_metadata'], index=d['column_metadata_index']
-        )
-        return cls(records, name=name, index=index,
-                   row_metadata=row_metadata,
-                   column_metadata=column_metadata,
-                   comments=d['comments'],
+        return cls(d['data'],
+                   name=d['name'],
+                   row_ids=d['row_metadata_index'],
+                   row_descriptions=d['row_metadata'],
+                   col_ids=d['column_metadata_index'],
+                   col_descriptions=d['column_metadata'],
+                   aln_metadata=d['alignment_metadata'],
                    store_history=store_history,
                    **kwargs)
 
     def to_dict(self, row_metadata=True, column_metadata=True):
-        return {
+        d = {
             'name': self.name,
-            'data': self.data.sequences,
-            'comments': self.comments,
-            'row_metadata': \
-                self.row_metadata.to_dict(orient='list') if row_metadata else None,
-            'row_metadata_index': self.row_metadata.index.to_list(),
-            'column_metadata': \
-                self.column_metadata.to_dict(orient='list') if column_metadata else None,
-            'column_metadata_index': self.column_metadata.index.to_list(),
+            'data': self.data.data,
+            'alignment_metadata': self.alignment_metadata,
         }
+        if row_metadata:
+            d['row_metadata'] = self.row_metadata.to_dict(orient='list')
+            d['row_metadata_index'] = self.row_metadata.index.to_list()
+        if column_metadata:
+            d['column_metadata'] = self.column_metadata.to_dict(orient='list')
+            d['column_metadata_index'] = self.column_metadata.index.to_list()
+        return d
 
 
 class JsonSerdeMixin(DictSerdeMixin):
