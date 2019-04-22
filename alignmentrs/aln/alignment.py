@@ -181,7 +181,43 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             return d
         raise TypeError('comments must be a dictionary of keys and values')
 
-    def _col_metadata_constructor(self, ids=None, descriptions=None, data=None):
+    def _make_row_meta(self, ids=None, descriptions=None, data=None):
+        # Constructs column metadata using data, or
+        # constructs a DataFrame from a list of ids and descriptions.
+        # Otherwise raises TypeError.
+        if data:
+            if isinstance(data, pandas.DataFrame):
+                # data is already a pandas DataFrame
+                # TODO: Check if number of rows of the DataFrame matches
+                # the number of rows in the alignment.
+                return data
+            elif isinstance(data, dict):
+                # data is a dictionary
+                # Construct a DataFrame using the dictionary.
+                # If ids is not specified, construct the DataFrame using
+                # default integer indexing.
+                if not ids:
+                    return pandas.DataFrame(data)
+                # If ids is specified, construct the DataFrame
+                # using the ids as index.
+                return pandas.DataFrame(data, index=ids)
+            # data is neither DataFrame or dict
+            raise TypeError('cannot construct row metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
+        # data is not specified
+        # Construct a DataFrame from ids and descriptions.
+        # If description is supplied but ids is not specified,
+        # uses default integer indexing.
+        if not ids:
+            return pandas.DataFrame({'description': descriptions})
+        # If description is NOT specified but ids is specified,
+        # use ids as index and return an empty DataFrame.
+        if not descriptions:
+            return pandas.DataFrame([], index=ids)
+        # If both descriptions and ids are not specified, 
+        # use default integer indexing and return an empty DataFrame.
+        return pandas.DataFrame([], index=range(self.nrows))
+
+    def _make_col_meta(self, ids=None, descriptions=None, data=None):
         # Constructs column metadata DataFrame from
         # a list of ids and descriptions, OR
         # uses data
@@ -195,27 +231,6 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 # Constructs dataframe from data and ids
                 return pandas.DataFrame(data, index=ids)
             raise TypeError('cannot construct column metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
-        # Construct from ids and descriptions
-        if not ids:
-            return pandas.DataFrame({'description': descriptions})
-        if not descriptions:
-            return pandas.DataFrame([], index=ids)
-        return pandas.DataFrame(None)
-
-    def _row_metadata_constructor(self, ids=None, descriptions=None, data=None):
-        # Constructs column metadata DataFrame from
-        # a list of ids and descriptions, OR
-        # uses data
-        # Otherwise raises TypeError.
-        if data:
-            if isinstance(data, pandas.DataFrame):
-                return data
-            elif isinstance(data, dict):
-                if not ids:
-                    return pandas.DataFrame(data)
-                # Constructs dataframe from data and ids
-                return pandas.DataFrame(data, index=ids)
-            raise TypeError('cannot construct row metadata from inputs: ids={}, descriptions={}, data={}'.format(ids, descriptions, data))
         # Construct from ids and descriptions
         if not ids:
             return pandas.DataFrame({'description': descriptions})
