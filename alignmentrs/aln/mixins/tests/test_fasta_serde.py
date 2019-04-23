@@ -37,7 +37,7 @@ class TestFastaSerdeMixin:
         self.name = 'mock_aln'
         self.alignment_metadata = {'comment1': 'This is a comment.'}
         self.row_metadata = pd.DataFrame(
-            {'description': ['','d2','desc3']}, index=['test1','test2','test3'])
+            {'description': ['test description','','desc3']}, index=['test1','test2','test3'])
         self.column_metadata = pd.DataFrame({'a': [1,2,3,4,5,6]}, index=range(6))
         self.store_history = True
         # self.kwargs = kwargs
@@ -54,81 +54,69 @@ class TestFastaSerdeMixin:
         pass
 
     def test_to_fasta(self):
-        pass
+        exp = '>test1 test description ci|index=[0,1,2,3,4,5] c|a=[1,2,3,4,5,6]\nATGCAT\n>test2\nATGGGT\n>test3 desc3\nATGAAT'
+        test = self.test_aln.to_fasta(include_column_metadata=['a'])
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
 
     def test_from_fasta(self):
-        pass
+        exp_fasta = '>test1 test description ci|index=[0,1,2,3,4,5] c|a=[1,2,3,4,5,6]\nATGCAT\n>test2\nATGGGT\n>test3 desc3\nATGAAT'
+        with tempfile.NamedTemporaryFile(mode='r+') as f:
+            f.write(exp_fasta)
+            f.seek(0)
+            test_class = MockAlignment.from_fasta(f.name, name='mock_aln')
+        
+        exp_class = self.test_aln
+        assert type(exp_class) == type(test_class), \
+            "expected and test classes are not the same: {} != {}".format(
+                exp_class.__class__.__name__,
+                test_class.__class__.__name__,
+            )
+        # NOTE: Dictionarie values are not compared because special comparison is needed to compare pandas DataFrames 
+        assert exp_class.__dict__.keys() == test_class.__dict__.keys(), \
+            "expected and test class dictionaries are not the same: {} != {}".format(
+                exp_class.__dict__,
+                test_class.__dict__,
+            )
+        assert exp_class.__dir__() == test_class.__dir__(), \
+            "expected and test class dir are not the same: {} != {}".format(
+                exp_class.__dir__(),
+                test_class.__dir__(),
+            ) 
 
-    def test_encode_column_metadata_as_string_str(self):
-        exp = "meta|a=[0,1,2,3,4,5]"
-        test_class = MockClass(
-            self.records, name=self.name,
-            index=self.index,
-            comments=self.comments,
-            row_metadata=self.row_metadata,
-            column_metadata=self.column_metadata,
-            store_history=True,
-        )
-        test = test_class._encode_column_metadata_as_string(
-            'a', [0,1,2,3,4,5], str
-        )
+    def test_fasta_entry_formatter_with_desc_meta(self):
+        exp = '>test1 this is a description meta|a=[0,1,2,3,4,5]\nATGCGC'
+        test = self.test_aln._fasta_entry_formatter(
+            'test1', 'this is a description', 'ATGCGC', 'meta|a=[0,1,2,3,4,5]')
         assert exp == test, \
             "expected and test strings are not the same: {} != {}".format(
                 exp, test
             )
 
-    def test_encode_column_metadata_as_string_func(self):
-        exp = "meta|a=0|1|2|3|4|5"
-        test_class = MockClass(
-            self.records, name=self.name,
-            index=self.index,
-            comments=self.comments,
-            row_metadata=self.row_metadata,
-            column_metadata=self.column_metadata,
-            store_history=True,
-        )
-        func = lambda lst: '|'.join(list(map(str, lst)))
-        test = test_class._encode_column_metadata_as_string(
-            'a', [0,1,2,3,4,5], func
-        )
+    def test_fasta_entry_formatter_with_desc(self):
+        exp = '>test1 this is a description\nATGCGC'
+        test = self.test_aln._fasta_entry_formatter(
+            'test1', 'this is a description', 'ATGCGC', '')
         assert exp == test, \
             "expected and test strings are not the same: {} != {}".format(
                 exp, test
             )
 
-    def test_column_as_string_str(self):
-        exp = "meta|a=[0,1,2,3,4,5] meta|b=[10,11,12,13,14,15]"
-        test_class = MockClass(
-            self.records, name=self.name,
-            index=self.index,
-            comments=self.comments,
-            row_metadata=self.row_metadata,
-            column_metadata=self.column_metadata,
-            store_history=True,
-        )
-        test = test_class._column_as_string(['a', 'b'])
+    def test_fasta_entry_formatter_with_meta(self):
+        exp = '>test1 meta|a=[0,1,2,3,4,5]\nATGCGC'
+        test = self.test_aln._fasta_entry_formatter(
+            'test1', '', 'ATGCGC', 'meta|a=[0,1,2,3,4,5]')
         assert exp == test, \
             "expected and test strings are not the same: {} != {}".format(
                 exp, test
             )
-    
-    def test_column_as_string_func(self):
-        exp = "meta|a=[0,1,2,3,4,5] meta|b=10|11|12|13|14|15"
-        test_class = MockClass(
-            self.records, name=self.name,
-            index=self.index,
-            comments=self.comments,
-            row_metadata=self.row_metadata,
-            column_metadata=self.column_metadata,
-            store_history=True,
-        )
-        test = test_class._column_as_string(
-            ['a', 'b'],
-            encoders={
-                'a': str,
-                'b': lambda lst: '|'.join(list(map(str, lst))),
-            }
-        )
+
+    def test_fasta_entry_formatter_no_desc_meta(self):
+        exp = '>test1\nATGCGC'
+        test = self.test_aln._fasta_entry_formatter(
+            'test1', '', 'ATGCGC', '')
         assert exp == test, \
             "expected and test strings are not the same: {} != {}".format(
                 exp, test
@@ -147,7 +135,7 @@ class TestColMetadataToStr:
         pass
 
     def test_all_keys_no_encoder(self):
-        exp = 'c|data1=[0,1,2,3,4] c|data2=[0.0,0.01,0.02,0.03,0.04] c|d3=[0,1,4,9,16]'
+        exp = 'ci|index=[0,1,2,3,4] c|data1=[0,1,2,3,4] c|data2=[0.0,0.01,0.02,0.03,0.04] c|d3=[0,1,4,9,16]'
         test = col_metadata_to_str(self.df, ['data1', 'data2', 'd3'])
         assert exp == test, \
             "expected and test strings are not the same: {} != {}".format(
@@ -155,15 +143,24 @@ class TestColMetadataToStr:
             )
     
     def test_all_keys_no_encoder_custom_template(self):
-        exp = '(col|data1=[0,1,2,3,4]) (col|data2=[0.0,0.01,0.02,0.03,0.04]) (col|d3=[0,1,4,9,16])'
+        exp = 'ci|index=[0,1,2,3,4] (col|data1=[0,1,2,3,4]) (col|data2=[0.0,0.01,0.02,0.03,0.04]) (col|d3=[0,1,4,9,16])'
         test = col_metadata_to_str(self.df, ['data1', 'data2', 'd3'], template='(col|{}={})')
         assert exp == test, \
             "expected and test strings are not the same: {} != {}".format(
                 exp, test
             )
 
+
+    def test_all_keys_no_encoder_custom_index_template(self):
+        exp = 'COLIDX|index=[0,1,2,3,4] c|data1=[0,1,2,3,4] c|data2=[0.0,0.01,0.02,0.03,0.04] c|d3=[0,1,4,9,16]'
+        test = col_metadata_to_str(self.df, ['data1', 'data2', 'd3'], index_template='COLIDX|{}={}')
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
+
     def test_all_keys_custom_encoder(self):
-        exp = 'c|data1=[0, 1, 2, 3, 4] c|data2=[0.0,0.01,0.02,0.03,0.04] c|d3=[0,1,4,9,16]'
+        exp = 'ci|index=[0,1,2,3,4] c|data1=[0, 1, 2, 3, 4] c|data2=[0.0,0.01,0.02,0.03,0.04] c|d3=[0,1,4,9,16]'
         encoders = {
             'data1': lambda x: str(x),
             'data2': lambda x: str(x).replace(' ', ''),
@@ -177,11 +174,25 @@ class TestColMetadataToStr:
             )
 
     def test_some_keys_custom_encoder(self):
-        exp = 'c|data1=[0, 1, 2, 3, 4] c|d3=[0,1,4,9,16]'
+        exp = 'ci|index=[0,1,2,3,4] c|data1=[0, 1, 2, 3, 4] c|d3=[0,1,4,9,16]'
         encoders = {
             'data1': lambda x: str(x),
             # extra encoder become data2 column is not included
             'data2': lambda x: str(x).replace(' ', ''),  
+            'd3': None,
+        }
+        test = col_metadata_to_str(
+            self.df, ['data1', 'd3'], encoders=encoders)
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_some_keys_custom_index_encoder(self):
+        exp = 'ci|index=[0, 1, 2, 3, 4] c|data1=[0,1,2,3,4] c|d3=[0,1,4,9,16]'
+        encoders = {
+            'index': str,
+            'data1': None,
             'd3': None,
         }
         test = col_metadata_to_str(
