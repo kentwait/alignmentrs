@@ -149,13 +149,25 @@ class FastaSerdeMixin:
         # Decription and column metadata are empty
         return '>{}\n{}'.format(sid, seq)
 
-# TODO: Add docstrings and comments
 
 class DictSerdeMixin:
     """Adds ability to read/write an Alignment object from a dictionary.
     """
     @classmethod
     def from_dict(cls, d, store_history=True, **kwargs):
+        """Creates an Alignment object from a dictionary.
+
+        Parameters
+        ----------
+        d : dict
+            Dictionary containing the alignment information and relevant
+            metadata.
+
+        Returns
+        -------
+        Alignment
+
+        """
         return cls(d['data'],
                    name=d['name'],
                    row_ids=d['row_metadata_index'],
@@ -167,6 +179,22 @@ class DictSerdeMixin:
                    **kwargs)
 
     def to_dict(self, row_metadata=True, column_metadata=True):
+        """Returns the dictionary representation of the alignment.
+        Contents of the dictionary use builtin types to maximize
+        compatibility.
+
+        Parameters
+        ----------
+        row_metadata : bool, optional
+            Whether or not to include row metadata information. (default is True, row metadata is included)
+        column_metadata : bool, optional
+            Whether or not to include column metadata information. (default is True, column metadata is included)
+
+        Returns
+        -------
+        dict
+
+        """
         d = {
             'name': self.name,
             'data': self.data.data,
