@@ -76,7 +76,7 @@ class FastaSerdeMixin:
 
         Parameters
         ----------
-        path : str
+        path : str, optional
             Path to save the alignment to.
         include_column_metadata : list of str, optional
             List of keys of columns in column metadata to include
@@ -209,23 +209,71 @@ class DictSerdeMixin:
         return d
 
 class JsonSerdeMixin(DictSerdeMixin):
+    """Adds ability to read/write an Alignment object from a JSON file.
+
+    The underlying organization of the JSON encoding is based on the dictionary 
+    created using the DictSerdeMixin dictionary mixin.
+    """
     @classmethod
     def from_json(cls, path, store_history=True, **kwargs):
+        """Create an alignment from a JSON file.
+        
+        Parameters
+        ----------
+        path : io.IOBase or str
+            File stream using a file handler or a string to the path.
+        
+        Returns
+        -------
+        Alignment
+
+        """
         if isinstance(path, io.IOBase):
+            # json.load requires a file handler to read the file.
+            # io.IOBase is the abstract base class for all kinds of
+            # I/O file streaming.
             d = json.load(path)
         elif isinstance(path, str):
+            # The user can also input the path where the json file is located.
+            # To handle this, the path will have to be opened as a file handler
             with open(path, 'r') as reader:
                 d = json.load(reader)
-        return cls.from_dict(d, store_history=store_history,
-                             **kwargs)
+        # JSON structure is based on to_dict and so it is dependent
+        # on DictSerdeMixin.
+        return cls.from_dict(d, store_history=store_history, **kwargs)
 
     def to_json(self, path=None, row_metadata=True, column_metadata=True):
+        """Saves the alignment as a JSON file.
+
+        Parameters
+        ----------
+        path : str, optional
+            Path to save the alignment to.
+        row_metadata : bool, optional
+            Whether or not to include row metadata information. (default is True, row metadata is included)
+        column_metadata : bool, optional
+            Whether or not to include column metadata information. (default is True, column metadata is included)
+
+        Returns
+        -------
+        str
+            If path is None, returns the JSON-formatted text as a string.
+
+        """
+        # to_json uses to_dict to transform the alignment data
+        # into a representation that uses only builtins to maximize
+        # compatibility.
+        # The resulting dictionary is encoded into JSON.
         d = self.to_dict(
             row_metadata=row_metadata,
             column_metadata=column_metadata)
         json_str = json.dumps(d)
+        # If the save path is not specified, the encoded JSON text
+        # is returned as a string
         if path is None:
             return json_str
+        # If the save path is specified, the JSON encoded text
+        # is written as a text file.
         dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
