@@ -425,7 +425,7 @@ impl SeqMatrix {
 
     #[getter]
     /// list of str: Returns the list of sequences.
-    fn sequences(&self) -> PyResult<Vec<String>> {
+    fn data(&self) -> PyResult<Vec<String>> {
         Ok(self.data.clone())
     }
 
