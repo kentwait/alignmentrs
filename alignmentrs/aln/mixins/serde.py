@@ -281,9 +281,23 @@ class JsonSerdeMixin(DictSerdeMixin):
             print(json_str, file=writer)
 
 
-class PickleSerdeMixin(DictSerdeMixin):
+class PickleSerdeMixin:
+    """Adds ability to pickle/unpickle an Alignment object.
+    """
     @classmethod
     def from_pickle(cls, path, store_history=True, **kwargs):
+        """Converts a pickled alignment back into an Alignment object.
+
+        Parameters
+        ----------
+        path : io.IOBase or str
+            File handler for the pickled alignment or a string to the path.
+
+        Returns
+        -------
+        Alignment
+
+        """
         if isinstance(path, io.IOBase):
             obj = pickle.load(path)
         elif isinstance(path, str):
@@ -292,9 +306,27 @@ class PickleSerdeMixin(DictSerdeMixin):
         return obj
 
     def to_pickle(self, path=None, **kwargs):
+        """Pickles the current alignment.
+
+        Parameters
+        ----------
+        path : str, optional
+            Path to save the alignment to.
+
+        Returns
+        -------
+        bytestring
+            If path is None, returns the bytestring representation of the
+            pickled alignment.
+
+        """
+        # Pickles the alignment. Underlying methods that do the pickling are
+        # __getstate__ and __setstate__.
         pickled = pickle.dumps(self)
+        # If path is not provided, the bytestring of the pickle is returned.
         if path is None:
             return pickled
+        # If path is provided, the pickle is written to file.
         dirpath = os.path.dirname(os.path.abspath(path))
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
@@ -302,11 +334,15 @@ class PickleSerdeMixin(DictSerdeMixin):
             print(pickled, file=writer)
 
     def __getstate__(self):
+        # This method gets called when the Alignment object
+        # is being pickled.
         d = {k: v for k, v in self.__dict__.items() if k != 'data'}
         d['data'] = self.data.data
         return d
 
     def __setstate__(self, d):
+        # This method gets called when the pickled object
+        # is being unpickled back into an Alignment object.
         d['data'] = SeqMatrix(d['data'])
         self.__dict__ = d
 
