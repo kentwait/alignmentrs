@@ -155,11 +155,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # `data` is an unsupported type
         raise TypeError('`data` must be a SeqMatrix, list or tuple, instead got: {}'.format(type(data)))
 
-    def _make_row_meta(self, ids=None, descriptions=None, data=None):
+    def _make_row_meta(self, data=None, ids=None, descriptions=None):
         # Constructs column metadata using data, or
         # constructs a DataFrame from a list of ids and descriptions.
         # Otherwise raises TypeError.
-        if data:
+        if data is not None:
             if isinstance(data, pandas.DataFrame):
                 # data is already a pandas DataFrame
                 # TODO: Check if number of rows of the DataFrame matches
@@ -181,21 +181,21 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Construct a DataFrame from ids and descriptions.
         # If descriptions is supplied but ids is not specified,
         # construct the DataFrame with default integer indexing.
-        if not ids:
+        if (descriptions is not None) and (ids is None):
             return pandas.DataFrame({'description': descriptions})
         # If descriptions is NOT specified but ids is specified,
         # use ids as index and return an empty DataFrame.
-        if not descriptions:
+        elif (descriptions is None) and (ids is not None):
             return pandas.DataFrame([], index=ids)
         # If both descriptions and ids are not specified, 
         # use default integer indexing and return an empty DataFrame.
         return pandas.DataFrame([], index=range(self.nrows))
 
-    def _make_col_meta(self, ids=None, descriptions=None, data=None):
+    def _make_col_meta(self, data=None, ids=None, descriptions=None):
         # Constructs column metadata using data, or
         # constructs a DataFrame from a list of ids and descriptions.
         # Otherwise raises TypeError.
-        if data:
+        if data is not None:
             if isinstance(data, pandas.DataFrame):
                 # data is already a pandas DataFrame
                 # TODO: Check if number of rows of the DataFrame matches
@@ -217,11 +217,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # Construct a DataFrame from ids and descriptions.
         # If descriptions is specified but ids is not specified,
         # construct the DataFrame with default integer indexing.
-        if not ids:
+        if (descriptions is not None) and (ids is None):
             return pandas.DataFrame({'description': descriptions})
         # If descriptions is NOT specified but ids is specified,
         # use ids as index and return an empty DataFrame.
-        if not descriptions:
+        elif (descriptions is None) and (ids is not None):
             return pandas.DataFrame([], index=ids)
         # If both descriptions and ids are not specified,
         # use default integer indexing and return an empty DataFrame.
@@ -283,12 +283,12 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     @property
     def nrows(self):
         """int: Returns the number of rows in the alignment."""
-        return self.data.nrows()
+        return self.data.nrows
 
     @property
     def ncols(self):
         """int: Returns the number of columns in the alignment."""
-        return self.data.ncols()
+        return self.data.ncols
 
     @property
     def ids(self):
