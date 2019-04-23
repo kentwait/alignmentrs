@@ -190,3 +190,43 @@ class TestColMetadataToStr:
             "expected and test strings are not the same: {} != {}".format(
                 exp, test
             )
+
+
+class TestColMetadataStrFormatter:
+    def setup(self):
+        self.df = pd.DataFrame({
+            'data1': list(range(0,5)),
+            'data2': list(map(lambda x: x/100, range(0,5))),
+            'd3': list(map(lambda x: x**2, range(0,5))),
+        })
+        self.key = 'data1'
+        self.value = list(range(0,5))
+
+    def teardown(self):
+        pass
+
+    def test_defaults(self):
+        exp = 'c|data1=[0,1,2,3,4]'
+        test = col_metadata_str_formatter(self.key, self.value)
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
+    
+    def test_custom_encoder(self):
+        exp = 'c|data1=[0, 1, 2, 3, 4]'
+        encoder = str
+        test = col_metadata_str_formatter(self.key, self.value, encoder=encoder)
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_custom_template(self):
+        exp = '(col|data1=[0,1,2,3,4])'
+        template = '(col|{}={})'
+        test = col_metadata_str_formatter(self.key, self.value, template=template)
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
