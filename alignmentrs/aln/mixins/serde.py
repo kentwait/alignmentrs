@@ -16,6 +16,7 @@ from alignmentrs.utils import to_intlist
 __all__ = [
     'FastaSerdeMixin', 'DictSerdeMixin', 'JsonSerdeMixin', 
     'PickleSerdeMixin', 'CsvSerdeMixin', 'RecordsSerdeMixin',
+    'col_metadata_to_str', 'col_metadata_str_formatter',
 ]
 
 
@@ -355,7 +356,7 @@ class PhylipSerdeMixin:
     pass
 
 
-def col_metadata_to_str(column_metadata, included_keys, encoders=None):
+def col_metadata_to_str(column_metadata, included_keys, encoders=None, template='c|{}={}'):
     """Transforms the column metadata DataFrame into a string representation.
     
     Parameters
@@ -370,6 +371,9 @@ def col_metadata_to_str(column_metadata, included_keys, encoders=None):
         Keys are expected to match the column names of the column metadata
         DataFrame. (default is None, all columns will be transformed using the
         `str` string constructor)
+    template : str, optional
+        Template used for formatting the string. Template should have 2
+        slots for the key and the column value.
     
     Returns
     -------
@@ -393,13 +397,13 @@ def col_metadata_to_str(column_metadata, included_keys, encoders=None):
     # for each item yielded.
     str_list = [
         col_metadata_str_formatter(
-            k, v, encoders[k] if k in encoders.keys() else str)
+            k, v, encoders[k] if k in encoders.keys() else None, template)
         for k, v in included_values
     ]
     # Each column's string representation is separated by a whitespace
     return ' '.join(str_list)
 
-def col_metadata_str_formatter(key, value, encoder: callable):
+def col_metadata_str_formatter(key, value, encoder:callable=None, template='c|{}={}'):
     """Returns the string representation of a column metadata category.
     
     Parameters
@@ -410,14 +414,19 @@ def col_metadata_str_formatter(key, value, encoder: callable):
         Column metadata category values.
     encoder : callable
         Function used to transform the list of values into a string.
-    
+    template : str, optional
+        Template used for formatting the string. Template should have 2
+        slots for the key and the column value.
+
     Returns
     -------
     str
         String representation of the column metadata category and its values.
 
     """
-    return 'c|{}={}'.format(key, _whitespace_regexp.sub('', encoder(value)))
+    if encoder is None:
+        encoder = lambda x: _whitespace_regexp.sub('', str(x))
+    return template.format(key, encoder(value))
 
 def make_col_meta_dict(description, decoders):
     matches = _column_metadata_string_regexp.findall(description)
