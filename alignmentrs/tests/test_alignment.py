@@ -138,7 +138,7 @@ class TestMakeRowMeta:
         exp = pd.DataFrame(None, index=range(4))
         test = self.aln._make_row_meta()
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -150,7 +150,7 @@ class TestMakeRowMeta:
         data = exp
         test = self.aln._make_row_meta(data)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -165,7 +165,7 @@ class TestMakeRowMeta:
         }
         test = self.aln._make_row_meta(data)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -181,7 +181,7 @@ class TestMakeRowMeta:
         ids = [1,2,3,4]
         test = self.aln._make_row_meta(data, ids=ids)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -192,7 +192,7 @@ class TestMakeRowMeta:
         descriptions = [0,1,2,3]
         test = self.aln._make_row_meta(descriptions=descriptions)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -201,7 +201,7 @@ class TestMakeRowMeta:
         ids = [1,2,3,4]
         test = self.aln._make_row_meta(ids=ids)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -223,7 +223,7 @@ class TestMakeColMeta:
         exp = pd.DataFrame(None, index=range(4))
         test = self.aln._make_col_meta()
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -235,7 +235,7 @@ class TestMakeColMeta:
         data = exp
         test = self.aln._make_col_meta(data)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -250,7 +250,7 @@ class TestMakeColMeta:
         }
         test = self.aln._make_col_meta(data)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -266,7 +266,7 @@ class TestMakeColMeta:
         ids = [1,2,3,4]
         test = self.aln._make_col_meta(data, ids=ids)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -277,7 +277,7 @@ class TestMakeColMeta:
         descriptions = [0,1,2,3]
         test = self.aln._make_col_meta(descriptions=descriptions)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
                 exp, test
             )
 
@@ -286,6 +286,123 @@ class TestMakeColMeta:
         ids = [1,2,3,4]
         test = self.aln._make_col_meta(ids=ids)
         assert all(exp.reset_index() == test.reset_index()), \
-            "expected and test SeqMatrix are not the same: {} != {}".format(
+            "expected and test DataFrames are not the same: {} != {}".format(
+                exp, test
+            )
+
+
+class TestMakeAlnMeta:
+    def setup(self):
+        # Just initialize the object, dont bother with its data
+        self.aln = Alignment(SeqMatrix([
+            'ATCG',
+            'ATGG',
+            'ATCC',
+            'TAGC',
+        ]))
+
+    def teardown(self):
+        pass
+
+    def test_none(self):
+        exp = {}
+        test = self.aln._make_aln_meta()
+        assert exp == test, \
+            "expected and test dictionaries are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_none(self):
+        exp = {}
+        test = self.aln._make_aln_meta()
+        assert exp == test, \
+            "expected and test dictionaries are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_dict(self):
+        exp = {
+            'comment1': 'this is a comment',
+            'c2': 'another comment',
+        }
+        metadata = exp
+        test = self.aln._make_aln_meta(metadata)
+        assert exp == test, \
+            "expected and test dictionaries are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_list(self):
+        exp = {
+            0: 'this is a comment',
+            1: 'another comment',
+        }
+        metadata = [
+            'this is a comment',
+            'another comment',
+        ]
+        test = self.aln._make_aln_meta(metadata)
+        assert exp == test, \
+            "expected and test dictionaries are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_tuple(self):
+        exp = {
+            0: 'this is a comment',
+            1: 'another comment',
+        }
+        metadata = (
+            'this is a comment',
+            'another comment',
+        )
+        test = self.aln._make_aln_meta(metadata)
+        assert exp == test, \
+            "expected and test dictionaries are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_list_list(self):
+        exp = {
+            'comment1': 'this is a comment',
+            'c2': 'another comment',
+        }
+        metadata = [
+            ['comment1', 'this is a comment'],
+            ['c2', 'another comment'],
+        ]
+        test = self.aln._make_aln_meta(metadata)
+        assert exp == test, \
+            "expected and test dictionaries are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_list_tuple(self):
+        exp = {
+            'comment1': 'this is a comment',
+            'c2': 'another comment',
+        }
+        metadata = [
+            ('comment1', 'this is a comment'),
+            ('c2', 'another comment'),
+        ]
+        test = self.aln._make_aln_meta(metadata)
+        assert exp == test, \
+            "expected and test dictionaries are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_tuple_tuple(self):
+        exp = {
+            'comment1': 'this is a comment',
+            'c2': 'another comment',
+        }
+        metadata = (
+            ('comment1', 'this is a comment'),
+            ('c2', 'another comment'),
+        )
+        test = self.aln._make_aln_meta(metadata)
+        assert exp == test, \
+            "expected and test dictionaries are not the same: {} != {}".format(
                 exp, test
             )
