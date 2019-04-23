@@ -2,7 +2,7 @@
 
 class MockData:
     def __init__(self):
-        self.sequences = [
+        self.data = [
             'ATGCAT',
             'ATGGGT',
             'ATGAAT',
