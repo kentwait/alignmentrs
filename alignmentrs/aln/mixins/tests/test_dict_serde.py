@@ -32,8 +32,9 @@ class TestDictSerdeMixin:
     def setup(self):
         self.name = 'mock_aln'
         self.alignment_metadata = {'comment1': 'This is a comment.'}
-        self.row_metadata = pd.DataFrame(None, index=['test1','test2','test3'])
-        self.column_metadata = pd.DataFrame(None, index=range(6))
+        self.row_metadata = pd.DataFrame(
+            {'description': ['','d2','desc3']}, index=['test1','test2','test3'])
+        self.column_metadata = pd.DataFrame({'a': [1,2,3,4,5,6]}, index=range(6))
         self.store_history = True
         # self.kwargs = kwargs
         self.matrix = MockData()
