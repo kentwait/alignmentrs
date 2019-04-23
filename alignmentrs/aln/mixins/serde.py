@@ -126,16 +126,30 @@ class FastaSerdeMixin:
 
     @staticmethod
     def _fasta_entry_formatter(sid, desc, col_meta, seq):
+        # Formats the ID, description, stringed metadata, and sequence
+        # to follow the FASTA format.
+        # There are 4 possible scenarios, note that the identifier string
+        # is always expected to have a non-empty value:
+        # - all information exists
+        # - col_meta is an empty string
+        # - description is an empty string
+        # - both col_meta and description are empty strings
+
+        # Checks if ID is empty
+        if len(sid) < 1:
+            raise ValueError('Cannot create FASTA file: identifier string cannot be empty.')
+        # Description is not empty
         if len(desc) > 0:
             if len(col_meta) > 0:
                 return '>{} {} {}\n{}'.format(sid, desc, col_meta, seq)
             return '>{} {}\n{}'.format(sid, desc, seq)
-
+        # Description is empty but column metadata is not empty
         if len(col_meta) > 0:
             return '>{} {}\n{}'.format(sid, col_meta, seq)
-        
+        # Decription and column metadata are empty
         return '>{}\n{}'.format(sid, seq)
 
+# TODO: Add docstrings and comments
 
 class DictSerdeMixin:
     """Adds ability to read/write an Alignment object from a dictionary.
@@ -165,7 +179,6 @@ class DictSerdeMixin:
             d['column_metadata'] = self.column_metadata.to_dict(orient='list')
             d['column_metadata_index'] = self.column_metadata.index.to_list()
         return d
-
 
 class JsonSerdeMixin(DictSerdeMixin):
     @classmethod
