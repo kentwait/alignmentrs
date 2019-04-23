@@ -29,7 +29,7 @@ class FastaSerdeMixin:
     from a FASTA formatted file.
     """
     @classmethod
-    def from_fasta(cls, path, name=None, parse_row_metadata=True,  parse_column_metadata=True, store_history=True,column_metadata_decoders=None, **kwargs):
+    def from_fasta(cls, path, name=None, parse_row_metadata=True,  parse_description=True, column_metadata_decoders=None, column_metadata_regexp='c\|([A-Za-z0-9\s\.]+)=(\[[A-Za-z0-9\.\s,\"\']+\])', column_index_regexp='ci\|([A-Za-z0-9\s\.]+)=(\[[A-Za-z0-9\.\s,\"\']+\])', store_history=True, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -40,7 +40,7 @@ class FastaSerdeMixin:
             Name of the new alignment.
             (default is None, takes the name from the comments
             or uses the filename)
-        parse_column_metadata : function, optional
+        parse_description : function, optional
             Function that takes a list of comment lines as input
             and outputs a dictionary that organizes comments into
             keys and values. (default is None, lines starting with 
@@ -55,9 +55,40 @@ class FastaSerdeMixin:
         """
         matrix, metadata = fasta_to_dict(path)
         row_meta, col_meta = None, None
-        if parse_column_metadata:
+        if parse_description:
             # Parses metadata['descriptions'] and removes parsed info
-            pass
+            offset = 0
+            match_locations = []
+            col_d = {}
+            col_idx = None
+            # Parses column index
+            match = re.search(column_index_regexp, metadata['descriptions'][0])
+            if match:
+                key, value = match.groups()
+                try:
+                    value = eval(value)
+                except SyntaxError:
+                    raise ValueError('Cannot construct Alignment from the given FASTA file: column index is malformed'.format(key))
+                # Put key-value pair into the dictionary
+                col_idx = value
+
+            # Parses column metadata
+            for match in re.finditer(column_metadata_regexp,
+                                     metadata['descriptions'][0]):
+                match_locations.append(match.span())
+                key, value = match.groups()
+                # Convert text into a list using eval
+                # This is DANGEROUS and could open to exploitation.
+                # TODO: Add a prelimenary regex check to lessen vulnerability
+                try:
+                    value = eval(value)
+                except SyntaxError:
+                    raise ValueError('Cannot construct Alignment from the given FASTA file: column metadata {} is malformed'.format(key))
+                # Put key-value pair into the dictionary
+                col_d[key] = value
+            # Constructs column metadata DataFrame from dictionary and index
+            col_meta = pandas.DataFrame(col_d, index=col_idx)
+
         if name is None:
             name = os.path.basename(path)
         return cls(matrix, name,
@@ -71,7 +102,7 @@ class FastaSerdeMixin:
                    aln_metadata=metadata['comments'],
                    store_history=store_history, **kwargs)
 
-    def to_fasta(self, path=None, include_column_metadata=None, column_metadata_encoders=None, **kwargs):
+    def to_fasta(self, path=None, include_column_metadata=None, column_metadata_encoders=None, column_metadata_template='c|{}={}', **kwargs):
         """Saves the alignment as a FASTA-formatted file.
         Some metadata may not be lost.
 
@@ -101,7 +132,7 @@ class FastaSerdeMixin:
         # of columns and values.
         col_meta_str = col_metadata_to_str(
             self.column_metadata, include_column_metadata,
-            column_metadata_encoders
+            column_metadata_encoders, column_metadata_template
         )
         # Creates a generator that writes each entry as a string
         # in the FASTA format:
@@ -112,8 +143,10 @@ class FastaSerdeMixin:
             for i, vals in enumerate(self.row_metadata.iterrows())
         )
         fasta_str = '\n'.join([
-            self._entry_formatter(sid, desc, col_meta_str, seq)
-            for sid, desc, seq in info_generator
+            self._fasta_entry_formatter(*params, col_meta_str)
+                if i == 0 else
+                self._fasta_entry_formatter(*params, '')
+            for i, params in enumerate(info_generator)
         ])
 
         # Write the FASTA string to file
@@ -126,7 +159,7 @@ class FastaSerdeMixin:
             print(fasta_str, file=writer)
 
     @staticmethod
-    def _fasta_entry_formatter(sid, desc, col_meta, seq):
+    def _fasta_entry_formatter(sid, desc, seq, col_meta):
         # Formats the ID, description, stringed metadata, and sequence
         # to follow the FASTA format.
         # There are 4 possible scenarios, note that the identifier string
@@ -356,7 +389,7 @@ class PhylipSerdeMixin:
     pass
 
 
-def col_metadata_to_str(column_metadata, included_keys, encoders=None, template='c|{}={}'):
+def col_metadata_to_str(column_metadata, included_keys, encoders=None, template='c|{}={}', index_template='ci|{}={}'):
     """Transforms the column metadata DataFrame into a string representation.
     
     Parameters
@@ -400,8 +433,13 @@ def col_metadata_to_str(column_metadata, included_keys, encoders=None, template=
             k, v, encoders[k] if k in encoders.keys() else None, template)
         for k, v in included_values
     ]
+    str_index = [col_metadata_str_formatter(
+        'index', column_metadata.index.to_list(),
+        encoders['index'] if 'index' in encoders.keys() else None, 
+        index_template)
+    ]
     # Each column's string representation is separated by a whitespace
-    return ' '.join(str_list)
+    return ' '.join(str_index + str_list)
 
 def col_metadata_str_formatter(key, value, encoder:callable=None, template='c|{}={}'):
     """Returns the string representation of a column metadata category.
