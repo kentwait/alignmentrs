@@ -252,8 +252,8 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
                 if isinstance(item, str):
                     d[i] = item
                     continue
-                elif ((isinstance(item, list) and len(item) == 2) or
-                      (isinstance(item, tuple) and len(item) == 2)):
+                elif ((isinstance(item, list) or isinstance(item, tuple)) and
+                      len(item) == 2):
                     if isinstance(item[0], str) and isinstance(item[1], str):
                         d[item[0]] = item[1]
                         continue
