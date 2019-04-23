@@ -5,62 +5,50 @@ import pandas as pd
 
 from libalignmentrs.record import Record
 from alignmentrs.aln.mixins import serde
+from alignmentrs.aln.mixins.serde import (
+    col_metadata_str_formatter, col_metadata_to_str)
 from alignmentrs.aln.mixins.tests.mocks import MockData
 
 
-class MockClass(serde.FastaSerdeMixin):
-    def __init__(self, records, name=None, index=None, comments=None, row_metadata=None, column_metadata=None, store_history=True, **kwargs):
+class MockAlignment(serde.FastaSerdeMixin):
+    def __init__(self, matrix, name=None,
+                 row_metadata=None, col_metadata=None,
+                 row_ids:list=None, row_descriptions:list=None,
+                 col_ids:list=None, col_descriptions:list=None,
+                 aln_metadata:dict=None, store_history=True,
+                 **kwargs):
         self.name = name
-        self.index = index
-        self.comments = comments
-        self.row_metadata = row_metadata
-        self.column_metadata = column_metadata
+        self.alignment_metadata = aln_metadata
+        if row_metadata is None:
+            self.row_metadata = pd.DataFrame(row_descriptions, index=row_ids)
+        else:
+            self.row_metadata = row_metadata
+        if col_metadata is None:
+            self.column_metadata = pd.DataFrame(col_descriptions, index=col_ids)
+        else:
+            self.column_metadata = col_metadata
         self.store_history = store_history
         self.kwargs = kwargs
         self.data = MockData()
 
-
 class TestFastaSerdeMixin:
 
     def setup(self):
-        self.records = [
-            Record('test1', 'description1', 'ATGCAT'),
-            Record('test2', 'description2', 'ATGGGT'),
-            Record('test3', 'description3', 'ATGAAT'),
-        ]
         self.name = 'mock_aln'
-        self.index = [0,1,2,3,4,5]
-
-        self.comments = {'test_comment': 'testing'}
-        self.comments_empty = {}
-        self.comments_none = None
-
+        self.alignment_metadata = {'comment1': 'This is a comment.'}
         self.row_metadata = pd.DataFrame(
-            {
-                'description': ['description1', 'description2', 'description3'],
-            },
-            index=['test1', 'test2', 'test3']
-        )
-        self.row_metadata_empty = pd.DataFrame({})
-        self.row_metadata_none = None
-
-        self.column_metadata = pd.DataFrame(
-            {
-                'a': [0,1,2,3,4,5],
-                'b': [10,11,12,13,14,15],
-            },
-            index=self.index
-        )
-        self.column_metdata_empty = pd.DataFrame({})
-        self.column_metdata_none = None
-    
-        self.sequences = [
-            'ATGCAT',
-            'ATGGGT',
-            'ATGAAT',
-        ]
-
+            {'description': ['','d2','desc3']}, index=['test1','test2','test3'])
+        self.column_metadata = pd.DataFrame({'a': [1,2,3,4,5,6]}, index=range(6))
+        self.store_history = True
         # self.kwargs = kwargs
+        self.matrix = MockData()
+        self.test_aln = MockAlignment(
+            self.matrix, name=self.name,
+            row_metadata=self.row_metadata,
+            col_metadata=self.column_metadata,
+            aln_metadata=self.alignment_metadata,
+            store_history=self.store_history,
+        )
 
     def teardown(self):
         pass
@@ -146,3 +134,59 @@ class TestFastaSerdeMixin:
                 exp, test
             )
 
+
+class TestColMetadataToStr:
+    def setup(self):
+        self.df = pd.DataFrame({
+            'data1': list(range(0,5)),
+            'data2': list(map(lambda x: x/100, range(0,5))),
+            'd3': list(map(lambda x: x**2, range(0,5))),
+        })
+
+    def teardown(self):
+        pass
+
+    def test_all_keys_no_encoder(self):
+        exp = 'c|data1=[0,1,2,3,4] c|data2=[0.0,0.01,0.02,0.03,0.04] c|d3=[0,1,4,9,16]'
+        test = col_metadata_to_str(self.df, ['data1', 'data2', 'd3'])
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
+    
+    def test_all_keys_no_encoder_custom_template(self):
+        exp = '(col|data1=[0,1,2,3,4]) (col|data2=[0.0,0.01,0.02,0.03,0.04]) (col|d3=[0,1,4,9,16])'
+        test = col_metadata_to_str(self.df, ['data1', 'data2', 'd3'], template='(col|{}={})')
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_all_keys_custom_encoder(self):
+        exp = 'c|data1=[0, 1, 2, 3, 4] c|data2=[0.0,0.01,0.02,0.03,0.04] c|d3=[0,1,4,9,16]'
+        encoders = {
+            'data1': lambda x: str(x),
+            'data2': lambda x: str(x).replace(' ', ''),
+            'd3': None,
+        }
+        test = col_metadata_to_str(
+            self.df, ['data1', 'data2', 'd3'], encoders=encoders)
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
+
+    def test_some_keys_custom_encoder(self):
+        exp = 'c|data1=[0, 1, 2, 3, 4] c|d3=[0,1,4,9,16]'
+        encoders = {
+            'data1': lambda x: str(x),
+            # extra encoder become data2 column is not included
+            'data2': lambda x: str(x).replace(' ', ''),  
+            'd3': None,
+        }
+        test = col_metadata_to_str(
+            self.df, ['data1', 'd3'], encoders=encoders)
+        assert exp == test, \
+            "expected and test strings are not the same: {} != {}".format(
+                exp, test
+            )
