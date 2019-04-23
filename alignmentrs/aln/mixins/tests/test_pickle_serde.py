@@ -8,108 +8,67 @@ from alignmentrs.aln.mixins import serde
 from alignmentrs.aln.mixins.tests.mocks import MockData
 
 
-class MockClass(serde.PickleSerdeMixin):
-    def __init__(self, records, name=None, index=None, comments=None, row_metadata=None, column_metadata=None, store_history=True, **kwargs):
+class MockAlignment(serde.PickleSerdeMixin):
+    def __init__(self, matrix, name=None,
+                 row_metadata=None, col_metadata=None,
+                 row_ids:list=None, row_descriptions:list=None,
+                 col_ids:list=None, col_descriptions:list=None,
+                 aln_metadata:dict=None, store_history=True,
+                 **kwargs):
         self.name = name
-        self.index = index
-        self.comments = comments
-        self.row_metadata = row_metadata
-        self.column_metadata = column_metadata
+        self.alignment_metadata = aln_metadata
+        if row_metadata is None:
+            self.row_metadata = pd.DataFrame(row_descriptions, index=row_ids)
+        else:
+            self.row_metadata = row_metadata
+        if col_metadata is None:
+            self.column_metadata = pd.DataFrame(col_descriptions, index=col_ids)
+        else:
+            self.column_metadata = col_metadata
         self.store_history = store_history
         self.kwargs = kwargs
         self.data = MockData()
 
 
-class TestJsonSerdeMixin:
+class TestPickleSerdeMixin:
 
     def setup(self):
-        self.records = [
-            Record('test1', 'description1', 'ATGCAT'),
-            Record('test2', 'description2', 'ATGGGT'),
-            Record('test3', 'description3', 'ATGAAT'),
-        ]
         self.name = 'mock_aln'
-        self.index = [0,1,2,3,4,5]
-
-        self.comments = {'test_comment': 'testing'}
-        self.comments_empty = {}
-        self.comments_none = None
-
+        self.alignment_metadata = {'comment1': 'This is a comment.'}
         self.row_metadata = pd.DataFrame(
-            {
-                'description': ['description1', 'description2', 'description3'],
-            },
-            index=['test1', 'test2', 'test3']
-        )
-        self.row_metadata_empty = pd.DataFrame({})
-        self.row_metadata_none = None
-
-        self.column_metadata = pd.DataFrame(
-            {
-                'a': [0,1,2,3,4,5],
-                'b': [10,11,12,13,14,15],
-            },
-            index=self.index
-        )
-        self.column_metdata_empty = pd.DataFrame({})
-        self.column_metdata_none = None
-    
-        self.sequences = [
-            'ATGCAT',
-            'ATGGGT',
-            'ATGAAT',
-        ]
-
+            {'description': ['','d2','desc3']}, index=['test1','test2','test3'])
+        self.column_metadata = pd.DataFrame({'a': [1,2,3,4,5,6]}, index=range(6))
+        self.store_history = True
         # self.kwargs = kwargs
+        self.matrix = MockData()
+        self.test_aln = MockAlignment(
+            self.matrix, name=self.name,
+            row_metadata=self.row_metadata,
+            col_metadata=self.column_metadata,
+            aln_metadata=self.alignment_metadata,
+            store_history=self.store_history,
+        )
 
     def teardown(self):
         pass
 
     def test_to_pickle(self):
-        test_class = MockClass(
-            self.records, name=self.name,
-            index=self.index,
-            comments=self.comments,
-            row_metadata=self.row_metadata,
-            column_metadata=self.column_metadata,
-            store_history=True,
-        )
-        test_pickle = test_class.to_pickle(row_metadata=True, column_metadata=True)
-        exp_pickle = pickle.dumps(MockClass(
-            self.records, name=self.name,
-            index=self.index,
-            comments=self.comments,
-            row_metadata=self.row_metadata,
-            column_metadata=self.column_metadata,
-            store_history=True,
-        ))
+        test_pickle = self.test_aln.to_pickle(
+            row_metadata=True, column_metadata=True)
+        exp_pickle = pickle.dumps(self.test_aln)
         assert exp_pickle == test_pickle, \
             "expected and test pickles are not the same: {} != {}".format(
                 exp_pickle, test_pickle
             )
 
     def test_from_pickle(self):
-        exp_pickle = pickle.dumps(MockClass(
-            self.records, name=self.name,
-            index=self.index,
-            comments=self.comments,
-            row_metadata=self.row_metadata,
-            column_metadata=self.column_metadata,
-            store_history=True,
-        ))
+        exp_pickle = pickle.dumps(self.test_aln)
         with tempfile.TemporaryFile(mode='rb+') as f:
             f.write(exp_pickle)
             f.seek(0)
-            test_class = MockClass.from_pickle(f)
+            test_class = MockAlignment.from_pickle(f)
 
-        exp_class = MockClass(
-            self.records, name=self.name,
-            index=self.index,
-            comments=self.comments,
-            row_metadata=self.row_metadata,
-            column_metadata=self.column_metadata,
-            store_history=True,
-        )
+        exp_class = self.test_aln
         assert type(exp_class) == type(test_class), \
             "expected and test classes are not the same: {} != {}".format(
                 exp_class.__class__.__name__,
