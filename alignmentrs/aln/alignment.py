@@ -314,7 +314,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     def column_and_metadata(self):
         df = self.column_metadata.copy(deep=True)
         df['sequence'] = [
-            ''.join(seq_vec)
+            seq_vec
             for seq_vec in self.data.get_cols(list(range(self.ncols)))
         ]
         return df

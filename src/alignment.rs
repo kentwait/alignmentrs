@@ -228,13 +228,24 @@ impl SeqMatrix {
     }
 
     /// Returns a vector of string sequence representing a column in the sequence matrix based on the given index.
-    pub fn _get_col(&self, id: i32) -> Result<Vec<String>, String> {
-        self._get_chunk(id, 1)
+    pub fn _get_col(&self, id: i32) -> Result<String, String> {
+        match self._get_chunk(id, 1) {
+            Ok(x) => Ok(x.join("")),
+            Err(x) => Err(x)
+        }
     }
 
     /// Returns a vector of vector of string sequences representing columns in the sequence matrix based on the given vector of indices.
-    pub fn _get_cols(&self, ids: Vec<i32>) -> Result<Vec<Vec<String>>, String> {
-        self._get_chunks(ids, 1)
+    pub fn _get_cols(&self, ids: Vec<i32>) -> Result<Vec<String>, String> {
+        match self._get_chunks(ids, 1) {
+            Ok(x) => {
+                let sequences: Vec<String> = x.into_iter().map(
+                    |x| x.join("")
+                ).collect();
+                Ok(sequences)
+            },
+            Err(x) => Err(x)
+        }
     }
 
     /// Removes columns from the sequence matrix based on a list of column indices.
@@ -520,7 +531,7 @@ impl SeqMatrix {
     /// --
     /// 
     /// Returns a list of sequence representing a column in the sequence matrix based on the given column index.
-    fn get_col(&self, id: i32) -> PyResult<Vec<String>> {
+    fn get_col(&self, id: i32) -> PyResult<String> {
         match self._get_col(id) {
             Ok(res) => Ok(res),
             Err(x) => Err(exceptions::IndexError::py_err(x)),
@@ -531,7 +542,7 @@ impl SeqMatrix {
     /// --
     /// 
     /// Returns a list of list of sequences representing columns in the sequence matrix based on the given list of column indices.
-    fn get_cols(&self, ids: Vec<i32>) -> PyResult<Vec<Vec<String>>> {
+    fn get_cols(&self, ids: Vec<i32>) -> PyResult<Vec<String>> {
         match self._get_cols(ids) {
             Ok(res) => Ok(res),
             Err(x) => Err(exceptions::IndexError::py_err(x)),
@@ -1039,7 +1050,7 @@ mod test {
         ]).unwrap();
         
         let res = mat._get_col(0).unwrap();
-        assert_eq!(res, vec!["a","a","a","t"]);
+        assert_eq!(res, "aaat");
     }
 
     #[test]
@@ -1052,7 +1063,7 @@ mod test {
         ]).unwrap();
         
         let res = mat._get_col(-1).unwrap();
-        assert_eq!(res, vec!["g","g","c","c"]);
+        assert_eq!(res, "ggcc");
     }
 
     #[test]
@@ -1065,7 +1076,7 @@ mod test {
         ]).unwrap();
         
         let res = mat._get_cols(vec![0,2]).unwrap();
-        assert_eq!(res, vec![vec!["a","a","a","t"],vec!["c","g","c","g"]]);
+        assert_eq!(res, vec!["aaat", "cgcg"]);
     }
 
     #[test]
@@ -1078,7 +1089,7 @@ mod test {
         ]).unwrap();
         
         let res = mat._get_cols(vec![0,-1]).unwrap();
-        assert_eq!(res, vec![vec!["a","a","a","t"],vec!["g","g","c","c"]]);
+        assert_eq!(res, vec!["aaat", "ggcc"]);
     }
 
     // Tests _remove_cols
