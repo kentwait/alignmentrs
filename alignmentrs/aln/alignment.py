@@ -94,19 +94,13 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
 
         # Construct row metadata dataframe using the row_metadata input OR
         # from row_ids and row_descriptions.
-        if row_metadata is None:
-            self.row_metadata = \
-                self._make_row_meta(ids=row_ids, descriptions=row_descriptions)
-        else:
-            self.row_metadata = self._make_row_meta(data=row_metadata)
+        self.row_metadata = self._make_row_meta(
+            data=row_metadata, ids=row_ids, descriptions=row_descriptions)
 
         # Construct row metadata dataframe using the row_metadata input OR
         # from row_ids and row_descriptions.
-        if col_metadata is None:
-            self.column_metadata = \
-                self._make_col_meta(ids=col_ids, descriptions=col_descriptions)
-        else:
-            self.column_metadata = self._make_col_meta(data=col_metadata)
+        self.column_metadata = self._make_col_meta(
+            data=col_metadata, ids=col_ids, descriptions=col_descriptions)
 
         # Construct alignment metadata from specified aln_metadata
         self.alignment_metadata = self._make_aln_meta(aln_metadata)
@@ -179,9 +173,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             raise TypeError('Cannot construct `row_metadata` DataFrame using the given `row_metadata` input type: {}'.format(type(data)))
         # data is not specified
         # Construct a DataFrame from ids and descriptions.
+        elif (descriptions is not None) and (ids is not None):
+            return pandas.DataFrame({'description': descriptions}, index=ids)
         # If descriptions is supplied but ids is not specified,
         # construct the DataFrame with default integer indexing.
-        if (descriptions is not None) and (ids is None):
+        elif (descriptions is not None) and (ids is None):
             return pandas.DataFrame({'description': descriptions})
         # If descriptions is NOT specified but ids is specified,
         # use ids as index and return an empty DataFrame.
@@ -215,9 +211,11 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             raise TypeError('Cannot construct `col_metadata` DataFrame using the given `col_metadata` input type: {}'.format(type(data)))
         # data is not specified
         # Construct a DataFrame from ids and descriptions.
+        elif (descriptions is not None) and (ids is not None):
+            return pandas.DataFrame({'description': descriptions}, index=ids)
         # If descriptions is specified but ids is not specified,
         # construct the DataFrame with default integer indexing.
-        if (descriptions is not None) and (ids is None):
+        elif (descriptions is not None) and (ids is None):
             return pandas.DataFrame({'description': descriptions})
         # If descriptions is NOT specified but ids is specified,
         # use ids as index and return an empty DataFrame.

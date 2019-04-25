@@ -87,7 +87,8 @@ class FastaSerdeMixin:
                 # Put key-value pair into the dictionary
                 col_d[key] = value
             # Constructs column metadata DataFrame from dictionary and index
-            col_meta = pandas.DataFrame(col_d, index=col_idx)
+            if (col_idx is not None) or col_d:
+                col_meta = pandas.DataFrame(col_d, index=col_idx)
 
         if name is None:
             name = os.path.basename(path)
