@@ -189,7 +189,7 @@ impl SeqMatrix {
     pub fn _get_chunk(&self, id: i32, chunk_size: usize) -> Result<Vec<String>, String> {
         self._is_empty_matrix()?;
         self._is_valid_col_index(id)?;
-        let col: usize = if id < 0 { (self.rows as i32 + id) as usize } else { id as usize };
+        let col: usize = if id < 0 { (self.cols as i32 + id) as usize } else { id as usize };
         let sequences: Vec<String> = self.data.iter()
             .map(|row| {
                 let row: Vec<char> = row.chars().collect();
