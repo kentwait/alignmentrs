@@ -384,20 +384,7 @@ class ColMethods:
                     '`chunk_size` must be None or int: {} ({})'.format(
                         chunk_size, type(chunk_size)
                     ))
-        # Check values
-        if step < 1:
-            raise ValueError('`step` must be greater than zero: {}'.format(
-                step
-            ))
-        if chunk_size < 1:
-            raise ValueError(
-                '`chunk_size` must be greater than zero: {}'.format(
-                    chunk_size
-                ))
-        if step > 1 and chunk_size > 1:
-            raise ValueError(
-                '`step` and `chunk_size` cannot be used simultaneously')
-        
+                
         # Initialize values
         # Default for step and chunk_size is None
         # The values are changed depending on how step and chunk_size are
@@ -418,6 +405,22 @@ class ColMethods:
         # chunk_size is not set
         if chunk_size is None:
             chunk_size = 1
+
+        # Check step and chunk_size values
+        if step < 1:
+            raise ValueError('`step` must be greater than zero: {}'.format(
+                step
+            ))
+        if chunk_size < 1:
+            raise ValueError(
+                '`chunk_size` must be greater than zero: {}'.format(
+                    chunk_size
+                ))
+        if step > 1 and chunk_size > 1:
+            raise ValueError(
+                '`step` and `chunk_size` cannot be used simultaneously')
+
+        # Initialize other values
         cnt = 0
         col_range = range(0, self._instance.ncols - (chunk_size-1), step)
 
