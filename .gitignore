@@ -182,3 +182,4 @@ Cargo.lock
 
 # Ignores examples folder
 /examples/*
+!/examples/*.ipynb
