@@ -18,6 +18,7 @@ from alignmentrs.aln.mixins import (
 # from alignmentrs.utils import add_to_history
 from .row import RowMethods
 from .col import ColMethods
+from alignmentrs.warning import NoNameWarning, DuplicateNameWarning
 
 
 __all__ = ['Alignment', 'CatAlignment']
@@ -182,10 +183,14 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # If descriptions is NOT specified but ids is specified,
         # use ids as index and return an empty DataFrame.
         elif (descriptions is None) and (ids is not None):
-            return pandas.DataFrame([], index=ids)
+            df = pandas.DataFrame([], index=ids)
+            df['description'] = [''] * len(ids)
+            return df
         # If both descriptions and ids are not specified, 
         # use default integer indexing and return an empty DataFrame.
-        return pandas.DataFrame([], index=range(self.nrows))
+        df = pandas.DataFrame([], index=range(self.nrows))
+        df['description'] = [''] * self.nrows
+        return df
 
     def _make_col_meta(self, data=None, ids=None, descriptions=None):
         # Constructs column metadata using data, or
@@ -617,7 +622,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
             parts += ['', aln, '']
         parts.append('[Alignment.Metadata]')
         parts.append('comment_keys = [{}]'.format(
-            ', '.join(list(self.comments.keys()))
+            ', '.join(list(self.alignment_metadata.keys()))
         ))
         parts.append('row_metadata_keys = [{}]'.format(
             ', '.join(list(self.row_metadata.keys()))
