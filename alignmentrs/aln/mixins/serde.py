@@ -366,7 +366,7 @@ class PickleSerdeMixin:
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'wb') as writer:
-            print(pickled, file=writer)
+            writer.write(pickled)
 
     def __getstate__(self):
         # This method gets called when the Alignment object
