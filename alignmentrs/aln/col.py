@@ -273,12 +273,15 @@ class ColMethods:
         # filtering function. Only columns that are True are recorded.
         # There are 2 different ways to create the positions list depending on
         # whether the chunk_size is 1 (default) or greater than 1.
-        if chunk_size == 1:
-            positions = [
+        positions = [
             i for i, col in enumerate(aln.col.iter(chunk_size=chunk_size)) 
             if function(col)
         ]
-        else:
+        # Positions are adjusted if chunk_size is greater than 1
+        # For example, if chunk_size = 3 and positions = [0,1,3]
+        # The positions value is converted back to nucleotide positions
+        # [0, 1, 2, 3, 4, 5, 9, 10, 11]
+        if chunk_size > 1:
             positions = list(itertools.chain(
                 *[range(i*chunk_size, (i*chunk_size)+chunk_size)
                   for i in positions]))
@@ -384,6 +387,10 @@ class ColMethods:
                     '`chunk_size` must be None or int: {} ({})'.format(
                         chunk_size, type(chunk_size)
                     ))
+        if (step and chunk_size) and (step > 1 and chunk_size > 1):
+            raise ValueError(
+                '`step` and `chunk_size` cannot be used simultaneously')
+
                 
         # Initialize values
         # Default for step and chunk_size is None
@@ -416,10 +423,7 @@ class ColMethods:
                 '`chunk_size` must be greater than zero: {}'.format(
                     chunk_size
                 ))
-        if step > 1 and chunk_size > 1:
-            raise ValueError(
-                '`step` and `chunk_size` cannot be used simultaneously')
-
+        
         # Initialize other values
         cnt = 0
         col_range = range(0, self._instance.ncols - (chunk_size-1), step)
