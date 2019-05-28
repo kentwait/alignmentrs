@@ -296,7 +296,7 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
     @property
     def ids(self):
         """list of str: Returns the list of identifiers."""
-        return self.row_metadata.index.to_list()
+        return self.row_metadata.index.tolist()
 
     @property
     def sequences(self):

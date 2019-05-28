@@ -237,10 +237,10 @@ class DictSerdeMixin:
         }
         if row_metadata:
             d['row_metadata'] = self.row_metadata.to_dict(orient='list')
-            d['row_metadata_index'] = self.row_metadata.index.to_list()
+            d['row_metadata_index'] = self.row_metadata.index.tolist()
         if column_metadata:
             d['column_metadata'] = self.column_metadata.to_dict(orient='list')
-            d['column_metadata_index'] = self.column_metadata.index.to_list()
+            d['column_metadata_index'] = self.column_metadata.index.tolist()
         return d
 
 class JsonSerdeMixin(DictSerdeMixin):
@@ -435,7 +435,7 @@ def col_metadata_to_str(column_metadata, included_keys, encoders=None, template=
         for k, v in included_values
     ]
     str_index = [col_metadata_str_formatter(
-        'index', column_metadata.index.to_list(),
+        'index', column_metadata.index.tolist(),
         encoders['index'] if 'index' in encoders.keys() else None, 
         index_template)
     ]
