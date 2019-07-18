@@ -5,7 +5,7 @@ from alignmentrs.aln import Alignment
 
 
 __author__ = 'Kent Kawashima'
-__version__ = '0.10.2'
+__version__ = '0.10.3'
 __all__ = [
     # From dynamic library
     'librs',
