@@ -1,4 +1,5 @@
 import itertools
+import logging
 
 import numpy as np
 import blockrs
@@ -705,7 +706,10 @@ class Alignment:
         # HA1-X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
         
         # split into parts
-        label, blocks_string = blocks_string.split('-', maxsplit=2)
+        try:
+            label, blocks_string = blocks_string.split('-', maxsplit=2)
+        except ValueError:
+            logging.warning('Block string does not contain a label (HA1).')
         parts = blocks_string.split(':')[:-1]  # last is empty
         chrom, scaffold_num, orientation, seg_cnt = parts[:4]
         coords_generator = (
