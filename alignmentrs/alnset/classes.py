@@ -249,7 +249,7 @@ class AlignmentSet:
 
     @classmethod
     def from_fasta_files(cls, paths, name, marker_kw=None,
-                         filename_to_key_encoder=None):
+                         filename_to_key_encoder=None, has_blockdata=False):
         """Reads FASTA files and stores data as a set of Alignment objects
         inside AlignmentSet.
 
@@ -283,12 +283,13 @@ class AlignmentSet:
             if key in sequence_d.keys():
                 raise KeyError('alignment "{}" already exists'.format(key))
             sequence_d[key] = Alignment.from_fasta(fname, name=key,
-                                                   marker_kw=marker_kw)
+                                                   marker_kw=marker_kw,
+                                                   has_blockdata=has_blockdata)
         return cls(name, list(sequence_d.values()))
 
     @classmethod
     def from_fasta_dir(cls, dirpath, name, marker_kw=None,
-                       suffix='.aln', filename_to_key_encoder=None):
+                       suffix='.aln', filename_to_key_encoder=None, has_blockdata=False):
         """Reads a directory containing FASTA files and stores data as a
         set of alignment objects inside an AlignmentSet.
 
@@ -329,7 +330,8 @@ class AlignmentSet:
         paths = (os.path.join(dirpath, fname) for fname in os.listdir(dirpath)
                  if fname.endswith(suffix))
         return cls.from_fasta_files(paths, name, marker_kw,
-                                    filename_to_key_encoder)
+                                    filename_to_key_encoder,
+                                    has_blockdata=has_blockdata)
 
     def __getitem__(self, key):
         return self._alignments[key]
