@@ -1,7 +1,10 @@
+import itertools
+
 import numpy as np
 import blockrs
 from libalignmentrs.alignment import BaseAlignment
 from libalignmentrs.fasta import fasta_file_to_basealignments
+from blockdata import Block, GenomeBlock
 
 
 __all__ = ['Alignment']
@@ -26,7 +29,7 @@ class Alignment:
         Alignment of non-sample sequences. This is metadata
         stored as a row in the alignment that describes some
         kind of site-specific information.
-    blocklists : list of Block
+    blockdata : list of Block
         List that stores positional information of the alignment since
         tracking was initiated.
 
@@ -68,7 +71,7 @@ class Alignment:
         self.samples = sample_alignment
         self.markers = marker_alignment if marker_alignment else \
                        BaseAlignment([], [], [])
-        self.blocklists = []
+        self.blockdata = []
 
     # Properties to retrieve the number of rows in the alignment.
     # Because the alignment object distinguishes between samples and markers,
@@ -597,17 +600,25 @@ class Alignment:
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
         # Update blocks if exists
-        if self.blocklists:
-            self.blocklists = [
-                blockrs.remove_sites_from_blocks(blist, i)
-                for seq, blist in zip(self.samples.sequences, self.blocklists)]
-        # Update block data in description if description encoder is specified
-        if description_encoder:
-            self.samples.set_descriptions(
-                list(range(self.samples.nrows)),
-                [description_encoder(sid, blist)
-                 for sid, blist in zip(self.samples.ids, self.blocklists)]
-            )
+        if self.blockdata:
+            chrom = self.blockdata[0].chrom
+            # orientation = self.blockdata[0].orientation
+            # Convert to zero-based then expand to vector
+            expanded_form = itertools.chain.from_iterable(
+                [g.one_to_zero().decode() for g in self.blockdata])
+            # Filter
+            edited_expanded_form = [
+                pos for c, pos in enumerate(expanded_form)
+                if c not in i  # retain pos if it is NOT in list i
+            ]
+            # Compress to blockdata again
+            compressed_form = GenomeBlock.encode(chrom)
+            self.blockdata = [
+                g.zero_to_one() for g in compressed_form
+            ]
+            # Update blockdata in description of first sample
+            ha_blockdata = self.genomeblocks_to_hablocks(self.blockdata)
+            self.samples.set_description(0, ha_blockdata)
 
     def retain_sites(self, i, description_encoder=None):
         """Keeps sites based on the given list of column numbers.
@@ -636,21 +647,28 @@ class Alignment:
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
         # Update blocks if exists
-        if self.blocklists:
-            j = [pos for pos in range(self.samples.nsites) if pos not in i]
-            self.blocklists = [
-                blockrs.remove_sites_from_blocks(blist, j)
-                for seq, blist in zip(self.samples.sequences, self.blocklists)]
-        # Update block data in description if description encoder is specified
-        if description_encoder:
-            self.samples.set_descriptions(
-                list(range(self.samples.nrows)),
-                [description_encoder(sid, blist)
-                 for sid, blist in zip(self.samples.ids, self.blocklists)]
-            )
+        if self.blockdata:
+            chrom = self.blockdata[0].chrom
+            # orientation = self.blockdata[0].orientation
+            # Convert to zero-based then expand to vector
+            expanded_form = itertools.chain.from_iterable(
+                [g.one_to_zero().decode() for g in self.blockdata])
+            # Filter
+            edited_expanded_form = [
+                pos for c, pos in enumerate(expanded_form)
+                if c in i  # retain pos if it is in list i
+            ]
+            # Compress to blockdata again
+            compressed_form = GenomeBlock.encode(chrom)
+            self.blockdata = [
+                g.zero_to_one() for g in compressed_form
+            ]
+            # Update blockdata in description of first sample
+            ha_blockdata = self.genomeblocks_to_hablocks(self.blockdata)
+            self.samples.set_description(0, ha_blockdata)
 
     @classmethod
-    def from_fasta(cls, path, name, marker_kw=None):
+    def from_fasta(cls, path, name, marker_kw=None, pos_data=False):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -673,7 +691,51 @@ class Alignment:
         if marker_kw is None:
             marker_kw = ''
         # Create alignments
-        return cls(name, *fasta_file_to_basealignments(path, marker_kw))
+        aln = cls(name, *fasta_file_to_basealignments(path, marker_kw))
+        if pos_data:
+            # Use converter to convert from ha to genomeblocks
+            self.blockdata = cls.hablocks_to_genomeblocks(
+                aln.sample_descriptions[0]
+            )
+
+    @staticmethod
+    def hablocks_to_genomeblocks(blocks_string):
+        # Sample
+        # HA1_X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
+        
+        # split into parts
+        label, blocks_string = blocks_string.split('_', maxsplit=2)
+        parts = blocks_string.split(':')[:-1]  # last is empty
+        chrom, scaffold_num, orientation, seg_cnt = parts[:4]
+        coords_generator = (
+            tuple(map(int, coords.split('..'))) for coords in parts[4:])
+
+        # Create genomeblocks
+        if orientation == '+':
+            return [
+                GenomeBlock(chrom=f'{chrom}_{scaffold_num}', start=a, end=b, orientation=True, zero_index=False)
+                for a, b in coords_generator
+            ]
+        return [
+            GenomeBlock(start=b, end=a, orientation=True, zero_index=False)
+            for a, b in coords_generator
+        ]
+
+    @staticmethod
+    def genomeblocks_to_hablocks(genomeblocks_list):
+        # Sample
+        # HA1_X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
+        coords_string = ':'.join(
+            [
+                f'{g.start}..{g.end}'
+                if g.orientation else f'{g.end}..{g.start}'
+                for g in genomeblocks_list
+            ]
+        )
+        chrom, scaffold_num = genomeblocks_list[0].chrom.split('_')
+        orientation = genomeblocks_list[0].orientation
+        count = len(genomeblocks_list)
+        return f'HA1_{chrom}:{scaffold_num}:{orientation}:{count}:{coords_string}:'
 
     # Format converters
 
@@ -844,7 +906,7 @@ class Alignment:
 
     # Block-related methods
 
-    def set_blocklists(self, ref_seq, description_encoder=None):
+    def set_blockdata(self, ref_seq, description_encoder=None):
         """Creates new block information for the sequences given a reference.
 
         Parameters
@@ -859,13 +921,13 @@ class Alignment:
             updated. (default is None)
 
         """
-        self.blocklists = [blockrs.pairwise_to_blocks(ref_seq, seq)
+        self.blockdata = [blockrs.pairwise_to_blocks(ref_seq, seq)
                            for seq in self.samples.sequences]
         if description_encoder:
             self.samples.set_descriptions(
                 list(range(self.samples.nrows)),
                 [description_encoder(sid, blist)
-                 for sid, blist in zip(self.samples.ids, self.blocklists)]
+                 for sid, blist in zip(self.samples.ids, self.blockdata)]
             )
 
     def parse_description_as_blocks(self, description_decoder=None):
@@ -881,15 +943,15 @@ class Alignment:
             blocks.
 
         """
-        if not self.blocklists:
-            self.blocklists = [None for _ in range(self.samples.nrows)]
+        if not self.blockdata:
+            self.blockdata = [None for _ in range(self.samples.nrows)]
         for i, desc in enumerate(self.samples.descriptions):
             if description_decoder:
                 desc = description_decoder(desc)
             else:
                 desc = desc.split('_')[-1]
             # Parse block str into blocks
-            self.blocklists[i] = blockrs.libblock.from_block_str(desc)
+            self.blockdata[i] = blockrs.libblock.from_block_str(desc)
 
     def write_blocks_to_description(self, description_encoder):
         """Writes each sample's block data as a string, replacing its
@@ -909,11 +971,11 @@ class Alignment:
             Given parameter has the wrong parameter type.
 
         """
-        if self.blocklists:
+        if self.blockdata:
             self.samples.set_descriptions(
                 list(range(self.samples.nrows)),
                 [description_encoder(sid, blist)
-                 for sid, blist in zip(self.samples.ids, self.blocklists)]
+                 for sid, blist in zip(self.samples.ids, self.blockdata)]
             )
         else:
             raise ValueError('Block list is empty')
