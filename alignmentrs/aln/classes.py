@@ -668,7 +668,7 @@ class Alignment:
             self.samples.set_description(0, ha_blockdata)
 
     @classmethod
-    def from_fasta(cls, path, name, marker_kw=None, pos_data=False):
+    def from_fasta(cls, path, name, marker_kw=None, has_blockdata=False):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -702,10 +702,10 @@ class Alignment:
     @staticmethod
     def hablocks_to_genomeblocks(blocks_string):
         # Sample
-        # HA1_X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
+        # HA1-X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
         
         # split into parts
-        label, blocks_string = blocks_string.split('_', maxsplit=2)
+        label, blocks_string = blocks_string.split('-', maxsplit=2)
         parts = blocks_string.split(':')[:-1]  # last is empty
         chrom, scaffold_num, orientation, seg_cnt = parts[:4]
         coords_generator = (
@@ -723,9 +723,9 @@ class Alignment:
         ]
 
     @staticmethod
-    def genomeblocks_to_hablocks(genomeblocks_list):
+    def genomeblocks_to_hablocks(genomeblocks_list, label='HA1'):
         # Sample
-        # HA1_X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
+        # HA1-X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
         coords_string = ':'.join(
             [
                 f'{g.start}..{g.end}'
@@ -736,7 +736,7 @@ class Alignment:
         chrom, scaffold_num = genomeblocks_list[0].chrom.split('_')
         orientation = genomeblocks_list[0].orientation
         count = len(genomeblocks_list)
-        return f'HA1_{chrom}:{scaffold_num}:{orientation}:{count}:{coords_string}:'
+        return f'{label}-{chrom}:{scaffold_num}:{orientation}:{count}:{coords_string}:'
 
     # Format converters
 
