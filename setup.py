@@ -1,7 +1,6 @@
 from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
-from alignmentrs import __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -9,7 +8,7 @@ with open("README.md", "r") as fh:
 setup(
     name='alignmentrs',
     author='Kent Kawashima',
-    version=__version__,
+    version='0.7.2-a.1',
     author_email='kentkawashima@gmail.com',
     description='Quickly read and manipulate multiple sequence alignments in Python',
     long_description=long_description,
