@@ -595,7 +595,7 @@ class Alignment:
             i = [i]
         # Perform removal inplace
         self.samples.remove_sites(i)
-        if not self.markers:
+        if not (self.markers is None or self.markers.nrows == 0):
             self.markers.remove_sites(i)
             assert self.samples.nsites == self.markers.nsites, \
                 "Sample and marker nsites are not equal."
