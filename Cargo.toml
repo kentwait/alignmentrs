@@ -1,6 +1,6 @@
 [package]
 name = "alignmentrs"
-version = "0.7.2-a.9"
+version = "0.7.2-a.10"
 authors = ["Kent Kawashima <kentkawashima@gmail.com>"]
 edition = "2018"
 

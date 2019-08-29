@@ -726,11 +726,14 @@ class Alignment:
     def genomeblocks_to_hablocks(genomeblocks_list, label='HA1'):
         # Sample
         # HA1-X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
-        coords_string = ':'.join(
-            [f'{g.start}..{g.end}' for g in genomeblocks_list])
-        chrom, scaffold_num = genomeblocks_list[0].chrom.split('_')
-        orientation = '+' if genomeblocks_list[0].orientation else '-'
-        count = len(genomeblocks_list)
+        if len(genomeblocks_list) > 0:
+            coords_string = ':'.join(
+                [f'{g.start}..{g.end}' for g in genomeblocks_list])
+            chrom, scaffold_num = genomeblocks_list[0].chrom.split('_')
+            orientation = '+' if genomeblocks_list[0].orientation else '-'
+            count = len(genomeblocks_list)
+            return f'{label}|{chrom}:{scaffold_num}:{orientation}:{count}:{coords_string}:'
+        chrom, scaffold_num, orientation, count, coords_string = '', '', '', '', ''
         return f'{label}|{chrom}:{scaffold_num}:{orientation}:{count}:{coords_string}:'
 
     # Format converters
