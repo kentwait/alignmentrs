@@ -6,7 +6,7 @@ from alignmentrs.aln import Alignment
 __all__ = ['fasta_file_to_alignment']
 
 
-def fasta_file_to_alignment(path, name, marker_kw=None):
+def fasta_file_to_alignment(path, name, marker_kw=None, has_blockdata=False):
     """Reads a FASTA formatted text file to a list.
 
     Parameters
@@ -26,7 +26,8 @@ def fasta_file_to_alignment(path, name, marker_kw=None):
     # Create alignments
     if marker_kw is None:
         marker_kw = ''
-    return Alignment(name, *fasta_file_to_basealignments(path, marker_kw))
+    return Alignment.from_fasta(
+        path, name, marker_kw=marker_kw, has_blockdata=has_blockdata)
 
 
 def mark_sites_with_chars(aln, target_list, size=1,
