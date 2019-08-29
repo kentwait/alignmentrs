@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 setup(
     name='alignmentrs',
     author='Kent Kawashima',
-    version='0.7.2-a.8',
+    version='0.7.2-a.9',
     author_email='kentkawashima@gmail.com',
     description='Quickly read and manipulate multiple sequence alignments in Python',
     long_description=long_description,
