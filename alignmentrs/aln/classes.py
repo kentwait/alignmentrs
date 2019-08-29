@@ -697,6 +697,7 @@ class Alignment:
             self.blockdata = cls.hablocks_to_genomeblocks(
                 aln.sample_descriptions[0]
             )
+        return aln
 
     @staticmethod
     def hablocks_to_genomeblocks(blocks_string):
