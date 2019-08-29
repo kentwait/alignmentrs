@@ -722,7 +722,7 @@ class Alignment:
                 for a, b in coords_generator
             ]
         return [
-            GenomeBlock(start=b, end=a, orientation=True, zero_index=False)
+            GenomeBlock(chrom=f'{chrom}_{scaffold_num}', start=b, end=a, orientation=True, zero_index=False)
             for a, b in coords_generator
         ]
 
