@@ -729,7 +729,7 @@ class Alignment:
         coords_string = ':'.join(
             [f'{g.start}..{g.end}' for g in genomeblocks_list])
         chrom, scaffold_num = genomeblocks_list[0].chrom.split('_')
-        orientation = genomeblocks_list[0].orientation
+        orientation = '+' if genomeblocks_list[0].orientation else '-'
         count = len(genomeblocks_list)
         return f'{label}|{chrom}:{scaffold_num}:{orientation}:{count}:{coords_string}:'
 
