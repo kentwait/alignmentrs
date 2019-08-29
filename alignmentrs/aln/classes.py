@@ -692,7 +692,7 @@ class Alignment:
             marker_kw = ''
         # Create alignments
         aln = cls(name, *fasta_file_to_basealignments(path, marker_kw))
-        if pos_data:
+        if has_blockdata:
             # Use converter to convert from ha to genomeblocks
             self.blockdata = cls.hablocks_to_genomeblocks(
                 aln.sample_descriptions[0]
