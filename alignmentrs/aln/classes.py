@@ -707,7 +707,7 @@ class Alignment:
         
         # split into parts
         try:
-            label, blocks_string = blocks_string.split('-', maxsplit=2)
+            label, blocks_string = blocks_string.split('|', maxsplit=2)
         except ValueError:
             logging.warning('Block string does not contain a label (HA1).')
         parts = blocks_string.split(':')[:-1]  # last is empty
@@ -716,13 +716,9 @@ class Alignment:
             tuple(map(int, coords.split('..'))) for coords in parts[4:])
 
         # Create genomeblocks
-        if orientation == '+':
-            return [
-                GenomeBlock(chrom=f'{chrom}_{scaffold_num}', start=a, end=b, orientation=True, zero_index=False)
-                for a, b in coords_generator
-            ]
+        orientation = True if orientation == '+' else False
         return [
-            GenomeBlock(chrom=f'{chrom}_{scaffold_num}', start=b, end=a, orientation=True, zero_index=False)
+            GenomeBlock(chrom=f'{chrom}_{scaffold_num}', start=a, end=b, orientation=orientation, zero_index=False)
             for a, b in coords_generator
         ]
 
@@ -731,16 +727,11 @@ class Alignment:
         # Sample
         # HA1-X:6:+:8:19963955..19964071:19964782..19964944:19965006..19965126:19965197..19965511:19965577..19966071:19966183..19967012:19967081..19967223:19967284..19967460:
         coords_string = ':'.join(
-            [
-                f'{g.start}..{g.end}'
-                if g.orientation else f'{g.end}..{g.start}'
-                for g in genomeblocks_list
-            ]
-        )
+            [f'{g.start}..{g.end}' for g in genomeblocks_list])
         chrom, scaffold_num = genomeblocks_list[0].chrom.split('_')
         orientation = genomeblocks_list[0].orientation
         count = len(genomeblocks_list)
-        return f'{label}-{chrom}:{scaffold_num}:{orientation}:{count}:{coords_string}:'
+        return f'{label}|{chrom}:{scaffold_num}:{orientation}:{count}:{coords_string}:'
 
     # Format converters
 
