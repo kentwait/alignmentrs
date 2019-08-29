@@ -653,14 +653,14 @@ class Alignment:
             # orientation = self.blockdata[0].orientation
             # Convert to zero-based then expand to vector
             expanded_form = itertools.chain.from_iterable(
-                [g.one_to_zero().decode() for g in self.blockdata])
+                [g.one_to_zero().decode()[-1] for g in self.blockdata])
             # Filter
             edited_expanded_form = [
                 pos for c, pos in enumerate(expanded_form)
-                if c in i  # retain pos if it is in list i
+                if c in i  # retain pos if it is IN list i
             ]
             # Compress to blockdata again
-            compressed_form = GenomeBlock.encode(chrom)
+            compressed_form = GenomeBlock.encode(chrom, edited_expanded_form)
             self.blockdata = [
                 g.zero_to_one() for g in compressed_form
             ]
