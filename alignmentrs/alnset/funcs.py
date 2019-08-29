@@ -6,7 +6,8 @@ __all__ = ['fasta_directory_to_alignmentset']
 
 def fasta_directory_to_alignmentset(dirpath, name, marker_kw=None,
                                     suffix='.aln',
-                                    filename_to_key_encoder=None):
+                                    filename_to_key_encoder=None,
+                                    has_blockdata=has_blockdata):
     """Reads a directory containing FASTA files and stores data as a
     set of alignment objects inside an AlignmentSet.
 
@@ -39,4 +40,5 @@ def fasta_directory_to_alignmentset(dirpath, name, marker_kw=None,
 
     """
     return AlignmentSet.from_fasta_dir(
-        dirpath, name, marker_kw, suffix, filename_to_key_encoder)
+        dirpath, name, marker_kw, suffix, filename_to_key_encoder,
+        has_blockdata=has_blockdata)
