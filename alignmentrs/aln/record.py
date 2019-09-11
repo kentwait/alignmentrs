@@ -1,3 +1,5 @@
+""" Class for formatting sequence and metadata. """
+
 import pandas
 
 class Record:

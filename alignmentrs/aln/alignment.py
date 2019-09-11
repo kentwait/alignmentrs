@@ -1,7 +1,9 @@
+""" Alignment class. """
+
 from collections import Counter
-from copy import copy, deepcopy
-import os
-import inspect
+# from copy import copy, deepcopy
+# import os
+# import inspect
 import warnings
 
 import pandas
