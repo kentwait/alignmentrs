@@ -130,6 +130,34 @@ def fasta_file_to_lists(path, marker_kw=None):
         }
     }
 
+def alignment_file_to_lists(path, marker_kw=None):
+    """ Reads a FASTA formatted text file to a list. Nucleotide or amino acid
+    sequences and marker sequences should be the same lengths.
+
+    Parameters
+    ----------
+    path : str
+        Location of FASTA file.
+    marker_kw : str
+        Keyword indicating the sample is a marker.
+
+    Returns
+    -------
+    dict
+        Contains list of ids, descriptions, and sequences for sample
+        and marker categories.
+
+    """
+    fasta = fasta_file_to_lists(path, marker_kw)
+
+    # Check if lengths of sequences are the same
+    sequences = fasta['sample']['sequences'] + fasta['marker']['sequences']
+    len_array = [len(seq) for seq in sequences]
+    assert min(len_array) == max(len_array), \
+        'Wrong sequence lengths: different lengths of sequences exist. '\
+            '{} <= seq_len <= {}.'.format(min(len_array), max(len_array))
+
+    return fasta
 
 def parse_comment_list(comment_list: list):
     comments_d = dict()
