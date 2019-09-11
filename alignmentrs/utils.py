@@ -11,6 +11,7 @@ __all__ = ['fasta_file_to_lists']
 
 def idseq_to_display(ids, chunked_sequences, template='{name}     {seq}',
                      max_length=20, id_width=15, sequence_width=55):
+    ids = list(map(str, ids))
     if not len(ids):
         return ''
     def chunked_fn(x):

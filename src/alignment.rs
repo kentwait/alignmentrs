@@ -125,7 +125,11 @@ impl SeqMatrix {
 
     /// Keep rows matching the specified row indices, and removes everything else.
     pub fn _retain_rows(&mut self, ids: Vec<i32>) -> Result<(), String> {
-        self._drop_rows(ids, true)
+        if ids.len() == 0 {
+            let ids: Vec<i32> = (0..self._nrows()).map(|i| i as i32).collect();
+            return self._drop_rows(ids, false)
+        }
+        return self._drop_rows(ids, true)
     }
 
     /// Generalized method used to remove rows from the sequence matrix.
@@ -255,7 +259,11 @@ impl SeqMatrix {
 
     /// Keep columns matching the specified columns indices, and removes everything else.
     pub fn _retain_cols(&mut self, ids: Vec<i32>) -> Result<(), String> {
-        self._drop_cols(ids, true)
+        if ids.len() == 0 {
+            let ids: Vec<i32> = (0..self._ncols()).map(|i| i as i32).collect();
+            return self._drop_cols(ids, false)
+        }
+        return self._drop_cols(ids, true)
     }
 
     /// Generalized method used to remove columns from the sequence matrix.
