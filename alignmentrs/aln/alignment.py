@@ -183,14 +183,10 @@ class Alignment(PickleSerdeMixin, JsonSerdeMixin, FastaSerdeMixin,
         # If descriptions is NOT specified but ids is specified,
         # use ids as index and return an empty DataFrame.
         elif (descriptions is None) and (ids is not None):
-            df = pandas.DataFrame([], index=ids)
-            df['description'] = [''] * len(ids)
-            return df
+            return pandas.DataFrame(None, index=ids)
         # If both descriptions and ids are not specified, 
         # use default integer indexing and return an empty DataFrame.
-        df = pandas.DataFrame([], index=range(self.nrows))
-        df['description'] = [''] * self.nrows
-        return df
+        return pandas.DataFrame(None, index=range(self.nrows))
 
     def _make_col_meta(self, data=None, ids=None, descriptions=None):
         # Constructs column metadata using data, or
