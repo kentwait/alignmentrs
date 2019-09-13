@@ -29,7 +29,14 @@ class FastaSerdeMixin:
     from a FASTA formatted file.
     """
     @classmethod
-    def from_fasta(cls, path, name=None, parse_row_metadata=True,  parse_description=True, column_metadata_decoders=None, column_metadata_regexp='c\|([A-Za-z0-9\s\.]+)=(\[[A-Za-z0-9\.\s,\"\']+\])', column_index_regexp='ci\|([A-Za-z0-9\s\.]+)=(\[[A-Za-z0-9\.\s,\"\']+\])', store_history=True, **kwargs):
+    def from_fasta(
+        cls, path, name=None, 
+        # parse_row_metadata=True,
+        parse_description=True, 
+        # column_metadata_decoders=None,
+        column_metadata_regexp='c\|([A-Za-z0-9\s\.]+)=(\[[A-Za-z0-9\.\s,\"\']+\])',
+        column_index_regexp='ci\|([A-Za-z0-9\s\.]+)=(\[[A-Za-z0-9\.\s,\"\']+\])',
+        store_history=True, **kwargs):
         """Create an Alignment object from a FASTA-formatted file.
 
         Parameters
@@ -65,8 +72,9 @@ class FastaSerdeMixin:
             match = re.search(column_index_regexp, metadata['descriptions'][0])
             if match:
                 key, value = match.groups()
+                # Convert text into a list using eval
                 try:
-                    value = eval(value)
+                    value = cls._parse_str_to_list(value, 'infer')
                 except SyntaxError:
                     raise ValueError('Cannot construct Alignment from the given FASTA file: column index is malformed'.format(key))
                 # Put key-value pair into the dictionary
@@ -78,10 +86,8 @@ class FastaSerdeMixin:
                 match_locations.append(match.span())
                 key, value = match.groups()
                 # Convert text into a list using eval
-                # This is DANGEROUS and could open to exploitation.
-                # TODO: Add a prelimenary regex check to lessen vulnerability
                 try:
-                    value = eval(value)
+                    value = cls._parse_str_to_list(value, 'infer')
                 except SyntaxError:
                     raise ValueError('Cannot construct Alignment from the given FASTA file: column metadata {} is malformed'.format(key))
                 # Put key-value pair into the dictionary
@@ -158,6 +164,66 @@ class FastaSerdeMixin:
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'w') as writer:
             print(fasta_str, file=writer)
+
+    @staticmethod
+    def _parse_str_to_list(string: str, item_type: type = 'infer'):
+        """ Returns a list by parsing a given string. The input string has to
+        expressed as like Python list syntax.
+        
+        Parameters
+        ----------
+        string: str
+            A string to be converted into a list. Format should be Python
+            syntax of list object like "[1, 2, 3]". It has to starts with "["
+            and ends with "]" and items have to be separated by ",".
+        item_type: type (default: str)
+            Type in which items in str-like list will be converted. For example,
+            "[1, 2, 3]" and int are passed to string and item_type variables 
+            respectively, "[1, 2, 3]" will converted into [1, 2, 3] not
+            ["1", "2", "3"].
+
+        Return
+        ------
+            A list version of the input string.
+
+        """
+        # Check if item_type variable is "type" type
+        if item_type != 'infer' and not isinstance(item_type, type):
+            raise TypeError('Invalid type: object constructor type should be '\
+                    'passed to "item_type" variable.')
+
+        # Check if sring is str
+        if not isinstance(string, str):
+            raise TypeError('Invalid type: "string" variable has to be str type.')
+
+        # Check string format
+        if not string.startswith('['):
+            raise SyntaxError(f'Invalid syntax for conversion to a list. '\
+                '{string} does not start with "[".')
+        if not string.endswith(']'):
+            raise SyntaxError(f'Invalid syntax for conversion to a list. '\
+                '{string} does not end with "]".')
+        
+        # Convert into a list
+        if item_type == 'infer':
+            out_l = []
+            for item in string.split('[')[1].split(']')[0].split(','):
+                try:
+                    dat = int(item)
+                # e.g. int('1.1') gives "ValueError: invalid literal for int() 
+                # with base 10: '1.1'"
+                except ValueError:
+                    dat = float(item)
+                # e.g. float('a') gives "ValueError: could not convert string 
+                # to float: 'a'"
+                except:
+                    dat = item
+
+                out_l.append(dat)
+            return out_l
+
+        return [item_type(item) for item 
+            in string.split('[')[1].split(']')[0].split(',')]
 
     @staticmethod
     def _fasta_entry_formatter(sid, desc, seq, col_meta):
@@ -237,10 +303,10 @@ class DictSerdeMixin:
         }
         if row_metadata:
             d['row_metadata'] = self.row_metadata.to_dict(orient='list')
-            d['row_metadata_index'] = self.row_metadata.index.to_list()
+            d['row_metadata_index'] = self.row_metadata.index.tolist()
         if column_metadata:
             d['column_metadata'] = self.column_metadata.to_dict(orient='list')
-            d['column_metadata_index'] = self.column_metadata.index.to_list()
+            d['column_metadata_index'] = self.column_metadata.index.tolist()
         return d
 
 class JsonSerdeMixin(DictSerdeMixin):
@@ -366,7 +432,7 @@ class PickleSerdeMixin:
         if not os.path.isdir(dirpath):
             raise OSError('{} does not exist'.format(dirpath))
         with open(path, 'wb') as writer:
-            print(pickled, file=writer)
+            writer.write(pickled)
 
     def __getstate__(self):
         # This method gets called when the Alignment object
@@ -435,7 +501,7 @@ def col_metadata_to_str(column_metadata, included_keys, encoders=None, template=
         for k, v in included_values
     ]
     str_index = [col_metadata_str_formatter(
-        'index', column_metadata.index.to_list(),
+        'index', column_metadata.index.tolist(),
         encoders['index'] if 'index' in encoders.keys() else None, 
         index_template)
     ]

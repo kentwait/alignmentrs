@@ -57,9 +57,9 @@ class TestDictSerdeMixin:
             'data': self.matrix.data,
             'alignment_metadata': self.alignment_metadata,
             'row_metadata': self.row_metadata.to_dict(orient='list'),
-            'row_metadata_index': self.row_metadata.index.to_list(),
+            'row_metadata_index': self.row_metadata.index.tolist(),
             'column_metadata': self.column_metadata.to_dict(orient='list'),
-            'column_metadata_index': self.column_metadata.index.to_list(),
+            'column_metadata_index': self.column_metadata.index.tolist(),
         }
         assert exp_dict == test_dict, \
             "expected and test dictionaries are not the same: {} != {}".format(
@@ -74,7 +74,7 @@ class TestDictSerdeMixin:
             'data': self.matrix.data,
             'alignment_metadata': self.alignment_metadata,
             'row_metadata': self.row_metadata.to_dict(orient='list'),
-            'row_metadata_index': self.row_metadata.index.to_list(),
+            'row_metadata_index': self.row_metadata.index.tolist(),
         }
         assert exp_dict == test_dict, \
             "expected and test dictionaries are not the same: {} != {}".format(
@@ -89,7 +89,7 @@ class TestDictSerdeMixin:
             'data': self.matrix.data,
             'alignment_metadata': self.alignment_metadata,
             'column_metadata': self.column_metadata.to_dict(orient='list'),
-            'column_metadata_index': self.column_metadata.index.to_list(),
+            'column_metadata_index': self.column_metadata.index.tolist(),
         }
         assert exp_dict == test_dict, \
             "expected and test dictionaries are not the same: {} != {}".format(
@@ -102,9 +102,9 @@ class TestDictSerdeMixin:
             'data': self.matrix.data,
             'alignment_metadata': self.alignment_metadata,
             'row_metadata': self.row_metadata.to_dict(orient='list'),
-            'row_metadata_index': self.row_metadata.index.to_list(),
+            'row_metadata_index': self.row_metadata.index.tolist(),
             'column_metadata': self.column_metadata.to_dict(orient='list'),
-            'column_metadata_index': self.column_metadata.index.to_list(),
+            'column_metadata_index': self.column_metadata.index.tolist(),
         }
         test_class = MockAlignment.from_dict(test_dict)
         exp_class = MockAlignment(

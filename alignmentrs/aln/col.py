@@ -1,6 +1,8 @@
-from copy import deepcopy
+""" Classes for retrieving and removing data column by column.  """
+
+# from copy import deepcopy
 import numbers
-import inspect
+# import inspect
 import itertools
 
 import pandas

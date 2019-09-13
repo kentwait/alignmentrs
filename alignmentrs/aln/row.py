@@ -1,7 +1,9 @@
-from copy import deepcopy
-import numbers
-import inspect
-import itertools
+""" Classes for retrieving and removing data row by row.  """
+
+# from copy import deepcopy
+# import numbers
+# import inspect
+# import itertools
 
 import pandas
 
